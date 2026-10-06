@@ -1,0 +1,71 @@
+.sidebar {
+  width: 256px;
+  padding: 8px 16px 16px 8px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  transition: width 150ms;
+}
+
+.collapsed {
+  width: 72px;
+}
+
+.compose {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 24px 0 16px;
+  margin: 0 0 16px;
+  border: none;
+  border-radius: var(--ob-radius);
+  background: var(--ob-surface);
+  color: var(--ob-text);
+  font: inherit;
+  font-weight: 500;
+  box-shadow: var(--ob-shadow);
+  cursor: pointer;
+}
+
+.collapsed .compose {
+  width: 56px;
+  padding: 0;
+  justify-content: center;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 32px;
+  padding: 0 12px 0 16px;
+  border-radius: 0 var(--ob-radius-pill) var(--ob-radius-pill) 0;
+  color: var(--ob-text);
+  text-decoration: none;
+}
+
+.item:hover {
+  background: var(--ob-surface-hover);
+}
+
+.active {
+  background: var(--ob-nav-active);
+  font-weight: 700;
+}
+
+.collapsed .item {
+  width: 32px;
+  padding: 0 0 0 12px;
+  border-radius: var(--ob-radius-pill);
+}
+
+.section {
+  margin: 20px 0 8px 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
