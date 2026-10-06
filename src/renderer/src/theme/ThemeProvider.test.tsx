@@ -4,11 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider, useTheme } from './ThemeProvider';
 
-vi.mock('@cloudscape-design/global-styles', () => ({
-  applyMode: vi.fn(),
-  Mode: { Light: 'light', Dark: 'dark' },
-}));
-
 let systemDark = false;
 let listeners: ((event: MediaQueryListEvent) => void)[] = [];
 
