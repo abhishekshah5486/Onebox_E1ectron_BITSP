@@ -12,7 +12,7 @@ export default defineConfig(
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['*.js', '*.ts'] },
+        projectService: { allowDefaultProject: ['*.js'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
