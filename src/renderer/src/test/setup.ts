@@ -14,3 +14,13 @@ vi.mock('@cloudscape-design/global-styles', () => ({
   applyMode: vi.fn(),
   Mode: { Light: 'light', Dark: 'dark' },
 }));
+
+// Cloudscape measures layout with ResizeObserver, which jsdom lacks.
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+);
