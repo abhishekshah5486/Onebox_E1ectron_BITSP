@@ -12,6 +12,8 @@
   --ob-border: #e3e6ea;
   --ob-accent: #0b57d0;
   --ob-accent-contrast: #ffffff;
+  --ob-accent-hover: #0842a0;
+  --ob-selected-soft: #e8f0fe;
   --ob-row-selected: #c2dbff;
   --ob-row-read: #f2f6fc;
   --ob-star: #f4b400;
@@ -32,6 +34,8 @@
   --ob-border: #2f3136;
   --ob-accent: #a8c7fa;
   --ob-accent-contrast: #062e6f;
+  --ob-accent-hover: #d3e3fd;
+  --ob-selected-soft: #1c2b45;
   --ob-row-selected: #1d4fbf;
   --ob-row-read: #1a1b1e;
   --ob-star: #fdd663;
