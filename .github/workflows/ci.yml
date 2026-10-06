@@ -25,6 +25,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run coverage
       - run: npm run build
+      - run: npm run build:web
 
   commitlint:
     name: Commit messages

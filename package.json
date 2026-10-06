@@ -20,7 +20,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:web": "vite --config vite.web.config.ts",
+    "build:web": "vite build --config vite.web.config.ts",
+    "preview:web": "vite preview --config vite.web.config.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
@@ -62,6 +65,7 @@
     "@cloudscape-design/components": "^3.0.1392",
     "@cloudscape-design/global-styles": "^1.0.71",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
   }
 }
