@@ -1,0 +1,63 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: var(--ob-radius);
+  background: var(--ob-surface);
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+  padding: 0 16px 0 12px;
+  border-bottom: 1px solid var(--ob-border);
+  color: var(--ob-text-muted);
+}
+
+.toolbar button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: var(--ob-surface-hover);
+}
+
+.count {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.empty {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: var(--ob-text-muted);
+}
+
+.empty h2 {
+  margin: 8px 0 0;
+  color: var(--ob-text);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.empty p {
+  margin: 0 0 8px;
+  max-width: 420px;
+  line-height: 1.5;
+}
