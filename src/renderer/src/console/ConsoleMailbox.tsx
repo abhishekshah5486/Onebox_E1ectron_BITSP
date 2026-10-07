@@ -20,7 +20,7 @@ import {
 import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { FOLDER_LABEL, isFolderRole, type FolderRole } from '../mail/folders';
-import { displayName, formatUtc } from '../mail/format';
+import { displayName, formatUtc, middleTruncate } from '../mail/format';
 import { PAGE_SIZE } from '../mail/paging';
 import { useLoadPage } from '../mail/useLoadPage';
 import styles from './ConsoleMailbox.module.css';
@@ -74,7 +74,7 @@ function columns(
               return (
                 <span className={styles.account} title={account?.emailAddress}>
                   {account && <ProviderLogo provider={account.provider} size={16} />}
-                  {text(thread, account?.emailAddress ?? '—')}
+                  {text(thread, account ? middleTruncate(account.emailAddress, 24) : '—')}
                 </span>
               );
             },

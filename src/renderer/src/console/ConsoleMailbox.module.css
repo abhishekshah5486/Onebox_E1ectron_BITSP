@@ -1,14 +1,12 @@
-/* Cloudscape's table has no per-row styling, so these rules reach into its markup. */
+/* Cloudscape's table has no per-row styling, so these rules reach into its markup.
+   Selected rows are left alone so Cloudscape's own selection styling shows. */
 .table {
-  --mail-header-bg: #e9ecef;
-  --mail-unread-bg: #ffffff;
-  --mail-read-bg: #f2f4f7;
-  --mail-hover-bg: #e3ecf9;
-  --mail-line: #d5dbe1;
+  --mail-read-bg: #f6f6f9;
   --mail-unread-text: #0f141a;
-  --mail-read-text: #49515c;
+  --mail-read-text: #5f6b7a;
 }
 
+/* Dark mode keeps a distinct header, firmer lines and a darker tint for read mail. */
 :root[data-theme='dark'] .table {
   --mail-header-bg: #232b37;
   --mail-unread-bg: #1b2430;
@@ -25,23 +23,28 @@
   width: 100%;
 }
 
-.table th {
+.table tbody tr:not(:has(input:checked)):not(:has([data-unread])) > td {
+  background: var(--mail-read-bg) !important;
+}
+
+:root[data-theme='dark'] .table th {
   background: var(--mail-header-bg) !important;
 }
 
-.table tbody tr > td {
-  background: var(--mail-read-bg) !important;
+:root[data-theme='dark'] .table tbody tr:not(:has(input:checked)) > td {
   border-block-end: 1px solid var(--mail-line) !important;
-  cursor: pointer;
 }
 
-.table tbody tr:has([data-unread]) > td {
+:root[data-theme='dark'] .table tbody tr:not(:has(input:checked)):has([data-unread]) > td {
   background: var(--mail-unread-bg) !important;
 }
 
-.table tbody tr:hover > td,
-.table tbody tr:has(input:checked) > td {
+:root[data-theme='dark'] .table tbody tr:not(:has(input:checked)):hover > td {
   background: var(--mail-hover-bg) !important;
+}
+
+.table tbody td {
+  cursor: pointer;
 }
 
 .cell {

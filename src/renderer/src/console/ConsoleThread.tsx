@@ -1,4 +1,5 @@
 import Alert from '@cloudscape-design/components/alert';
+import Icon from '@cloudscape-design/components/icon';
 import Button from '@cloudscape-design/components/button';
 import Popover from '@cloudscape-design/components/popover';
 import SpaceBetween from '@cloudscape-design/components/space-between';
@@ -111,7 +112,10 @@ function ThreadMessage({
               {message.hasRemoteImages && !showImages && (
                 // Styled by hand: the pane is white in both themes, Cloudscape alerts are not.
                 <div className={styles.notice} role="note">
-                  <span>Images are hidden to protect your privacy.</span>
+                  <span className={styles.noticeText}>
+                    <Icon name="status-info" variant="link" />
+                    Images are hidden to protect your privacy.
+                  </span>
                   <button type="button" onClick={() => setShowImages(true)}>
                     Show images
                   </button>

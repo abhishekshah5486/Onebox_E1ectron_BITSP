@@ -123,25 +123,37 @@
   padding-left: 52px;
 }
 
+/* Matches Cloudscape's light info alert; the pane is white in both themes. */
 .notice {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
-  padding: 10px 16px;
-  border: 1px solid #c6dafc;
-  border-radius: 8px;
-  background: #f0f6ff;
-  color: #1f1f1f;
+  padding: 8px 12px 8px 16px;
+  border: 2px solid #0972d3;
+  border-radius: 12px;
+  background: #f0fbff;
+  color: #0f141a;
   font-size: 14px;
+}
+
+.noticeText {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.noticeText svg {
+  color: #0972d3;
+  stroke: #0972d3;
 }
 
 .notice button {
   flex: none;
-  padding: 6px 14px;
-  border: 1px solid #0972d3;
-  border-radius: 999px;
+  padding: 4px 20px;
+  border: 2px solid #0972d3;
+  border-radius: 20px;
   background: #ffffff;
   color: #0972d3;
   font: inherit;
@@ -150,7 +162,9 @@
 }
 
 .notice button:hover {
-  background: #e8f1fd;
+  background: #f2f8fd;
+  border-color: #033160;
+  color: #033160;
 }
 
 .text {
