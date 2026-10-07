@@ -1,5 +1,5 @@
 import type { Provider } from '../api/accounts';
-import gmail from './logos/gmail.svg';
+import gmail from './logos/gmail.png';
 import icloud from './logos/icloud.svg';
 import outlook from './logos/outlook.svg';
 import yahoo from './logos/yahoo.svg';
@@ -12,7 +12,7 @@ const LABEL: Record<Provider, string> = {
   IMAP: 'IMAP',
 };
 
-// Rendered through <img>, so an SVG can never run script inside the app.
+// Rendered through <img>, so a logo file can never run script inside the app.
 const LOGO: Partial<Record<Provider, string>> = {
   GMAIL: gmail,
   OUTLOOK: outlook,

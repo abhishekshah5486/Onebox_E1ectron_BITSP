@@ -19,8 +19,8 @@ describe('ProviderLogo', () => {
     ['YAHOO', 'Yahoo', /yahoo/],
   ] as const)('uses the logo file for %s', (provider, label, name) => {
     render(<ProviderLogo provider={provider} />);
-    // Vite inlines small SVGs as data URIs and serves larger ones by file name.
+    // Vite inlines small images as data URIs and serves larger ones by file name.
     const src = screen.getByRole('img', { name: label }).getAttribute('src') ?? '';
-    expect(src.startsWith('data:image/svg+xml') || name.test(src)).toBe(true);
+    expect(src.startsWith('data:image/') || name.test(src)).toBe(true);
   });
 });
