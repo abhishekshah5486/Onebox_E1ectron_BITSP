@@ -75,3 +75,38 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+.logo {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--ob-bg);
+  border-radius: 50%;
+}
+
+.label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.warn {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ob-danger);
+  color: var(--ob-surface);
+  font-size: 12px;
+  font-weight: 700;
+}

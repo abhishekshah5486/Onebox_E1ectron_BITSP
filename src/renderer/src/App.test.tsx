@@ -44,7 +44,7 @@ describe('app routes', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'correct-horse');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByRole('navigation', { name: 'Mail folders' })).toBeInTheDocument();
+    expect(await screen.findByRole('navigation', { name: 'Mailboxes' })).toBeInTheDocument();
   });
 
   it('renders settings inside the shell', async () => {

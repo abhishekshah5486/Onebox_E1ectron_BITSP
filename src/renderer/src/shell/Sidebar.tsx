@@ -1,54 +1,80 @@
 import { NavLink } from 'react-router';
-import type { ThreadFilter } from '../api/mail';
-import { useMailStats } from '../api/mail-queries';
-import { Icon, type IconName } from '../ui/Icon';
+import { accountColor, accountLabel } from '../accounts/account-color';
+import { ProviderLogo } from '../accounts/ProviderLogo';
+import { useMailboxSummaries } from '../api/mail-queries';
+import { useAccounts } from '../api/queries';
+import { Icon } from '../ui/Icon';
 import styles from './Sidebar.module.css';
 
-// filter null = folder not synced yet.
-export const FOLDERS: {
-  path: string;
-  label: string;
-  icon: IconName;
-  filter: ThreadFilter | null;
-}[] = [
-  { path: '/inbox', label: 'Inbox', icon: 'inbox', filter: 'all' },
-  { path: '/starred', label: 'Starred', icon: 'star', filter: 'starred' },
-  { path: '/snoozed', label: 'Snoozed', icon: 'schedule', filter: null },
-  { path: '/sent', label: 'Sent', icon: 'send', filter: null },
-  { path: '/drafts', label: 'Drafts', icon: 'draft', filter: null },
-];
+const navClass = ({ isActive }: { isActive: boolean }) =>
+  `${styles.item} ${isActive ? styles.active : ''}`;
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
-  const stats = useMailStats();
-  const unread = stats.data?.unreadThreads ?? 0;
+  const accounts = useAccounts();
+  const list = accounts.data ?? [];
+  const summaries = useMailboxSummaries(list.map((account) => account.id));
+  // Unread counts come from the mail servers themselves, not just what OneBox has fetched.
+  const unreadById = new Map(
+    list.map((account, i) => [account.id, summaries[i]?.data?.server?.unread ?? 0]),
+  );
+  const totalUnread = [...unreadById.values()].reduce((sum, n) => sum + n, 0);
+
+  const badge = (count: number, label: string) =>
+    !collapsed && count > 0 ? (
+      <span className={styles.badge} aria-label={`${count} unread in ${label}`}>
+        {count.toLocaleString()}
+      </span>
+    ) : null;
+
   return (
     <nav
       className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}
-      aria-label="Mail folders"
+      aria-label="Mailboxes"
     >
       <button className={styles.compose} aria-label="Compose">
         <Icon name="edit" size={24} />
         {!collapsed && 'Compose'}
       </button>
       <div className={styles.nav}>
-        {FOLDERS.map((folder) => (
+        <NavLink to="/inbox" title="All inboxes" className={navClass}>
+          <Icon name="inbox" size={20} />
+          {!collapsed && 'All inboxes'}
+          {badge(totalUnread, 'all inboxes')}
+        </NavLink>
+        <NavLink to="/starred" title="Starred" className={navClass}>
+          <Icon name="star" size={20} />
+          {!collapsed && 'Starred'}
+        </NavLink>
+      </div>
+
+      {list.length > 0 && !collapsed && <p className={styles.section}>Accounts</p>}
+      <div className={styles.nav}>
+        {list.map((account) => (
           <NavLink
-            key={folder.path}
-            to={folder.path}
-            title={folder.label}
-            className={({ isActive }) => `${styles.item} ${isActive ? styles.active : ''}`}
+            key={account.id}
+            to={`/accounts/${account.id}`}
+            title={accountLabel(account)}
+            className={navClass}
           >
-            <Icon name={folder.icon} size={20} />
-            {!collapsed && folder.label}
-            {!collapsed && folder.path === '/inbox' && unread > 0 && (
-              <span className={styles.badge} aria-label={`${unread} unread`}>
-                {unread.toLocaleString()}
-              </span>
-            )}
+            <span className={styles.logo}>
+              <ProviderLogo provider={account.provider} size={18} />
+              <span className={styles.dot} style={{ background: accountColor(account.id) }} />
+            </span>
+            {!collapsed && <span className={styles.label}>{accountLabel(account)}</span>}
+            {account.status !== 'CONNECTED'
+              ? !collapsed && (
+                  <span
+                    className={styles.warn}
+                    aria-label="Needs attention"
+                    title="Needs attention"
+                  >
+                    !
+                  </span>
+                )
+              : badge(unreadById.get(account.id) ?? 0, accountLabel(account))}
           </NavLink>
         ))}
       </div>
-      {!collapsed && <p className={styles.section}>Labels</p>}
     </nav>
   );
 }
