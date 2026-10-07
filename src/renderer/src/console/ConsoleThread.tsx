@@ -1,9 +1,6 @@
 import Alert from '@cloudscape-design/components/alert';
-import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
-import ContentLayout from '@cloudscape-design/components/content-layout';
-import ExpandableSection from '@cloudscape-design/components/expandable-section';
-import Header from '@cloudscape-design/components/header';
+import Popover from '@cloudscape-design/components/popover';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Spinner from '@cloudscape-design/components/spinner';
 import { useEffect, useRef, useState } from 'react';
@@ -12,51 +9,135 @@ import type { Address, Message } from '../api/mail';
 import { useThread, useUpdateThread } from '../api/mail-queries';
 import { describeError } from '../auth/errors';
 import { EmailFrame } from '../mail/EmailFrame';
-import { displayName, formatBytes } from '../mail/format';
+import { displayName, formatBytes, formatMessageDate, formatUtc } from '../mail/format';
+import styles from './ConsoleThread.module.css';
 
-const recipients = (list: Address[]) => list.map(displayName).join(', ');
+const full = (address: Address) =>
+  address.name ? `${address.name} <${address.address}>` : address.address;
+const names = (list: Address[]) => list.map(displayName).join(', ');
 
-function ConsoleMessage({ message, expanded }: { message: Message; expanded: boolean }) {
-  const [showImages, setShowImages] = useState(false);
-  const files = message.attachments.filter((attachment) => !attachment.inline);
-  const from = message.from
-    ? `${displayName(message.from)} <${message.from.address}>`
-    : '(unknown sender)';
-
+function Details({ message }: { message: Message }) {
+  const rows: [string, string][] = [
+    ['from', message.from ? full(message.from) : '(unknown sender)'],
+    ...(message.replyTo.length
+      ? [['reply-to', message.replyTo.map(full).join(', ')] as [string, string]]
+      : []),
+    ['to', message.to.map(full).join(', ') || 'undisclosed recipients'],
+    ...(message.cc.length ? [['cc', message.cc.map(full).join(', ')] as [string, string]] : []),
+    ['date', `${new Date(message.receivedAt).toLocaleString()} (${formatUtc(message.receivedAt)})`],
+    ['subject', message.subject || '(no subject)'],
+  ];
   return (
-    <ExpandableSection
-      variant="container"
-      defaultExpanded={expanded}
-      headerText={from}
-      headerDescription={`To ${recipients(message.to) || 'undisclosed recipients'} · ${new Date(message.receivedAt).toLocaleString()}`}
-    >
-      <SpaceBetween size="s">
-        {message.htmlBody ? (
-          <>
-            {message.hasRemoteImages && !showImages && (
-              <Alert
-                type="info"
-                action={<Button onClick={() => setShowImages(true)}>Show images</Button>}
-              >
-                Images are hidden to protect your privacy.
-              </Alert>
-            )}
-            <EmailFrame html={message.htmlBody} allowRemoteImages={showImages} />
-          </>
-        ) : (
-          <Box variant="pre">{message.textBody}</Box>
-        )}
-        {files.length > 0 && (
-          <Box variant="small" color="text-body-secondary">
-            Attachments:{' '}
-            {files.map((file) => `${file.filename} (${formatBytes(file.sizeBytes)})`).join(', ')}
-          </Box>
-        )}
-      </SpaceBetween>
-    </ExpandableSection>
+    <dl className={styles.details}>
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}:</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
+function ThreadMessage({
+  message,
+  defaultExpanded,
+}: {
+  message: Message;
+  defaultExpanded: boolean;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [showImages, setShowImages] = useState(false);
+  const files = message.attachments.filter((attachment) => !attachment.inline);
+  const sender = displayName(message.from);
+
+  return (
+    <article className={styles.message} aria-label={`Message from ${sender}`}>
+      {/* Clicking anywhere in the header toggles; the sender line is the keyboard-reachable control. */}
+      <header className={styles.header} onClick={() => setExpanded((value) => !value)}>
+        <span className={styles.avatar} aria-hidden="true">
+          {sender.charAt(0).toUpperCase()}
+        </span>
+        <div className={styles.who}>
+          <button
+            type="button"
+            className={styles.toggle}
+            aria-expanded={expanded}
+            onClick={(event) => {
+              event.stopPropagation();
+              setExpanded((value) => !value);
+            }}
+          >
+            <span className={styles.sender}>{sender}</span>
+            {message.from && (
+              <span className={styles.address}> &lt;{message.from.address}&gt;</span>
+            )}
+          </button>
+          {expanded ? (
+            // Opening the details must not also collapse the message.
+            <div className={styles.to} onClick={(event) => event.stopPropagation()}>
+              to {names(message.to) || 'undisclosed recipients'}
+              <Popover
+                triggerType="custom"
+                size="large"
+                position="bottom"
+                dismissAriaLabel="Close details"
+                content={<Details message={message} />}
+              >
+                <Button
+                  variant="inline-icon"
+                  iconName="caret-down-filled"
+                  ariaLabel="Show details"
+                />
+              </Popover>
+            </div>
+          ) : (
+            <div className={styles.snippet}>{message.snippet}</div>
+          )}
+        </div>
+        <time
+          className={styles.date}
+          dateTime={message.receivedAt}
+          title={formatUtc(message.receivedAt)}
+        >
+          {formatMessageDate(message.receivedAt)}
+        </time>
+      </header>
+
+      {expanded && (
+        <div className={styles.body}>
+          {message.htmlBody ? (
+            <>
+              {message.hasRemoteImages && !showImages && (
+                // Styled by hand: the pane is white in both themes, Cloudscape alerts are not.
+                <div className={styles.notice} role="note">
+                  <span>Images are hidden to protect your privacy.</span>
+                  <button type="button" onClick={() => setShowImages(true)}>
+                    Show images
+                  </button>
+                </div>
+              )}
+              <EmailFrame html={message.htmlBody} allowRemoteImages={showImages} />
+            </>
+          ) : (
+            <pre className={styles.text}>{message.textBody}</pre>
+          )}
+          {files.length > 0 && (
+            <div className={styles.attachments} aria-label="Attachments">
+              {files.map((file) => (
+                <span key={file.filename} className={styles.attachment}>
+                  {file.filename} · {formatBytes(file.sizeBytes)}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+// A fixed-height reading pane like Gmail's: the toolbar stays put and only the mail scrolls.
 export function ConsoleThread({ basePath }: { basePath: string }) {
   const { threadId = '' } = useParams();
   const navigate = useNavigate();
@@ -74,56 +155,56 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
 
   const back = () => void navigate(basePath);
 
-  if (query.isPending) return <Spinner size="large" />;
-  if (query.isError) return <Alert type="error">{describeError(query.error)}</Alert>;
-
-  const { messages } = query.data;
   return (
-    <ContentLayout
-      header={
-        <Header
-          variant="h1"
-          description={`${messages.length} ${messages.length === 1 ? 'message' : 'messages'}`}
-          actions={
-            <SpaceBetween direction="horizontal" size="xs">
-              <Button iconName="arrow-left" onClick={back}>
-                Back
-              </Button>
-              <Button
-                onClick={() => {
-                  update.mutate({ id: query.data.thread.id, isRead: false });
-                  back();
-                }}
-              >
-                Mark as unread
-              </Button>
-              <Button
-                iconName={query.data.thread.isStarred ? 'star-filled' : 'star'}
-                onClick={() =>
-                  update.mutate({
-                    id: query.data.thread.id,
-                    isStarred: !query.data.thread.isStarred,
-                  })
-                }
-              >
-                {query.data.thread.isStarred ? 'Unstar' : 'Star'}
-              </Button>
-            </SpaceBetween>
-          }
-        >
-          {query.data.thread.subject || '(no subject)'}
-        </Header>
-      }
-    >
-      <SpaceBetween size="m">
-        {messages.map((message, index) => (
-          <ConsoleMessage
-            key={message.id}
-            message={message}
-            expanded={index === messages.length - 1 || !message.isRead}
-          />
-        ))}
-      </SpaceBetween>
-    </ContentLayout>
+    <section className={styles.reader} aria-label="Conversation">
+      <div className={styles.toolbar} role="toolbar" aria-label="Conversation actions">
+        <SpaceBetween direction="horizontal" size="xs">
+          <Button iconName="arrow-left" onClick={back}>
+            Back
+          </Button>
+          {/* Separate children, not a fragment, so SpaceBetween spaces each button. */}
+          {thread && (
+            <Button
+              onClick={() => {
+                update.mutate({ id: thread.id, isRead: false });
+                back();
+              }}
+            >
+              Mark as unread
+            </Button>
+          )}
+          {thread && (
+            <Button
+              iconName={thread.isStarred ? 'star-filled' : 'star'}
+              onClick={() => update.mutate({ id: thread.id, isStarred: !thread.isStarred })}
+            >
+              {thread.isStarred ? 'Unstar' : 'Star'}
+            </Button>
+          )}
+        </SpaceBetween>
+        {query.data && (
+          <span className={styles.count}>
+            {query.data.messages.length} {query.data.messages.length === 1 ? 'message' : 'messages'}
+          </span>
+        )}
+      </div>
+
+      <div className={styles.pane}>
+        {query.isPending && <Spinner size="large" />}
+        {query.isError && <Alert type="error">{describeError(query.error)}</Alert>}
+        {query.data && (
+          <>
+            <h1 className={styles.subject}>{query.data.thread.subject || '(no subject)'}</h1>
+            {query.data.messages.map((message, index, all) => (
+              <ThreadMessage
+                key={message.id}
+                message={message}
+                defaultExpanded={index === all.length - 1 || !message.isRead}
+              />
+            ))}
+          </>
+        )}
+      </div>
+    </section>
   );
 }

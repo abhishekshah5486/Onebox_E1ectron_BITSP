@@ -100,9 +100,7 @@ describe('v2 console', () => {
         }),
       }),
     );
-    const nav = await screen
-      .findByRole('navigation', { name: /OneBox Mail/ })
-      .catch(() => screen.findByText('OneBox Mail').then((el) => el.closest('nav')!));
+    const nav = (await screen.findByText('Console Home')).closest('nav')!;
     expect(await within(nav).findByText(gmail.emailAddress)).toBeInTheDocument();
     const spam = await within(nav).findAllByRole('link', { name: /Spam/ });
     expect(spam.map((link) => link.getAttribute('href'))).toContain(`/accounts/${gmail.id}/spam`);
@@ -114,7 +112,14 @@ describe('v2 console', () => {
       '/accounts': () => ({ items: [gmail] }),
       '/mail/threads/': () => ({
         thread: threads(1)[0],
-        messages: [message({ subject: 'Mail 1', textBody: 'Hello from the console' })],
+        messages: [
+          message({
+            subject: 'Mail 1',
+            textBody: 'Hello from the console',
+            cc: [{ name: 'Ravi', address: 'ravi@acme.example' }],
+            receivedAt: '2026-10-07T17:06:30.000Z',
+          }),
+        ],
       }),
       '/mail/threads?': pageOf(threads(3)),
     });
@@ -130,6 +135,29 @@ describe('v2 console', () => {
     await userEvent.click(within(table).getByText('Mail 1'));
     expect(await screen.findByText('Hello from the console')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Priya/, expanded: true })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show details' }));
+    expect(await screen.findByText('Ravi <ravi@acme.example>')).toBeInTheDocument();
+    expect(screen.getByText(/2026-10-07 17:06 UTC/)).toBeInTheDocument();
+  });
+
+  it('shows read rows apart from unread ones', async () => {
+    renderConsole(
+      '/inbox',
+      fakeApi({
+        ...restore,
+        get: routedGet({
+          '/accounts': () => ({ items: [gmail] }),
+          '/mail/threads?': pageOf([
+            thread({ id: '1'.padStart(64, '0'), subject: 'Unread one', unreadCount: 1 }),
+            thread({ id: '2'.padStart(64, '0'), subject: 'Read one', unreadCount: 0 }),
+          ]),
+        }),
+      }),
+    );
+    expect((await screen.findByText('Unread one')).closest('[data-unread]')).not.toBeNull();
+    expect(screen.getByText('Read one').closest('[data-unread]')).toBeNull();
   });
 
   it('pages an account folder back through older mail on the server', async () => {
