@@ -57,7 +57,7 @@
 
 .cell[data-unread] {
   color: var(--mail-unread-text);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .snippet {
@@ -70,6 +70,32 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+/* The address and its header fade and collapse; the column narrows alongside. */
+.accountText {
+  display: block;
+  max-width: 200px;
+  opacity: 1;
+  transition:
+    opacity 180ms ease,
+    max-width 240ms ease;
+}
+
+.table[data-compact] .accountText {
+  max-width: 0;
+  opacity: 0;
+}
+
+.table th {
+  transition: width 240ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accountText,
+  .table th {
+    transition: none;
+  }
 }
 
 .star {

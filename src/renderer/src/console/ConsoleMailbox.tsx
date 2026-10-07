@@ -6,7 +6,7 @@ import Pagination from '@cloudscape-design/components/pagination';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
 import TextFilter from '@cloudscape-design/components/text-filter';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
@@ -32,8 +32,25 @@ const PROBLEM: Record<string, string> = {
   DISABLED: 'Syncing is paused for this account.',
 };
 
+// Below this table width the Account column shrinks to just the provider logo.
+export const COMPACT_TABLE_WIDTH = 1040;
+
+function useWidth<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(Infinity);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry!.contentRect.width));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
+
 function columns(
   accounts: Map<string, Account> | null,
+  compact: boolean,
   onToggleStar: (thread: Thread) => void,
 ): TableProps.ColumnDefinition<Thread>[] {
   // The marker lets the stylesheet tell read rows from unread ones.
@@ -67,14 +84,19 @@ function columns(
       ? [
           {
             id: 'account',
-            header: 'Account',
-            width: 220,
+            header: <span className={styles.accountText}>Account</span>,
+            width: compact ? 56 : 220,
             cell: (thread: Thread) => {
               const account = accounts.get(thread.accountId);
               return (
                 <span className={styles.account} title={account?.emailAddress}>
                   {account && <ProviderLogo provider={account.provider} size={16} />}
-                  {text(thread, account ? middleTruncate(account.emailAddress, 24) : '—')}
+                  <span
+                    className={`${styles.cell} ${styles.accountText}`}
+                    data-unread={thread.unreadCount > 0 || undefined}
+                  >
+                    {account ? middleTruncate(account.emailAddress, 24) : '—'}
+                  </span>
                 </span>
               );
             },
@@ -146,6 +168,8 @@ function MailTable({
   onRefresh: () => void;
 }) {
   const navigate = useNavigate();
+  const [tableRef, tableWidth] = useWidth<HTMLDivElement>();
+  const compact = tableWidth < COMPACT_TABLE_WIDTH;
   const query = useThreadPage(scope, page);
   const update = useUpdateThread();
   // Selection belongs to the page it was made on, so paging clears it.
@@ -177,7 +201,7 @@ function MailTable({
   return (
     <SpaceBetween size="m">
       {alerts}
-      <div className={styles.table}>
+      <div ref={tableRef} className={styles.table} data-compact={compact || undefined}>
         <Table
           variant="full-page"
           stickyHeader
@@ -191,7 +215,7 @@ function MailTable({
             itemSelectionLabel: (_, thread) => `Select ${thread.subject || '(no subject)'}`,
             tableLabel: `${title} conversations`,
           }}
-          columnDefinitions={columns(accounts, (thread) =>
+          columnDefinitions={columns(accounts, compact, (thread) =>
             update.mutate({ id: thread.id, isStarred: !thread.isStarred }),
           )}
           items={loading ? [] : items}
