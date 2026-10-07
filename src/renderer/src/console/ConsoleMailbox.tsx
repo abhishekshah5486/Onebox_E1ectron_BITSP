@@ -2,7 +2,6 @@ import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import Header from '@cloudscape-design/components/header';
-import Icon from '@cloudscape-design/components/icon';
 import Pagination from '@cloudscape-design/components/pagination';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
@@ -21,9 +20,10 @@ import {
 import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { FOLDER_LABEL, isFolderRole, type FolderRole } from '../mail/folders';
-import { displayName, formatListDate } from '../mail/format';
+import { displayName, formatUtc } from '../mail/format';
 import { PAGE_SIZE } from '../mail/paging';
 import { useLoadPage } from '../mail/useLoadPage';
+import styles from './ConsoleMailbox.module.css';
 
 const PROBLEM: Record<string, string> = {
   AUTH_FAILED: 'The mail server rejected this account’s password.',
@@ -36,19 +36,24 @@ function columns(
   accounts: Map<string, Account> | null,
   onToggleStar: (thread: Thread) => void,
 ): TableProps.ColumnDefinition<Thread>[] {
-  const strong = (thread: Thread, content: ReactNode) => (
-    <Box fontWeight={thread.unreadCount > 0 ? 'bold' : 'normal'} variant="span">
+  // The marker lets the stylesheet tell read rows from unread ones.
+  const text = (thread: Thread, content: ReactNode) => (
+    <span
+      className={styles.cell}
+      data-unread={thread.unreadCount > 0 || undefined}
+      title={typeof content === 'string' ? content : undefined}
+    >
       {content}
-    </Box>
+    </span>
   );
   return [
     {
       id: 'star',
-      header: <span aria-label="Starred">★</span>,
-      width: 56,
+      header: '',
+      width: 64,
       cell: (thread) => (
         // Stops the click from also opening the conversation.
-        <span onClick={(event) => event.stopPropagation()}>
+        <span className={styles.star} onClick={(event) => event.stopPropagation()}>
           <Button
             variant="inline-icon"
             iconName={thread.isStarred ? 'star-filled' : 'star'}
@@ -58,12 +63,30 @@ function columns(
         </span>
       ),
     },
+    ...(accounts
+      ? [
+          {
+            id: 'account',
+            header: 'Account',
+            width: 220,
+            cell: (thread: Thread) => {
+              const account = accounts.get(thread.accountId);
+              return (
+                <span className={styles.account} title={account?.emailAddress}>
+                  {account && <ProviderLogo provider={account.provider} size={16} />}
+                  {text(thread, account?.emailAddress ?? '—')}
+                </span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       id: 'from',
       header: 'From',
-      width: 220,
+      width: 200,
       cell: (thread) =>
-        strong(
+        text(
           thread,
           `${displayName(thread.lastFrom)}${thread.messageCount > 1 ? ` (${thread.messageCount})` : ''}`,
         ),
@@ -71,50 +94,20 @@ function columns(
     {
       id: 'subject',
       header: 'Subject',
-      cell: (thread) => (
-        <>
-          {strong(thread, thread.subject || '(no subject)')}
-          {thread.snippet && (
-            <Box variant="span" color="text-body-secondary">
-              {' '}
-              – {thread.snippet}
-            </Box>
-          )}
-        </>
-      ),
-    },
-    ...(accounts
-      ? [
-          {
-            id: 'account',
-            header: 'Account',
-            width: 240,
-            cell: (thread: Thread) => {
-              const account = accounts.get(thread.accountId);
-              return account ? (
-                <SpaceBetween direction="horizontal" size="xs" alignItems="center">
-                  <ProviderLogo provider={account.provider} size={16} />
-                  <span>{account.emailAddress}</span>
-                </SpaceBetween>
-              ) : (
-                '—'
-              );
-            },
-          },
-        ]
-      : []),
-    {
-      id: 'attachments',
-      header: <Icon name="file" ariaLabel="Attachments" />,
-      width: 56,
       cell: (thread) =>
-        thread.hasAttachments ? <Icon name="file" ariaLabel="Has attachments" /> : null,
+        text(
+          thread,
+          <>
+            {thread.subject || '(no subject)'}
+            {thread.snippet && <span className={styles.snippet}> – {thread.snippet}</span>}
+          </>,
+        ),
     },
     {
-      id: 'date',
-      header: 'Received',
-      width: 120,
-      cell: (thread) => strong(thread, formatListDate(thread.lastMessageAt)),
+      id: 'received',
+      header: 'Received (UTC)',
+      width: 170,
+      cell: (thread) => text(thread, formatUtc(thread.lastMessageAt).replace(' UTC', '')),
     },
   ];
 }
@@ -184,82 +177,87 @@ function MailTable({
   return (
     <SpaceBetween size="m">
       {alerts}
-      <Table
-        variant="full-page"
-        stickyHeader
-        trackBy="id"
-        selectionType="multi"
-        selectedItems={selected}
-        onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
-        ariaLabels={{
-          selectionGroupLabel: 'Conversation selection',
-          allItemsSelectionLabel: () => 'Select all conversations on this page',
-          itemSelectionLabel: (_, thread) => `Select ${thread.subject || '(no subject)'}`,
-          tableLabel: `${title} conversations`,
-        }}
-        columnDefinitions={columns(accounts, (thread) =>
-          update.mutate({ id: thread.id, isStarred: !thread.isStarred }),
-        )}
-        items={loading ? [] : items}
-        loading={loading || query.isPending}
-        loadingText={loading ? loadingText : 'Loading conversations'}
-        onRowClick={({ detail }) => void navigate(`${basePath}/${detail.item.id}`)}
-        empty={
-          query.isError ? (
-            <Box textAlign="center" color="text-status-error">
-              {describeError(query.error)}
-            </Box>
-          ) : (
-            empty
-          )
-        }
-        header={
-          <Header
-            variant="awsui-h1-sticky"
-            counter={counter}
-            description={description}
-            actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button iconName="refresh" ariaLabel="Refresh" onClick={onRefresh} />
-                <Button disabled={selected.length === 0} onClick={() => bulk({ isRead: true })}>
-                  Mark as read
-                </Button>
-                <Button disabled={selected.length === 0} onClick={() => bulk({ isRead: false })}>
-                  Mark as unread
-                </Button>
-                <Button disabled={selected.length === 0} onClick={() => bulk({ isStarred: true })}>
-                  Star
-                </Button>
-              </SpaceBetween>
-            }
-          >
-            {title}
-          </Header>
-        }
-        filter={
-          <TextFilter
-            filteringText={filter}
-            filteringPlaceholder="Filter conversations on this page"
-            filteringAriaLabel="Filter conversations on this page"
-            onChange={({ detail }) => setFilter(detail.filteringText)}
-            countText={filter ? `${items.length} matches` : undefined}
-          />
-        }
-        pagination={
-          <Pagination
-            currentPageIndex={page}
-            pagesCount={Math.max(1, pagesCount)}
-            openEnd={openEnd}
-            disabled={loading}
-            ariaLabels={{
-              nextPageLabel: 'Older',
-              previousPageLabel: 'Newer',
-              pageLabel: (n) => `Page ${n}`,
-            }}
-            onChange={({ detail }) => onPageChange(detail.currentPageIndex)}
-          />
-        }
-      />
+      <div className={styles.table}>
+        <Table
+          variant="full-page"
+          stickyHeader
+          trackBy="id"
+          selectionType="multi"
+          selectedItems={selected}
+          onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
+          ariaLabels={{
+            selectionGroupLabel: 'Conversation selection',
+            allItemsSelectionLabel: () => 'Select all conversations on this page',
+            itemSelectionLabel: (_, thread) => `Select ${thread.subject || '(no subject)'}`,
+            tableLabel: `${title} conversations`,
+          }}
+          columnDefinitions={columns(accounts, (thread) =>
+            update.mutate({ id: thread.id, isStarred: !thread.isStarred }),
+          )}
+          items={loading ? [] : items}
+          loading={loading || query.isPending}
+          loadingText={loading ? loadingText : 'Loading conversations'}
+          onRowClick={({ detail }) => void navigate(`${basePath}/${detail.item.id}`)}
+          empty={
+            query.isError ? (
+              <Box textAlign="center" color="text-status-error">
+                {describeError(query.error)}
+              </Box>
+            ) : (
+              empty
+            )
+          }
+          header={
+            <Header
+              variant="awsui-h1-sticky"
+              counter={counter}
+              description={description}
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button iconName="refresh" ariaLabel="Refresh" onClick={onRefresh} />
+                  <Button disabled={selected.length === 0} onClick={() => bulk({ isRead: true })}>
+                    Mark as read
+                  </Button>
+                  <Button disabled={selected.length === 0} onClick={() => bulk({ isRead: false })}>
+                    Mark as unread
+                  </Button>
+                  <Button
+                    disabled={selected.length === 0}
+                    onClick={() => bulk({ isStarred: true })}
+                  >
+                    Star
+                  </Button>
+                </SpaceBetween>
+              }
+            >
+              {title}
+            </Header>
+          }
+          filter={
+            <TextFilter
+              filteringText={filter}
+              filteringPlaceholder="Filter conversations on this page"
+              filteringAriaLabel="Filter conversations on this page"
+              onChange={({ detail }) => setFilter(detail.filteringText)}
+              countText={filter ? `${items.length} matches` : undefined}
+            />
+          }
+          pagination={
+            <Pagination
+              currentPageIndex={page}
+              pagesCount={Math.max(1, pagesCount)}
+              openEnd={openEnd}
+              disabled={loading}
+              ariaLabels={{
+                nextPageLabel: 'Older',
+                previousPageLabel: 'Newer',
+                pageLabel: (n) => `Page ${n}`,
+              }}
+              onChange={({ detail }) => onPageChange(detail.currentPageIndex)}
+            />
+          }
+        />
+      </div>
     </SpaceBetween>
   );
 }

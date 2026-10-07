@@ -1,0 +1,74 @@
+/* Cloudscape's table has no per-row styling, so these rules reach into its markup. */
+.table {
+  --mail-header-bg: #e9ecef;
+  --mail-unread-bg: #ffffff;
+  --mail-read-bg: #f2f4f7;
+  --mail-hover-bg: #e3ecf9;
+  --mail-line: #d5dbe1;
+  --mail-unread-text: #0f141a;
+  --mail-read-text: #49515c;
+}
+
+:root[data-theme='dark'] .table {
+  --mail-header-bg: #232b37;
+  --mail-unread-bg: #1b2430;
+  --mail-read-bg: #0f141a;
+  --mail-hover-bg: #26354a;
+  --mail-line: #3b4652;
+  --mail-unread-text: #ffffff;
+  --mail-read-text: #a4afbd;
+}
+
+/* Fixed layout fits the table to the window: Subject takes what is left and truncates. */
+.table :global(table) {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.table th {
+  background: var(--mail-header-bg) !important;
+}
+
+.table tbody tr > td {
+  background: var(--mail-read-bg) !important;
+  border-block-end: 1px solid var(--mail-line) !important;
+  cursor: pointer;
+}
+
+.table tbody tr:has([data-unread]) > td {
+  background: var(--mail-unread-bg) !important;
+}
+
+.table tbody tr:hover > td,
+.table tbody tr:has(input:checked) > td {
+  background: var(--mail-hover-bg) !important;
+}
+
+.cell {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--mail-read-text);
+}
+
+.cell[data-unread] {
+  color: var(--mail-unread-text);
+  font-weight: 700;
+}
+
+.snippet {
+  font-weight: 400;
+  color: var(--mail-read-text);
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.star {
+  display: inline-flex;
+}

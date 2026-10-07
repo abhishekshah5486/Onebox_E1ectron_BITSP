@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { displayName, formatBytes, formatListDate } from './format';
+import { displayName, formatBytes, formatListDate, formatMessageDate, formatUtc } from './format';
 
 const now = new Date('2026-10-07T15:00:00');
 
@@ -36,5 +36,18 @@ describe('formatBytes', () => {
     [5 * 1024 * 1024, '5.0 MB'],
   ])('%i -> %s', (bytes, expected) => {
     expect(formatBytes(bytes)).toBe(expected);
+  });
+});
+
+describe('console dates', () => {
+  it('formats a precise UTC timestamp', () => {
+    expect(formatUtc('2026-10-07T17:06:30.000Z')).toBe('2026-10-07 17:06 UTC');
+  });
+
+  it('adds how long ago a recent message arrived', () => {
+    const now = new Date('2026-10-07T19:00:00Z');
+    expect(formatMessageDate('2026-10-07T17:00:00Z', now)).toMatch(/\(2 hours ago\)$/);
+    expect(formatMessageDate('2026-10-07T18:59:00Z', now)).toMatch(/\(1 minute ago\)$/);
+    expect(formatMessageDate('2026-09-01T10:00:00Z', now)).not.toMatch(/ago/);
   });
 });
