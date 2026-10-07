@@ -1,5 +1,7 @@
-import { siGmail, siIcloud } from 'simple-icons';
 import type { Provider } from '../api/accounts';
+import gmail from './logos/gmail.svg';
+import icloud from './logos/icloud.svg';
+import outlook from './logos/outlook.svg';
 
 const LABEL: Record<Provider, string> = {
   GMAIL: 'Gmail',
@@ -9,40 +11,32 @@ const LABEL: Record<Provider, string> = {
   IMAP: 'IMAP',
 };
 
-// Gmail and iCloud marks come from Simple Icons (CC0). Microsoft and Yahoo asked for their marks to
-// be removed there, so they get a neutral monogram in their brand colour instead.
-const MONOGRAM: Partial<Record<Provider, { letter: string; color: string }>> = {
-  OUTLOOK: { letter: 'O', color: '#0078D4' },
-  YAHOO: { letter: 'Y', color: '#6001D2' },
-};
+// Rendered through <img>, so an SVG can never run script inside the app.
+const LOGO: Partial<Record<Provider, string>> = { GMAIL: gmail, OUTLOOK: outlook, ICLOUD: icloud };
 
 export function ProviderLogo({ provider, size = 20 }: { provider: Provider; size?: number }) {
   const label = LABEL[provider];
-  const icon = provider === 'GMAIL' ? siGmail : provider === 'ICLOUD' ? siIcloud : null;
-
-  if (icon) {
+  const src = LOGO[provider];
+  if (src) {
     return (
-      <svg role="img" aria-label={label} width={size} height={size} viewBox="0 0 24 24">
-        <path d={icon.path} fill={`#${icon.hex}`} />
-      </svg>
+      <img src={src} alt={label} width={size} height={size} style={{ objectFit: 'contain' }} />
     );
   }
 
-  const monogram = MONOGRAM[provider];
-  if (monogram) {
+  if (provider === 'YAHOO') {
     return (
       <svg role="img" aria-label={label} width={size} height={size} viewBox="0 0 24 24">
-        <rect width="24" height="24" rx="6" fill={monogram.color} />
+        <rect width="24" height="24" rx="6" fill="#6001D2" />
         <text
           x="12"
           y="17"
           textAnchor="middle"
-          fontSize="14"
-          fontWeight="700"
+          fontSize="13"
+          fontWeight="800"
           fill="#fff"
           fontFamily="Arial, sans-serif"
         >
-          {monogram.letter}
+          Y!
         </text>
       </svg>
     );
