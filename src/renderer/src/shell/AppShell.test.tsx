@@ -57,7 +57,7 @@ const work = account({
 const broken = account({
   id: '33333333-3333-4333-8333-333333333333',
   status: 'AUTH_FAILED',
-  displayName: 'Old',
+  emailAddress: 'old@yahoo.com',
 });
 
 describe('AppShell', () => {
@@ -97,13 +97,17 @@ describe('AppShell', () => {
       }),
     );
     const nav = screen.getByRole('navigation', { name: 'Mailboxes' });
-    const workLink = await within(nav).findByRole('link', { name: /Work/ });
+    const workLink = await within(nav).findByRole('link', { name: /me@corp\.example/ });
 
     expect(within(workLink).getByRole('img', { name: 'Outlook' })).toBeInTheDocument();
-    expect(await within(workLink).findByLabelText('7 unread in Work')).toBeInTheDocument();
+    expect(
+      await within(workLink).findByLabelText('7 unread in me@corp.example'),
+    ).toBeInTheDocument();
     expect(await within(nav).findByLabelText('7 unread in all inboxes')).toBeInTheDocument();
     expect(
-      within(within(nav).getByRole('link', { name: /Old/ })).getByLabelText('Needs attention'),
+      within(within(nav).getByRole('link', { name: /old@yahoo\.com/ })).getByLabelText(
+        'Needs attention',
+      ),
     ).toBeInTheDocument();
 
     await userEvent.click(workLink);

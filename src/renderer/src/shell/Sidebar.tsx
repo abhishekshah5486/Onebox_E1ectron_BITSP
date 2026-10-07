@@ -1,5 +1,4 @@
 import { NavLink } from 'react-router';
-import { accountColor, accountLabel } from '../accounts/account-color';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import { useMailboxSummaries } from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
@@ -53,14 +52,17 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           <NavLink
             key={account.id}
             to={`/accounts/${account.id}`}
-            title={accountLabel(account)}
+            title={
+              account.displayName
+                ? `${account.emailAddress} · ${account.displayName}`
+                : account.emailAddress
+            }
             className={navClass}
           >
             <span className={styles.logo}>
               <ProviderLogo provider={account.provider} size={18} />
-              <span className={styles.dot} style={{ background: accountColor(account.id) }} />
             </span>
-            {!collapsed && <span className={styles.label}>{accountLabel(account)}</span>}
+            {!collapsed && <span className={styles.label}>{account.emailAddress}</span>}
             {account.status !== 'CONNECTED'
               ? !collapsed && (
                   <span
@@ -71,7 +73,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                     !
                   </span>
                 )
-              : badge(unreadById.get(account.id) ?? 0, accountLabel(account))}
+              : badge(unreadById.get(account.id) ?? 0, account.emailAddress)}
           </NavLink>
         ))}
       </div>

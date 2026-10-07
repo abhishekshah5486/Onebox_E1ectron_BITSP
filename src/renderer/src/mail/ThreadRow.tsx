@@ -1,5 +1,4 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
-import { accountColor, accountLabel } from '../accounts/account-color';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { Thread } from '../api/mail';
@@ -66,8 +65,7 @@ export function ThreadRow({
       </button>
       <span className={styles.sender}>
         {account && (
-          <span className={styles.chip} title={accountLabel(account)}>
-            <span className={styles.chipDot} style={{ background: accountColor(account.id) }} />
+          <span className={styles.chip} title={account.emailAddress}>
             <ProviderLogo provider={account.provider} size={14} />
           </span>
         )}
