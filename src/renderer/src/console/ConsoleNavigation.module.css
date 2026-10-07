@@ -26,6 +26,18 @@
   margin-left: -20px;
 }
 
+.line {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.trailing {
+  display: inline-flex;
+  flex: none;
+}
+
 .toggle,
 .name {
   padding: 0;
@@ -117,7 +129,7 @@
 }
 
 .problem {
-  margin-left: auto;
+  margin-left: 6px;
   display: grid;
   place-items: center;
   width: 18px;

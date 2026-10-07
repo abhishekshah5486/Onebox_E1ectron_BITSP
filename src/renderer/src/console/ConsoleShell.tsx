@@ -9,6 +9,8 @@ import { Icon } from '../ui/Icon';
 import oneboxMark from '../ui/onebox-mark.svg';
 import { VersionSwitch } from '../ui/VersionSwitch';
 import { ConsoleNavigation } from './ConsoleNavigation';
+import { SidebarResizer } from './SidebarResizer';
+import { useSidebarWidth } from './useSidebarWidth';
 
 const NEXT_THEME: Record<ThemePreference, ThemePreference> = {
   light: 'dark',
@@ -27,6 +29,7 @@ export function ConsoleShell() {
   const navigate = useNavigate();
   const { preference, setPreference } = useTheme();
   const [navigationOpen, setNavigationOpen] = useState(true);
+  const [navigationWidth, setNavigationWidth] = useSidebarWidth();
 
   return (
     <>
@@ -78,6 +81,7 @@ export function ConsoleShell() {
       <AppLayout
         headerSelector="#onebox-top-nav"
         navigation={<ConsoleNavigation />}
+        navigationWidth={navigationWidth}
         navigationOpen={navigationOpen}
         onNavigationChange={({ detail }) => setNavigationOpen(detail.open)}
         toolsHide
@@ -88,6 +92,7 @@ export function ConsoleShell() {
           </Suspense>
         }
       />
+      {navigationOpen && <SidebarResizer width={navigationWidth} onResize={setNavigationWidth} />}
     </>
   );
 }

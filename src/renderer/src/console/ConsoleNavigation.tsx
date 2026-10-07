@@ -3,7 +3,7 @@ import SideNavigation, {
   type SideNavigationProps,
 } from '@cloudscape-design/components/side-navigation';
 import * as tokens from '@cloudscape-design/design-tokens';
-import { useState, type CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
@@ -11,8 +11,12 @@ import type { FolderCounts } from '../api/mail';
 import { useAccountFolders } from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
 import { FOLDER_LABEL, FOLDER_ROLES, folderBadge, type FolderRole } from '../mail/folders';
-import { countLabel, middleTruncate } from '../mail/format';
+import { countLabel } from '../mail/format';
 import styles from './ConsoleNavigation.module.css';
+import { useMiddleFit } from './useMiddleFit';
+
+// Logo (16px) plus the gap after it, inside the account line.
+const LOGO_SPACE = 24;
 
 const UNIFIED: FolderRole[] = ['sent', 'drafts', 'spam', 'trash'];
 
@@ -50,6 +54,8 @@ function AccountItem({ account, folders }: { account: Account; folders: FolderCo
   };
   const roles = FOLDER_ROLES.filter((role) => role === 'inbox' || byRole.has(role));
   const current = pathname.startsWith(`${base}/`);
+  const trailing = useRef<HTMLSpanElement>(null);
+  const [line, label] = useMiddleFit<HTMLDivElement>(account.emailAddress, LOGO_SPACE, trailing);
 
   return (
     <li>
@@ -63,25 +69,31 @@ function AccountItem({ account, folders }: { account: Account; folders: FolderCo
         >
           <Icon name={open ? 'angle-down' : 'angle-right'} size="small" />
         </button>
-        <button
-          type="button"
-          className={styles.name}
-          title={account.emailAddress}
-          onClick={() => {
-            setOpen(true);
-            void navigate(`${base}/inbox`);
-          }}
-        >
-          <ProviderLogo provider={account.provider} size={16} />
-          <span>{middleTruncate(account.emailAddress)}</span>
-        </button>
-        {account.status !== 'CONNECTED' ? (
-          <span className={styles.problem} title="Needs attention" aria-label="Needs attention">
-            !
+        <div ref={line} className={styles.line}>
+          <button
+            type="button"
+            className={styles.name}
+            title={account.emailAddress}
+            onClick={() => {
+              setOpen(true);
+              void navigate(`${base}/inbox`);
+            }}
+          >
+            <ProviderLogo provider={account.provider} size={16} />
+            <span>{label}</span>
+          </button>
+          <span ref={trailing} className={styles.trailing}>
+            {account.status !== 'CONNECTED' ? (
+              <span className={styles.problem} title="Needs attention" aria-label="Needs attention">
+                !
+              </span>
+            ) : (
+              !open && (
+                <Count value={countOf('inbox')} label={`unread in ${account.emailAddress}`} />
+              )
+            )}
           </span>
-        ) : (
-          !open && <Count value={countOf('inbox')} label={`unread in ${account.emailAddress}`} />
-        )}
+        </div>
       </div>
       {open && (
         <ul className={styles.folders} aria-label={`${account.emailAddress} folders`}>

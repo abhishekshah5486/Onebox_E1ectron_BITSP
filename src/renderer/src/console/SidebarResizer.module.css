@@ -1,0 +1,36 @@
+.handle {
+  position: fixed;
+  top: 56px;
+  bottom: 0;
+  z-index: 1001;
+  width: 6px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: transparent;
+  transition: background 120ms;
+}
+
+.handle:hover::after,
+.handle:focus-visible::after,
+.dragging::after {
+  background: #0972d3;
+}
+
+.handle:focus-visible {
+  outline: none;
+}
+
+/* No text selection while dragging. */
+:global(body:has(.dragging)) {
+  user-select: none;
+  cursor: col-resize;
+}

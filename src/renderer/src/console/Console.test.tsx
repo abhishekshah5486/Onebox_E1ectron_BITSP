@@ -84,7 +84,7 @@ function renderConsole(path: string, api: ApiClient) {
 }
 
 describe('v2 console', () => {
-  it('lists accounts closed, shortened to one line, and opens their folders on click', async () => {
+  it('lists accounts closed and opens their folders on click', async () => {
     renderConsole(
       '/inbox',
       fakeApi({
@@ -101,8 +101,7 @@ describe('v2 console', () => {
       }),
     );
     const accounts = await screen.findByRole('region', { name: 'Accounts' });
-    const name = await within(accounts).findByTitle(gmail.emailAddress);
-    expect(name.textContent).toMatch(/^abhishek\.sha.*….*@gmail\.com$/);
+    expect(await within(accounts).findByTitle(gmail.emailAddress)).toBeInTheDocument();
     expect(within(accounts).queryByRole('link', { name: /Spam/ })).not.toBeInTheDocument();
     expect(
       await within(accounts).findByLabelText(`4,976 unread in ${gmail.emailAddress}`),
