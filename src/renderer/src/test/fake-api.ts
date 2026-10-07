@@ -20,6 +20,8 @@ export const defaultPreferences = {
 const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/accounts' || path === '/settings/integrations') return { items: [] };
   if (path === '/settings/preferences') return defaultPreferences;
+  if (path.startsWith('/mail/threads?')) return { items: [], nextCursor: null };
+  if (path === '/mail/stats') return { unreadThreads: 0, starredThreads: 0, totalThreads: 0 };
   throw new Error(`fakeApi: unexpected GET ${path}`);
 };
 

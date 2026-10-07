@@ -1,0 +1,36 @@
+import type { Message, Thread } from '../api/mail';
+
+export const thread = (overrides: Partial<Thread> = {}): Thread => ({
+  id: 'a'.repeat(64),
+  accountId: 'acc-1',
+  subject: 'Demo next week?',
+  snippet: 'Are you free on Tuesday',
+  participants: [{ name: 'Priya', address: 'priya@acme.example' }],
+  lastFrom: { name: 'Priya', address: 'priya@acme.example' },
+  messageCount: 1,
+  unreadCount: 1,
+  isStarred: false,
+  hasAttachments: false,
+  lastMessageAt: '2026-10-06T10:00:00.000Z',
+  ...overrides,
+});
+
+export const message = (overrides: Partial<Message> = {}): Message => ({
+  id: 'm1',
+  accountId: 'acc-1',
+  from: { name: 'Priya', address: 'priya@acme.example' },
+  to: [{ name: '', address: 'me@gmail.com' }],
+  cc: [],
+  replyTo: [],
+  subject: 'Demo next week?',
+  snippet: 'Are you free on Tuesday',
+  textBody: 'Are you free on Tuesday?',
+  htmlBody: null,
+  hasRemoteImages: false,
+  attachments: [],
+  isRead: true,
+  isStarred: false,
+  receivedAt: '2026-10-06T10:00:00.000Z',
+  sentAt: null,
+  ...overrides,
+});
