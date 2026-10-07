@@ -3,6 +3,7 @@ import SideNavigation, {
   type SideNavigationProps,
 } from '@cloudscape-design/components/side-navigation';
 import { useLocation, useNavigate } from 'react-router';
+import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { FolderCounts } from '../api/mail';
 import { useAccountFolders } from '../api/mail-queries';
@@ -17,17 +18,17 @@ const counter = (count: number) =>
 // Conversation pages highlight the folder they were opened from.
 export const activeHref = (pathname: string) => pathname.replace(/\/[0-9a-f]{64}$/, '');
 
-function accountGroup(account: Account, folders: FolderCounts[]): SideNavigationProps.Item {
+function accountGroup(account: Account, folders: FolderCounts[]): SideNavigationProps.LinkGroup {
   const byRole = new Map(folders.map((folder) => [folder.role, folder]));
   const countOf = (role: FolderRole) => {
     const counts = byRole.get(role);
     return counts ? folderBadge(role, counts) : 0;
   };
   return {
-    type: 'expandable-link-group',
+    type: 'link-group',
     text: account.emailAddress,
     href: `/accounts/${account.id}/inbox`,
-    defaultExpanded: true,
+    icon: <ProviderLogo provider={account.provider} size={16} />,
     ...(account.status !== 'CONNECTED' && { info: <Badge color="red">Needs attention</Badge> }),
     items: FOLDER_ROLES.filter((role) => role === 'inbox' || byRole.has(role)).map((role) => ({
       type: 'link',
@@ -53,12 +54,12 @@ export function ConsoleNavigation() {
 
   const items: SideNavigationProps.Item[] = [
     {
-      type: 'section',
-      text: 'All accounts',
+      type: 'section-group',
+      title: 'All accounts',
       items: [
         { type: 'link', text: 'Inbox', href: '/inbox', info: counter(unifiedCount('inbox')) },
         { type: 'link', text: 'Starred', href: '/starred' },
-        ...UNIFIED.map((role): SideNavigationProps.Item => ({
+        ...UNIFIED.map((role): SideNavigationProps.Link => ({
           type: 'link',
           text: FOLDER_LABEL[role],
           href: `/${role}`,
@@ -69,8 +70,8 @@ export function ConsoleNavigation() {
     ...(accounts.length > 0
       ? [
           {
-            type: 'section' as const,
-            text: 'Accounts',
+            type: 'section-group' as const,
+            title: 'Accounts',
             items: accounts.map((account, i) => accountGroup(account, foldersOf(i))),
           },
         ]
@@ -81,7 +82,7 @@ export function ConsoleNavigation() {
 
   return (
     <SideNavigation
-      header={{ text: 'OneBox Mail', href: '/inbox' }}
+      header={{ text: 'Console Home', href: '/inbox' }}
       activeHref={activeHref(pathname)}
       items={items}
       onFollow={(event) => {

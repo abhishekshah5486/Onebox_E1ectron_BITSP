@@ -6,6 +6,7 @@ import { Outlet, useNavigate } from 'react-router';
 import { useAuth, useCurrentUser } from '../auth/AuthProvider';
 import { useTheme, type ThemePreference } from '../theme/ThemeProvider';
 import { Icon } from '../ui/Icon';
+import oneboxMark from '../ui/onebox-mark.svg';
 import { VersionSwitch } from '../ui/VersionSwitch';
 import { ConsoleNavigation } from './ConsoleNavigation';
 
@@ -34,6 +35,7 @@ export function ConsoleShell() {
           identity={{
             href: '/inbox',
             title: 'OneBox',
+            logo: { src: oneboxMark, alt: 'OneBox' },
             onFollow: (event) => {
               event.preventDefault();
               void navigate('/inbox');
