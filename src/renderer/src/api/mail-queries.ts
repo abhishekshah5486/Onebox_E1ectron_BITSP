@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
+import type { FolderRole } from '../mail/folders';
 import { mailApi, type Thread, type ThreadFilter, type ThreadPage } from './mail';
 
 // Until the realtime channel exists, lists and counts refresh on an interval.
@@ -13,13 +14,16 @@ const REFRESH_MS = 30_000;
 const FETCHING_POLL_MS = 1500;
 
 export type ThreadScope =
-  { kind: 'unified'; filter: ThreadFilter } | { kind: 'account'; accountId: string };
+  | { kind: 'unified'; filter: ThreadFilter; folder: FolderRole | null }
+  | { kind: 'account'; accountId: string; folder: FolderRole };
 
 export const mailKeys = {
   all: ['mail'] as const,
   threads: (scope: ThreadScope, page: number) => ['mail', 'threads', scope, page] as const,
   thread: (id: string) => ['mail', 'thread', id] as const,
-  summary: (accountId: string) => ['mail', 'summary', accountId] as const,
+  summary: (accountId: string, folder: FolderRole) =>
+    ['mail', 'summary', accountId, folder] as const,
+  folders: (accountId: string) => ['mail', 'folders', accountId] as const,
   stats: ['mail', 'stats'] as const,
 };
 
@@ -29,8 +33,8 @@ export function useThreadPage(scope: ThreadScope, page: number) {
     queryKey: mailKeys.threads(scope, page),
     queryFn: () =>
       scope.kind === 'account'
-        ? mailApi.listAccountThreads(api, scope.accountId, page)
-        : mailApi.listThreads(api, scope.filter, page),
+        ? mailApi.listAccountThreads(api, scope.accountId, scope.folder, page)
+        : mailApi.listThreads(api, scope.filter, scope.folder, page),
     placeholderData: keepPreviousData,
     refetchInterval: REFRESH_MS,
   });
@@ -50,30 +54,26 @@ export function useMailStats() {
   });
 }
 
-const summaryQuery = (api: ReturnType<typeof useAuth>['api'], accountId: string) => ({
-  queryKey: mailKeys.summary(accountId),
-  queryFn: () => mailApi.summary(api, accountId),
-  // Poll quickly only while older mail is being fetched for this mailbox.
-  refetchInterval: (query: { state: { data?: { history: { status: string } } } }) =>
-    query.state.data?.history.status === 'fetching' ? FETCHING_POLL_MS : REFRESH_MS,
-});
-
-export function useMailboxSummary(accountId: string) {
+export function useMailboxSummary(accountId: string, folder: FolderRole) {
   const { api } = useAuth();
-  return useQuery(summaryQuery(api, accountId));
+  return useQuery({
+    queryKey: mailKeys.summary(accountId, folder),
+    queryFn: () => mailApi.summary(api, accountId, folder),
+    // Poll quickly only while older mail is being fetched for this folder.
+    refetchInterval: (query) =>
+      query.state.data?.history.status === 'fetching' ? FETCHING_POLL_MS : REFRESH_MS,
+  });
 }
 
-export function useMailboxSummaries(accountIds: string[]) {
+// Server-side counts for every folder the connector found, one query per account.
+export function useAccountFolders(accountIds: string[]) {
   const { api } = useAuth();
-  return useQueries({ queries: accountIds.map((id) => summaryQuery(api, id)) });
-}
-
-export function useRequestHistory(accountId: string) {
-  const { api } = useAuth();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => mailApi.requestHistory(api, accountId),
-    onSuccess: (summary) => queryClient.setQueryData(mailKeys.summary(accountId), summary),
+  return useQueries({
+    queries: accountIds.map((id) => ({
+      queryKey: mailKeys.folders(id),
+      queryFn: () => mailApi.folders(api, id),
+      refetchInterval: REFRESH_MS,
+    })),
   });
 }
 

@@ -100,3 +100,43 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+.accountRow {
+  position: relative;
+}
+
+.toggle {
+  position: absolute;
+  left: -2px;
+  top: 7px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ob-text-muted);
+  cursor: pointer;
+  z-index: 1;
+  transition: transform 120ms;
+}
+
+.toggle:hover {
+  color: var(--ob-text);
+}
+
+.open {
+  transform: rotate(90deg);
+}
+
+.folders {
+  display: flex;
+  flex-direction: column;
+}
+
+.folders .item {
+  padding-left: 52px;
+  gap: 14px;
+}

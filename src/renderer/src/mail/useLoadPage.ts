@@ -3,15 +3,20 @@ import { useCallback, useRef, useState } from 'react';
 import { mailApi, type MailboxSummary } from '../api/mail';
 import { mailKeys } from '../api/mail-queries';
 import { useAuth } from '../auth/AuthProvider';
+import type { FolderRole } from './folders';
 import { PAGE_SIZE } from './paging';
 
 const POLL_MS = 1500;
 const MAX_BATCHES = 10;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Opens a page of one account's mail, first fetching older mail from the server until enough
+// Opens a page of one account folder, first fetching older mail from the server until enough
 // conversations are stored for that page (or the server has nothing older).
-export function useLoadPage(accountId: string, onReady: (page: number) => void) {
+export function useLoadPage(
+  accountId: string,
+  folder: FolderRole,
+  onReady: (page: number) => void,
+) {
   const { api } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -19,8 +24,8 @@ export function useLoadPage(accountId: string, onReady: (page: number) => void) 
   const run = useRef(0);
 
   async function freshSummary() {
-    const summary = await mailApi.summary(api, accountId);
-    queryClient.setQueryData(mailKeys.summary(accountId), summary);
+    const summary = await mailApi.summary(api, accountId, folder);
+    queryClient.setQueryData(mailKeys.summary(accountId, folder), summary);
     return summary;
   }
 
@@ -33,7 +38,7 @@ export function useLoadPage(accountId: string, onReady: (page: number) => void) 
       for (let batch = 0; batch < MAX_BATCHES; batch++) {
         const enough = summary.fetched.conversations >= page * PAGE_SIZE;
         if (enough || !summary.hasMoreOnServer) break;
-        await mailApi.requestHistory(api, accountId);
+        await mailApi.requestHistory(api, accountId, folder);
         do {
           await sleep(POLL_MS);
           if (id !== run.current) return;

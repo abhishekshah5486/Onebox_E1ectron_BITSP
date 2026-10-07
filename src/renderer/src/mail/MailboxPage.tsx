@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, Navigate, useParams } from 'react-router';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { ThreadFilter } from '../api/mail';
@@ -8,6 +8,7 @@ import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { ButtonLink } from '../ui/Button';
 import { Icon } from '../ui/Icon';
+import { FOLDER_LABEL, isFolderRole, type FolderRole } from './folders';
 import styles from './MailboxPage.module.css';
 import { PageControls, SkeletonRows } from './PageControls';
 import { PAGE_SIZE, rangeLabel } from './paging';
@@ -40,23 +41,43 @@ const PROBLEM: Record<string, string> = {
   DISABLED: 'Syncing is paused for this account.',
 };
 
+function unifiedEmpty(filter: ThreadFilter, folder: FolderRole | null, hasAccounts: boolean) {
+  const title =
+    filter === 'starred'
+      ? 'No starred conversations'
+      : !folder || folder === 'inbox'
+        ? 'Your inbox is empty'
+        : `Nothing in ${FOLDER_LABEL[folder]}`;
+  const body = !hasAccounts
+    ? 'Connect a Gmail, Outlook or IMAP account and new mail will show up here in real time.'
+    : filter === 'starred'
+      ? 'Star a conversation to find it here later.'
+      : !folder || folder === 'inbox'
+        ? 'New mail from your connected accounts appears here within seconds.'
+        : 'OneBox checks this folder on each account every couple of minutes.';
+  return { title, body };
+}
+
 export function UnifiedMailbox({
   filter,
+  folder = null,
   title,
   basePath,
 }: {
   filter: ThreadFilter;
+  folder?: FolderRole | null;
   title: string;
   basePath: string;
 }) {
   const accounts = useAccounts();
-  const scope = useMemo<ThreadScope>(() => ({ kind: 'unified', filter }), [filter]);
+  const scope = useMemo<ThreadScope>(() => ({ kind: 'unified', filter, folder }), [filter, folder]);
   const [page, setPage] = useState(1);
   const query = useThreadPage(scope, page);
   const byId = useMemo(() => new Map((accounts.data ?? []).map((a) => [a.id, a])), [accounts.data]);
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
   const hasAccounts = (accounts.data?.length ?? 0) > 0;
+  const empty = unifiedEmpty(filter, folder, hasAccounts);
 
   return (
     <section className={styles.panel} aria-label={title}>
@@ -84,15 +105,7 @@ export function UnifiedMailbox({
           </p>
         )}
         {query.isSuccess && total === 0 && (
-          <EmptyState
-            title={filter === 'starred' ? 'No starred conversations' : 'Your inbox is empty'}
-            body={
-              hasAccounts
-                ? 'New mail from your connected accounts appears here within seconds.'
-                : 'Connect a Gmail, Outlook or IMAP account and new mail will show up here in real time.'
-            }
-            connect={!hasAccounts}
-          />
+          <EmptyState title={empty.title} body={empty.body} connect={!hasAccounts} />
         )}
         {query.isSuccess && total > 0 && page * PAGE_SIZE >= total && (
           <p className={styles.endNote}>
@@ -104,31 +117,55 @@ export function UnifiedMailbox({
   );
 }
 
-function AccountHeader({ account }: { account: Account }) {
+function AccountHeader({ account, folder }: { account: Account; folder: FolderRole }) {
   return (
     <div className={styles.header}>
       <ProviderLogo provider={account.provider} size={28} />
       <div>
         <h1>{account.emailAddress}</h1>
-        {account.displayName && <div className={styles.email}>{account.displayName}</div>}
+        <div className={styles.email}>
+          {FOLDER_LABEL[folder]}
+          {account.displayName && ` · ${account.displayName}`}
+        </div>
       </div>
     </div>
   );
 }
 
-export function AccountMailbox() {
-  const { accountId = '' } = useParams();
-  return <AccountMailboxView key={accountId} accountId={accountId} />;
+function accountEmpty(folder: FolderRole, notFound: boolean) {
+  if (folder === 'inbox') {
+    return {
+      title: 'No mail yet',
+      body: 'OneBox is syncing the newest messages from this account.',
+    };
+  }
+  return {
+    title: `Nothing in ${FOLDER_LABEL[folder]}`,
+    body: notFound
+      ? 'OneBox has not found this folder on the server yet. It checks every couple of minutes.'
+      : 'This folder is empty.',
+  };
 }
 
-function AccountMailboxView({ accountId }: { accountId: string }) {
+export function AccountMailbox() {
+  const { accountId = '', folder } = useParams();
+  if (!isFolderRole(folder)) return <Navigate to={`/accounts/${accountId}/inbox`} replace />;
+  return (
+    <AccountMailboxView key={`${accountId}/${folder}`} accountId={accountId} folder={folder} />
+  );
+}
+
+function AccountMailboxView({ accountId, folder }: { accountId: string; folder: FolderRole }) {
   const accounts = useAccounts();
   const account = accounts.data?.find((a) => a.id === accountId);
-  const scope = useMemo<ThreadScope>(() => ({ kind: 'account', accountId }), [accountId]);
+  const scope = useMemo<ThreadScope>(
+    () => ({ kind: 'account', accountId, folder }),
+    [accountId, folder],
+  );
   const [page, setPage] = useState(1);
   const query = useThreadPage(scope, page);
-  const summary = useMailboxSummary(accountId);
-  const loader = useLoadPage(accountId, setPage);
+  const summary = useMailboxSummary(accountId, folder);
+  const loader = useLoadPage(accountId, folder, setPage);
   const { cancel } = loader;
   useEffect(() => cancel, [cancel]);
 
@@ -148,11 +185,11 @@ function AccountMailboxView({ accountId }: { accountId: string }) {
 
   return (
     <section className={styles.panel} aria-label={account?.emailAddress ?? 'Account'}>
-      {account && <AccountHeader account={account} />}
+      {account && <AccountHeader account={account} folder={folder} />}
       <ThreadList
-        label={`${account?.emailAddress ?? 'Account'} conversations`}
+        label={`${account?.emailAddress ?? 'Account'} ${FOLDER_LABEL[folder]} conversations`}
         items={loader.loading ? [] : items}
-        basePath={`/accounts/${accountId}`}
+        basePath={`/accounts/${accountId}/${folder}`}
         onRefresh={() => {
           void query.refetch();
           void summary.refetch();
@@ -192,13 +229,10 @@ function AccountMailboxView({ accountId }: { accountId: string }) {
           </p>
         )}
         {!loader.loading && query.isSuccess && stored === 0 && (
-          <EmptyState
-            title="No mail yet"
-            body="OneBox is syncing the newest messages from this account."
-          />
+          <EmptyState {...accountEmpty(folder, summary.data?.server === null)} />
         )}
         {!loader.loading && query.isSuccess && items.length > 0 && !canNext && (
-          <p className={styles.endNote}>You have reached the oldest email in this inbox.</p>
+          <p className={styles.endNote}>You have reached the oldest email in this folder.</p>
         )}
       </ThreadList>
     </section>

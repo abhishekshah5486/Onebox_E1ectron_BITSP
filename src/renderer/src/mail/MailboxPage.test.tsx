@@ -34,6 +34,7 @@ const pageOf = (all: Thread[]) => (path: string) => {
 
 const summary = (overrides: Partial<MailboxSummary> = {}): MailboxSummary => ({
   accountId: gmail.id,
+  folder: 'inbox',
   server: { total: 8300, unread: 12, updatedAt: '2026-10-07T10:00:00Z' },
   fetched: { conversations: 50, messages: 50 },
   history: { status: 'idle', error: null },
@@ -57,7 +58,14 @@ function renderAt(path: string, api: ApiClient) {
                   path="/inbox"
                   element={<UnifiedMailbox filter="all" title="All inboxes" basePath="/inbox" />}
                 />
+                <Route
+                  path="/sent"
+                  element={
+                    <UnifiedMailbox filter="all" folder="sent" title="Sent" basePath="/sent" />
+                  }
+                />
                 <Route path="/accounts/:accountId" element={<AccountMailbox />} />
+                <Route path="/accounts/:accountId/:folder" element={<AccountMailbox />} />
               </Routes>
             </Gate>
           </MemoryRouter>
@@ -90,6 +98,16 @@ describe('UnifiedMailbox', () => {
     expect(screen.getByText(/Open an account to load older mail/)).toBeInTheDocument();
     expect(older()).toBeDisabled();
   });
+
+  it('asks for one folder across every account', async () => {
+    const get = routedGet({
+      '/accounts': () => ({ items: [gmail] }),
+      '/mail/threads': pageOf([]),
+    });
+    renderAt('/sent', fakeApi({ ...restore, get }));
+    expect(await screen.findByRole('heading', { name: 'Nothing in Sent' })).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith(expect.stringMatching(/^\/mail\/threads\?.*folder=sent/));
+  });
 });
 
 describe('AccountMailbox', () => {
@@ -107,6 +125,21 @@ describe('AccountMailbox', () => {
     );
     expect(await screen.findByText('1–50 of 8,300')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'me@gmail.com' })).toBeInTheDocument();
+  });
+
+  it('opens one folder of the account with its own summary', async () => {
+    const get = routedGet({
+      '/accounts': () => ({ items: [gmail] }),
+      [`/mail/accounts/${gmail.id}/summary`]: () =>
+        summary({ folder: 'spam', server: null, hasMoreOnServer: false }),
+      [`/mail/accounts/${gmail.id}/threads`]: pageOf([]),
+    });
+    renderAt(`/accounts/${gmail.id}/spam`, fakeApi({ ...restore, get }));
+
+    expect(await screen.findByRole('heading', { name: 'Nothing in Spam' })).toBeInTheDocument();
+    expect(screen.getByText(/has not found this folder/)).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith(`/mail/accounts/${gmail.id}/summary?folder=spam`);
+    expect(get).toHaveBeenCalledWith(expect.stringMatching(/threads\?.*folder=spam/));
   });
 
   it('opens an already stored page without asking the server', async () => {

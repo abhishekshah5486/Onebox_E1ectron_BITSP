@@ -3,6 +3,7 @@ import type { Message, Thread } from '../api/mail';
 export const thread = (overrides: Partial<Thread> = {}): Thread => ({
   id: 'a'.repeat(64),
   accountId: 'acc-1',
+  folders: ['inbox'],
   subject: 'Demo next week?',
   snippet: 'Are you free on Tuesday',
   participants: [{ name: 'Priya', address: 'priya@acme.example' }],

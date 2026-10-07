@@ -1,3 +1,4 @@
+import type { FolderRole } from '../mail/folders';
 import type { ApiClient } from './client';
 
 export interface Address {
@@ -8,6 +9,7 @@ export interface Address {
 export interface Thread {
   id: string;
   accountId: string;
+  folders: FolderRole[];
   subject: string;
   snippet: string;
   participants: Address[];
@@ -59,10 +61,19 @@ export type HistoryStatus = 'idle' | 'fetching' | 'complete' | 'error';
 
 export interface MailboxSummary {
   accountId: string;
+  folder: FolderRole;
   server: { total: number; unread: number; updatedAt: string } | null;
   fetched: { conversations: number; messages: number };
   history: { status: HistoryStatus; error: string | null };
   hasMoreOnServer: boolean;
+}
+
+export interface FolderCounts {
+  role: FolderRole;
+  path: string;
+  total: number;
+  unread: number;
+  updatedAt: string;
 }
 
 export interface MailStats {
@@ -75,14 +86,16 @@ const pageParams = (page: number, extra: Record<string, string> = {}) =>
   new URLSearchParams({ page: String(page), limit: '50', ...extra });
 
 export const mailApi = {
-  listThreads: (api: ApiClient, filter: ThreadFilter, page: number) =>
-    api.get<ThreadPage>(`/mail/threads?${pageParams(page, { filter })}`),
-  listAccountThreads: (api: ApiClient, accountId: string, page: number) =>
-    api.get<ThreadPage>(`/mail/accounts/${accountId}/threads?${pageParams(page)}`),
-  summary: (api: ApiClient, accountId: string) =>
-    api.get<MailboxSummary>(`/mail/accounts/${accountId}/summary`),
-  requestHistory: (api: ApiClient, accountId: string) =>
-    api.post<MailboxSummary>(`/mail/accounts/${accountId}/history`),
+  listThreads: (api: ApiClient, filter: ThreadFilter, folder: FolderRole | null, page: number) =>
+    api.get<ThreadPage>(`/mail/threads?${pageParams(page, { filter, ...(folder && { folder }) })}`),
+  listAccountThreads: (api: ApiClient, accountId: string, folder: FolderRole, page: number) =>
+    api.get<ThreadPage>(`/mail/accounts/${accountId}/threads?${pageParams(page, { folder })}`),
+  summary: (api: ApiClient, accountId: string, folder: FolderRole) =>
+    api.get<MailboxSummary>(`/mail/accounts/${accountId}/summary?folder=${folder}`),
+  requestHistory: (api: ApiClient, accountId: string, folder: FolderRole) =>
+    api.post<MailboxSummary>(`/mail/accounts/${accountId}/history?folder=${folder}`),
+  folders: (api: ApiClient, accountId: string) =>
+    api.get<{ items: FolderCounts[] }>(`/mail/accounts/${accountId}/folders`),
   getThread: (api: ApiClient, id: string) =>
     api.get<{ thread: Thread; messages: Message[] }>(`/mail/threads/${id}`),
   updateThread: (api: ApiClient, id: string, changes: { isRead?: boolean; isStarred?: boolean }) =>

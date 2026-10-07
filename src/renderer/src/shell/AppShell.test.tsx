@@ -33,7 +33,7 @@ async function renderShell(api = fakeApi({ restoreSession: vi.fn(async () => tes
                       <UnifiedMailbox filter="starred" title="Starred" basePath="/starred" />
                     }
                   />
-                  <Route path="/accounts/:accountId" element={<p>account page</p>} />
+                  <Route path="/accounts/:accountId/:folder" element={<p>account page</p>} />
                 </Route>
               </Route>
               <Route path="/settings" element={<p>at /settings</p>} />
@@ -79,20 +79,14 @@ describe('AppShell', () => {
         restoreSession: vi.fn(async () => testUser),
         get: routedGet({
           '/accounts': () => ({ items: [work, broken] }),
-          [`/mail/accounts/${work.id}/summary`]: () => ({
-            accountId: work.id,
-            server: { total: 500, unread: 7, updatedAt: '2026-10-07T10:00:00Z' },
-            fetched: { conversations: 50, messages: 50 },
-            history: { status: 'idle', error: null },
-            hasMoreOnServer: true,
+          [`/mail/accounts/${work.id}/folders`]: () => ({
+            items: [
+              { role: 'inbox', path: 'INBOX', total: 500, unread: 7, updatedAt: '' },
+              { role: 'drafts', path: 'Drafts', total: 3, unread: 0, updatedAt: '' },
+              { role: 'spam', path: 'Junk', total: 40, unread: 2, updatedAt: '' },
+            ],
           }),
-          [`/mail/accounts/${broken.id}/summary`]: () => ({
-            accountId: broken.id,
-            server: null,
-            fetched: { conversations: 0, messages: 0 },
-            history: { status: 'idle', error: null },
-            hasMoreOnServer: false,
-          }),
+          [`/mail/accounts/${broken.id}/folders`]: () => ({ items: [] }),
         }),
       }),
     );
@@ -110,7 +104,42 @@ describe('AppShell', () => {
       ),
     ).toBeInTheDocument();
 
+    expect(await within(nav).findByLabelText('3 drafts in drafts')).toBeInTheDocument();
+
     await userEvent.click(workLink);
+    expect(screen.getByText('account page')).toBeInTheDocument();
+  });
+
+  it('expands an account to show the folders found on its server', async () => {
+    await renderShell(
+      fakeApi({
+        restoreSession: vi.fn(async () => testUser),
+        get: routedGet({
+          '/accounts': () => ({ items: [work] }),
+          [`/mail/accounts/${work.id}/folders`]: () => ({
+            items: [
+              { role: 'inbox', path: 'INBOX', total: 500, unread: 7, updatedAt: '' },
+              { role: 'spam', path: 'Junk', total: 40, unread: 2, updatedAt: '' },
+            ],
+          }),
+        }),
+      }),
+    );
+    const nav = screen.getByRole('navigation', { name: 'Mailboxes' });
+    await userEvent.click(
+      await within(nav).findByRole('button', { name: 'Show folders for me@corp.example' }),
+    );
+    const group = within(nav).getByRole('group', { name: 'me@corp.example folders' });
+    expect(
+      within(group)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([expect.stringContaining('Inbox'), expect.stringContaining('Spam')]);
+    expect(
+      await within(group).findByLabelText('2 unread in me@corp.example Spam'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(group).getByRole('link', { name: /Spam/ }));
     expect(screen.getByText('account page')).toBeInTheDocument();
   });
 
