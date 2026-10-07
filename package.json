@@ -64,6 +64,7 @@
   "dependencies": {
     "@cloudscape-design/components": "^3.0.1392",
     "@cloudscape-design/global-styles": "^1.0.71",
+    "@tanstack/react-query": "^5.104.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0"
