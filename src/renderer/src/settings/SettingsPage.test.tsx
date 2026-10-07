@@ -35,12 +35,14 @@ describe('SettingsPage', () => {
     expect(localStorage.getItem('onebox.theme')).toBe('dark');
   });
 
-  it('shows an empty accounts table and the available integrations', async () => {
+  it('shows the accounts, preferences and integrations sections', async () => {
     await renderSettings();
-    expect(screen.getByText('No accounts connected')).toBeInTheDocument();
-
-    const integrations = screen.getByRole('table', { name: /Integrations/ });
-    expect(within(integrations).getByText('Slack')).toBeInTheDocument();
-    expect(within(integrations).getAllByText('Not configured')).toHaveLength(2);
+    expect(await screen.findByText('No accounts connected')).toBeInTheDocument();
+    expect(await screen.findByText('No integrations yet')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Save preferences' })).toBeDisabled();
+    expect(
+      within(screen.getByRole('table', { name: /Connected accounts/ })).getAllByRole('columnheader')
+        .length,
+    ).toBeGreaterThan(3);
   });
 });

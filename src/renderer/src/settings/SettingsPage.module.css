@@ -6,3 +6,11 @@
   background: var(--ob-surface);
   box-sizing: border-box;
 }
+
+.loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border-radius: var(--ob-radius);
+  background: var(--ob-surface);
+}

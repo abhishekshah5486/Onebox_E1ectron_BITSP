@@ -2,9 +2,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
+import { QueryProvider } from './api/QueryProvider';
 import { AuthProvider } from './auth/AuthProvider';
 import { AppRoutes } from './routes';
 import { fakeApi, testUser } from './test/fake-api';
+import { testQueryClient } from './test/render';
 import { ThemeProvider } from './theme/ThemeProvider';
 
 function renderApp(path: string, signedIn: boolean) {
@@ -15,9 +17,11 @@ function renderApp(path: string, signedIn: boolean) {
   render(
     <ThemeProvider>
       <AuthProvider api={api}>
-        <MemoryRouter initialEntries={[path]}>
-          <AppRoutes />
-        </MemoryRouter>
+        <QueryProvider client={testQueryClient()}>
+          <MemoryRouter initialEntries={[path]}>
+            <AppRoutes />
+          </MemoryRouter>
+        </QueryProvider>
       </AuthProvider>
     </ThemeProvider>,
   );
@@ -45,7 +49,9 @@ describe('app routes', () => {
 
   it('renders settings inside the shell', async () => {
     renderApp('/settings', true);
-    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Settings' }, { timeout: 4000 }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('search')).toBeInTheDocument();
   });
 });
