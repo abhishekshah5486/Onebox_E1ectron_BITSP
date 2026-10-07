@@ -69,3 +69,9 @@
   font-size: 16px;
   font-weight: 500;
 }
+
+.badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+}

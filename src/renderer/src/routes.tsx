@@ -4,6 +4,7 @@ import { GuestOnly, RequireAuth } from './auth/guards';
 import { SignInPage } from './auth/SignInPage';
 import { SignUpPage } from './auth/SignUpPage';
 import { MailboxPage } from './mail/MailboxPage';
+import { ThreadPage } from './mail/ThreadPage';
 import { AppShell } from './shell/AppShell';
 import { FOLDERS } from './shell/Sidebar';
 
@@ -19,13 +20,20 @@ export function AppRoutes() {
       </Route>
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          {FOLDERS.map((folder) => (
+          {FOLDERS.flatMap((folder) => [
             <Route
               key={folder.path}
               path={folder.path}
-              element={<MailboxPage folder={folder.label} />}
-            />
-          ))}
+              element={
+                <MailboxPage folder={folder.label} filter={folder.filter} basePath={folder.path} />
+              }
+            />,
+            <Route
+              key={`${folder.path}/thread`}
+              path={`${folder.path}/:threadId`}
+              element={<ThreadPage basePath={folder.path} />}
+            />,
+          ])}
           <Route
             path="/settings"
             element={

@@ -2,10 +2,12 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
+import { QueryProvider } from '../api/QueryProvider';
 import { AuthProvider } from '../auth/AuthProvider';
 import { RequireAuth } from '../auth/guards';
 import { MailboxPage } from '../mail/MailboxPage';
 import { fakeApi, testUser } from '../test/fake-api';
+import { testQueryClient } from '../test/render';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { AppShell } from './AppShell';
 
@@ -15,17 +17,19 @@ async function renderShell(api = fakeApi({ restoreSession: vi.fn(async () => tes
   render(
     <ThemeProvider>
       <AuthProvider api={api}>
-        <MemoryRouter initialEntries={['/inbox']}>
-          <Routes>
-            <Route element={<RequireAuth />}>
-              <Route element={<AppShell />}>
-                <Route path="/inbox" element={<MailboxPage folder="Inbox" />} />
-                <Route path="/sent" element={<MailboxPage folder="Sent" />} />
+        <QueryProvider client={testQueryClient()}>
+          <MemoryRouter initialEntries={['/inbox']}>
+            <Routes>
+              <Route element={<RequireAuth />}>
+                <Route element={<AppShell />}>
+                  <Route path="/inbox" element={<MailboxPage folder="Inbox" />} />
+                  <Route path="/sent" element={<MailboxPage folder="Sent" filter={null} />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="/settings" element={<p>at /settings</p>} />
-          </Routes>
-        </MemoryRouter>
+              <Route path="/settings" element={<p>at /settings</p>} />
+            </Routes>
+          </MemoryRouter>
+        </QueryProvider>
       </AuthProvider>
     </ThemeProvider>,
   );
@@ -44,13 +48,13 @@ describe('AppShell', () => {
       'page',
     );
     expect(within(nav).getAllByRole('link')).toHaveLength(5);
-    expect(screen.getByRole('heading', { name: 'Your inbox is empty' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your inbox is empty' })).toBeInTheDocument();
   });
 
   it('navigates between folders', async () => {
     await renderShell();
     await userEvent.click(screen.getByRole('link', { name: /Sent/ }));
-    expect(screen.getByRole('heading', { name: 'No conversations in Sent' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sent is not synced yet' })).toBeInTheDocument();
   });
 
   it('collapses the sidebar to icons', async () => {
@@ -86,7 +90,7 @@ describe('AppShell', () => {
 
   it('links the empty state and settings button to settings', async () => {
     await renderShell();
-    expect(screen.getByRole('link', { name: 'Connect an account' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Connect an account' })).toHaveAttribute(
       'href',
       '/settings',
     );
