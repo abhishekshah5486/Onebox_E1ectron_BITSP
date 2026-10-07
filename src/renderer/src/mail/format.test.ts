@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { displayName, formatBytes, formatListDate, formatMessageDate, formatUtc } from './format';
+import {
+  countLabel,
+  displayName,
+  formatBytes,
+  formatListDate,
+  formatMessageDate,
+  formatUtc,
+  middleTruncate,
+} from './format';
 
 const now = new Date('2026-10-07T15:00:00');
 
@@ -49,5 +57,21 @@ describe('console dates', () => {
     expect(formatMessageDate('2026-10-07T17:00:00Z', now)).toMatch(/\(2 hours ago\)$/);
     expect(formatMessageDate('2026-10-07T18:59:00Z', now)).toMatch(/\(1 minute ago\)$/);
     expect(formatMessageDate('2026-09-01T10:00:00Z', now)).not.toMatch(/ago/);
+  });
+});
+
+describe('compact labels', () => {
+  it('keeps both ends of a long address', () => {
+    const short = middleTruncate('abhishek.shah5486@gmail.com', 24);
+    expect(short).toHaveLength(24);
+    expect(short.startsWith('abhishek.s')).toBe(true);
+    expect(short.endsWith('@gmail.com')).toBe(true);
+    expect(middleTruncate('me@x.com', 24)).toBe('me@x.com');
+  });
+
+  it('caps counts at 99+', () => {
+    expect(countLabel(7)).toBe('7');
+    expect(countLabel(99)).toBe('99');
+    expect(countLabel(4977)).toBe('99+');
   });
 });

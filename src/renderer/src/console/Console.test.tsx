@@ -84,7 +84,7 @@ function renderConsole(path: string, api: ApiClient) {
 }
 
 describe('v2 console', () => {
-  it('shows every account with its full email address and the folders found on its server', async () => {
+  it('lists accounts closed, shortened to one line, and opens their folders on click', async () => {
     renderConsole(
       '/inbox',
       fakeApi({
@@ -100,11 +100,26 @@ describe('v2 console', () => {
         }),
       }),
     );
-    const nav = (await screen.findByText('Console Home')).closest('nav')!;
-    expect(await within(nav).findByText(gmail.emailAddress)).toBeInTheDocument();
-    const spam = await within(nav).findAllByRole('link', { name: /Spam/ });
-    expect(spam.map((link) => link.getAttribute('href'))).toContain(`/accounts/${gmail.id}/spam`);
-    expect(within(nav).getAllByText('4,976').length).toBeGreaterThan(0);
+    const accounts = await screen.findByRole('region', { name: 'Accounts' });
+    const name = await within(accounts).findByTitle(gmail.emailAddress);
+    expect(name.textContent).toMatch(/^abhishek\.sha.*….*@gmail\.com$/);
+    expect(within(accounts).queryByRole('link', { name: /Spam/ })).not.toBeInTheDocument();
+    expect(
+      await within(accounts).findByLabelText(`4,976 unread in ${gmail.emailAddress}`),
+    ).toHaveTextContent('99+');
+
+    await userEvent.click(
+      within(accounts).getByRole('button', { name: `Show folders for ${gmail.emailAddress}` }),
+    );
+    expect(within(accounts).getByRole('link', { name: /Spam/ })).toHaveAttribute(
+      'href',
+      `/accounts/${gmail.id}/spam`,
+    );
+    // Once open, the count moves from the account line to its Inbox.
+    expect(
+      within(accounts).queryByLabelText(`4,976 unread in ${gmail.emailAddress}`),
+    ).not.toBeInTheDocument();
+    expect(within(accounts).getByLabelText('4,976 unread in Inbox')).toHaveTextContent('99+');
   });
 
   it('lists conversations in a table and opens one on click', async () => {
@@ -130,7 +145,7 @@ describe('v2 console', () => {
 
     const table = await screen.findByRole('table', { name: 'All inboxes conversations' });
     expect(await within(table).findByText('Mail 1')).toBeInTheDocument();
-    expect(within(table).getAllByText(gmail.emailAddress)).toHaveLength(3);
+    expect(within(table).getAllByTitle(gmail.emailAddress)).toHaveLength(3);
 
     await userEvent.click(within(table).getByText('Mail 1'));
     expect(await screen.findByText('Hello from the console')).toBeInTheDocument();

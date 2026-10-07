@@ -49,3 +49,12 @@ export function formatMessageDate(iso: string, now = new Date()): string {
           : `${Math.floor(minutes / 1440)} ${Math.floor(minutes / 1440) === 1 ? 'day' : 'days'} ago`;
   return `${absolute} (${ago})`;
 }
+
+// Keeps the start and the end (usually the domain) so long addresses stay recognisable on one line.
+export function middleTruncate(text: string, max = 26): string {
+  if (text.length <= max) return text;
+  const tail = Math.floor((max - 1) / 2);
+  return `${text.slice(0, max - 1 - tail)}…${text.slice(-tail)}`;
+}
+
+export const countLabel = (count: number) => (count > 99 ? '99+' : String(count));
