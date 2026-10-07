@@ -49,16 +49,10 @@ export type ThreadFilter = 'all' | 'unread' | 'starred';
 
 export interface ThreadPage {
   items: Thread[];
-  nextCursor: string | null;
-  prevCursor: string | null;
-  endCursor: string | null;
-}
-
-export type Direction = 'next' | 'prev';
-
-export interface PageRequest {
-  cursor: string | null;
-  direction: Direction;
+  page: number;
+  pageSize: number;
+  // Conversations stored for this view (the server may hold more, see MailboxSummary).
+  total: number;
 }
 
 export type HistoryStatus = 'idle' | 'fetching' | 'complete' | 'error';
@@ -77,16 +71,13 @@ export interface MailStats {
   totalThreads: number;
 }
 
-function pageParams(page: PageRequest, extra: Record<string, string> = {}) {
-  const params = new URLSearchParams({ limit: '50', direction: page.direction, ...extra });
-  if (page.cursor) params.set('cursor', page.cursor);
-  return params;
-}
+const pageParams = (page: number, extra: Record<string, string> = {}) =>
+  new URLSearchParams({ page: String(page), limit: '50', ...extra });
 
 export const mailApi = {
-  listThreads: (api: ApiClient, filter: ThreadFilter, page: PageRequest) =>
+  listThreads: (api: ApiClient, filter: ThreadFilter, page: number) =>
     api.get<ThreadPage>(`/mail/threads?${pageParams(page, { filter })}`),
-  listAccountThreads: (api: ApiClient, accountId: string, page: PageRequest) =>
+  listAccountThreads: (api: ApiClient, accountId: string, page: number) =>
     api.get<ThreadPage>(`/mail/accounts/${accountId}/threads?${pageParams(page)}`),
   summary: (api: ApiClient, accountId: string) =>
     api.get<MailboxSummary>(`/mail/accounts/${accountId}/summary`),

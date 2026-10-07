@@ -21,7 +21,7 @@ const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/accounts' || path === '/settings/integrations') return { items: [] };
   if (path === '/settings/preferences') return defaultPreferences;
   if (path.startsWith('/mail/threads?') || /^\/mail\/accounts\/[^/]+\/threads/.test(path)) {
-    return { items: [], nextCursor: null, prevCursor: null, endCursor: null };
+    return { items: [], page: 1, pageSize: 50, total: 0 };
   }
   if (path === '/mail/stats') return { unreadThreads: 0, starredThreads: 0, totalThreads: 0 };
   throw new Error(`fakeApi: unexpected GET ${path}`);

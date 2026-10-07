@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import type { ApiClient } from '../api/client';
-import type { MailboxSummary } from '../api/mail';
+import type { MailboxSummary, Thread } from '../api/mail';
 import { QueryProvider } from '../api/QueryProvider';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { fakeApi, routedGet, testUser } from '../test/fake-api';
@@ -13,21 +13,29 @@ import { account } from '../test/settings-fixtures';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { AccountMailbox, UnifiedMailbox } from './MailboxPage';
 
-const gmail = account({ id: '11111111-1111-4111-8111-111111111111', displayName: 'Personal' });
-const page = (
-  items: ReturnType<typeof thread>[],
-  nextCursor: string | null = null,
-  endCursor = 'end',
-) => ({
-  items,
-  nextCursor,
-  prevCursor: null,
-  endCursor: items.length ? endCursor : null,
-});
+const gmail = account({ id: '11111111-1111-4111-8111-111111111111', emailAddress: 'me@gmail.com' });
+const restore = { restoreSession: vi.fn(async () => testUser) };
+
+// Builds `count` conversations with distinct ids and numbered subjects.
+const threads = (count: number, from = 1) =>
+  Array.from({ length: count }, (_, i) =>
+    thread({
+      id: (from + i).toString(16).padStart(64, '0'),
+      subject: `Mail ${from + i}`,
+      accountId: gmail.id,
+    }),
+  );
+
+// Serves `all` as a stored list, paged like the real API.
+const pageOf = (all: Thread[]) => (path: string) => {
+  const page = Number(new URLSearchParams(path.split('?')[1]).get('page') ?? '1');
+  return { items: all.slice((page - 1) * 50, page * 50), page, pageSize: 50, total: all.length };
+};
+
 const summary = (overrides: Partial<MailboxSummary> = {}): MailboxSummary => ({
   accountId: gmail.id,
   server: { total: 8300, unread: 12, updatedAt: '2026-10-07T10:00:00Z' },
-  fetched: { conversations: 2, messages: 2 },
+  fetched: { conversations: 50, messages: 50 },
   history: { status: 'idle', error: null },
   hasMoreOnServer: true,
   ...overrides,
@@ -50,7 +58,6 @@ function renderAt(path: string, api: ApiClient) {
                   element={<UnifiedMailbox filter="all" title="All inboxes" basePath="/inbox" />}
                 />
                 <Route path="/accounts/:accountId" element={<AccountMailbox />} />
-                <Route path="*" element={<p>elsewhere</p>} />
               </Routes>
             </Gate>
           </MemoryRouter>
@@ -60,46 +67,33 @@ function renderAt(path: string, api: ApiClient) {
   );
 }
 
-const restore = { restoreSession: vi.fn(async () => testUser) };
+const older = () => screen.getByRole('button', { name: 'Older' });
 
 describe('UnifiedMailbox', () => {
-  it('tags each conversation with the mailbox it came from', async () => {
+  it('tags each conversation with its account and pages through fetched mail', async () => {
     renderAt(
       '/inbox',
       fakeApi({
         ...restore,
         get: routedGet({
           '/accounts': () => ({ items: [gmail] }),
-          '/mail/threads': () => page([thread({ accountId: gmail.id })]),
+          '/mail/threads': pageOf(threads(60)),
         }),
       }),
     );
-    const row = await screen.findByRole('row');
-    expect(within(row).getByRole('img', { name: 'Gmail' })).toBeInTheDocument();
-    expect(within(row).getByTitle('Personal')).toBeInTheDocument();
-  });
+    const firstRow = (await screen.findAllByRole('row'))[0]!;
+    expect(within(firstRow).getByRole('img', { name: 'Gmail' })).toBeInTheDocument();
+    expect(screen.getByText('1–50 of 60')).toBeInTheDocument();
 
-  it('pages through fetched mail and explains where it ends', async () => {
-    const get = routedGet({
-      '/accounts': () => ({ items: [gmail] }),
-      '/mail/threads': (path) =>
-        path.includes('cursor=c1')
-          ? page([thread({ id: 'b'.repeat(64), subject: 'Older' })])
-          : page([thread({ subject: 'Newest' })], 'c1'),
-    });
-    renderAt('/inbox', fakeApi({ ...restore, get }));
-
-    await screen.findByText('Newest');
-    await userEvent.click(screen.getByRole('button', { name: 'Older' }));
-    expect(await screen.findByText('Older')).toBeInTheDocument();
-    expect(screen.getByText('51–51')).toBeInTheDocument();
+    await userEvent.click(older());
+    expect(await screen.findByText('51–60 of 60')).toBeInTheDocument();
     expect(screen.getByText(/Open an account to load older mail/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Older' })).toBeDisabled();
+    expect(older()).toBeDisabled();
   });
 });
 
 describe('AccountMailbox', () => {
-  it('shows the Gmail-style range with the server total', async () => {
+  it('shows the range against the server total and the email address as the title', async () => {
     renderAt(
       `/accounts/${gmail.id}`,
       fakeApi({
@@ -107,101 +101,99 @@ describe('AccountMailbox', () => {
         get: routedGet({
           '/accounts': () => ({ items: [gmail] }),
           [`/mail/accounts/${gmail.id}/summary`]: () => summary(),
-          [`/mail/accounts/${gmail.id}/threads`]: () =>
-            page([thread(), thread({ id: 'c'.repeat(64) })]),
+          [`/mail/accounts/${gmail.id}/threads`]: pageOf(threads(50)),
         }),
       }),
     );
-    expect(await screen.findByText('1–2 of 8,300')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Personal' })).toBeInTheDocument();
+    expect(await screen.findByText('1–50 of 8,300')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'me@gmail.com' })).toBeInTheDocument();
   });
 
-  it('fetches older mail from the server when stored mail runs out', async () => {
-    let status: 'idle' | 'fetching' = 'idle';
-    const post = vi.fn(async () => {
-      status = 'fetching';
-      setTimeout(() => (status = 'idle'), 300);
-      return summary({ history: { status: 'fetching', error: null } });
-    });
-    const get = routedGet({
-      '/accounts': () => ({ items: [gmail] }),
-      [`/mail/accounts/${gmail.id}/summary`]: () => summary({ history: { status, error: null } }),
-      [`/mail/accounts/${gmail.id}/threads`]: (path) =>
-        path.includes('cursor=end-1')
-          ? page([thread({ id: 'd'.repeat(64), subject: 'From the archive' })], null, 'end-2')
-          : page([thread({ subject: 'Recent' })], null, 'end-1'),
-    });
-    renderAt(
-      `/accounts/${gmail.id}`,
-      fakeApi({ ...restore, get, post: post as ApiClient['post'] }),
-    );
-
-    await screen.findByText('Recent');
-    await userEvent.click(screen.getByRole('button', { name: 'Older' }));
-
-    expect(post).toHaveBeenCalledWith(`/mail/accounts/${gmail.id}/history`);
-    expect(
-      await screen.findByRole('status', { name: 'Fetching older mail from Gmail…' }),
-    ).toBeInTheDocument();
-    expect(await screen.findByText('From the archive', {}, { timeout: 5000 })).toBeInTheDocument();
-  });
-
-  it('offers a retry when fetching older mail failed', async () => {
+  it('opens an already stored page without asking the server', async () => {
+    const post = vi.fn();
     renderAt(
       `/accounts/${gmail.id}`,
       fakeApi({
         ...restore,
+        post: post as ApiClient['post'],
+        get: routedGet({
+          '/accounts': () => ({ items: [gmail] }),
+          [`/mail/accounts/${gmail.id}/summary`]: () =>
+            summary({ fetched: { conversations: 120, messages: 120 } }),
+          [`/mail/accounts/${gmail.id}/threads`]: pageOf(threads(120)),
+        }),
+      }),
+    );
+    await screen.findByText('Mail 1');
+    await userEvent.click(older());
+    expect(await screen.findByText('51–100 of 8,300')).toBeInTheDocument();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('fetches older mail batch by batch until the next page is full', async () => {
+    let stored = threads(50);
+    let status: MailboxSummary['history']['status'] = 'idle';
+    const post = vi.fn(async () => {
+      status = 'fetching';
+      setTimeout(() => {
+        stored = [...stored, ...threads(30, stored.length + 1)];
+        status = 'idle';
+      }, 100);
+      return summary({ history: { status: 'fetching', error: null } });
+    });
+    renderAt(
+      `/accounts/${gmail.id}`,
+      fakeApi({
+        ...restore,
+        post: post as ApiClient['post'],
         get: routedGet({
           '/accounts': () => ({ items: [gmail] }),
           [`/mail/accounts/${gmail.id}/summary`]: () =>
             summary({
-              history: { status: 'error', error: 'Could not fetch older mail. Try again.' },
+              fetched: { conversations: stored.length, messages: stored.length },
+              history: { status, error: null },
             }),
-          [`/mail/accounts/${gmail.id}/threads`]: () => page([thread()]),
+          [`/mail/accounts/${gmail.id}/threads`]: (path) => pageOf(stored)(path),
         }),
       }),
     );
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Could not fetch older mail');
-    expect(within(alert).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+
+    await screen.findByText('Mail 1');
+    await userEvent.click(older());
+    expect(
+      await screen.findByRole('status', { name: 'Loading older mail from Gmail…' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('51–100 of 8,300', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(post).toHaveBeenCalledTimes(2);
   });
 
-  it('warns when the account needs attention', async () => {
-    const broken = { ...gmail, status: 'AUTH_FAILED' as const };
+  it('says something went wrong and offers a retry when the fetch fails', async () => {
+    const post = vi.fn(async () => summary({ history: { status: 'fetching', error: null } }));
     renderAt(
       `/accounts/${gmail.id}`,
       fakeApi({
         ...restore,
+        post: post as ApiClient['post'],
         get: routedGet({
-          '/accounts': () => ({ items: [broken] }),
-          [`/mail/accounts/${gmail.id}/summary`]: () => summary(),
-          [`/mail/accounts/${gmail.id}/threads`]: () => page([thread()]),
+          '/accounts': () => ({ items: [gmail] }),
+          [`/mail/accounts/${gmail.id}/summary`]: () =>
+            post.mock.calls.length > 0
+              ? summary({ history: { status: 'error', error: 'Could not fetch older mail.' } })
+              : summary(),
+          [`/mail/accounts/${gmail.id}/threads`]: pageOf(threads(50)),
         }),
       }),
     );
-    expect(await screen.findByText(/rejected this account’s password/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Fix in Settings' })).toBeInTheDocument();
+
+    await screen.findByText('Mail 1');
+    await userEvent.click(older());
+    const alert = await screen.findByRole('alert', {}, { timeout: 5000 });
+    expect(alert).toHaveTextContent('Something went wrong while loading older mail.');
+    expect(within(alert).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(screen.getByText('1–50 of 8,300')).toBeInTheDocument();
   });
 
-  it('offers a way back if a later page turns out empty', async () => {
-    const get = routedGet({
-      '/accounts': () => ({ items: [gmail] }),
-      [`/mail/accounts/${gmail.id}/summary`]: () => summary(),
-      [`/mail/accounts/${gmail.id}/threads`]: (path) =>
-        path.includes('cursor=c1') ? page([]) : page([thread({ subject: 'Recent' })], 'c1'),
-    });
-    renderAt(`/accounts/${gmail.id}`, fakeApi({ ...restore, get }));
-
-    await screen.findByText('Recent');
-    await userEvent.click(screen.getByRole('button', { name: 'Older' }));
-    expect(await screen.findByRole('heading', { name: 'Nothing older here' })).toBeInTheDocument();
-    expect(screen.queryByText(/0 of 8,300/)).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Back to newest' }));
-    expect(await screen.findByText('Recent')).toBeInTheDocument();
-  });
-
-  it('disables Older at the very end of the mailbox', async () => {
+  it('shows the remaining mail on the last page and disables Older', async () => {
     renderAt(
       `/accounts/${gmail.id}`,
       fakeApi({
@@ -210,11 +202,27 @@ describe('AccountMailbox', () => {
           '/accounts': () => ({ items: [gmail] }),
           [`/mail/accounts/${gmail.id}/summary`]: () =>
             summary({ hasMoreOnServer: false, history: { status: 'complete', error: null } }),
-          [`/mail/accounts/${gmail.id}/threads`]: () => page([thread()]),
+          [`/mail/accounts/${gmail.id}/threads`]: pageOf(threads(12)),
         }),
       }),
     );
-    expect(await screen.findByText(/reached the oldest message/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Older' })).toBeDisabled());
+    expect(await screen.findByText(/reached the oldest email/)).toBeInTheDocument();
+    await waitFor(() => expect(older()).toBeDisabled());
+  });
+
+  it('warns when the account needs attention', async () => {
+    renderAt(
+      `/accounts/${gmail.id}`,
+      fakeApi({
+        ...restore,
+        get: routedGet({
+          '/accounts': () => ({ items: [{ ...gmail, status: 'AUTH_FAILED' as const }] }),
+          [`/mail/accounts/${gmail.id}/summary`]: () => summary(),
+          [`/mail/accounts/${gmail.id}/threads`]: pageOf(threads(5)),
+        }),
+      }),
+    );
+    expect(await screen.findByText(/rejected this account’s password/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Fix in Settings' })).toBeInTheDocument();
   });
 });

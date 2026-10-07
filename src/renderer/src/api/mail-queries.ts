@@ -6,7 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
-import { mailApi, type PageRequest, type Thread, type ThreadFilter, type ThreadPage } from './mail';
+import { mailApi, type Thread, type ThreadFilter, type ThreadPage } from './mail';
 
 // Until the realtime channel exists, lists and counts refresh on an interval.
 const REFRESH_MS = 30_000;
@@ -17,13 +17,13 @@ export type ThreadScope =
 
 export const mailKeys = {
   all: ['mail'] as const,
-  threads: (scope: ThreadScope, page: PageRequest) => ['mail', 'threads', scope, page] as const,
+  threads: (scope: ThreadScope, page: number) => ['mail', 'threads', scope, page] as const,
   thread: (id: string) => ['mail', 'thread', id] as const,
   summary: (accountId: string) => ['mail', 'summary', accountId] as const,
   stats: ['mail', 'stats'] as const,
 };
 
-export function useThreadPage(scope: ThreadScope, page: PageRequest) {
+export function useThreadPage(scope: ThreadScope, page: number) {
   const { api } = useAuth();
   return useQuery({
     queryKey: mailKeys.threads(scope, page),

@@ -1,23 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { accountColor, accountLabel } from '../accounts/account-color';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { ThreadFilter } from '../api/mail';
-import {
-  useMailboxSummary,
-  useRequestHistory,
-  useThreadPage,
-  type ThreadScope,
-} from '../api/mail-queries';
+import { useMailboxSummary, useThreadPage, type ThreadScope } from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { ButtonLink } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import styles from './MailboxPage.module.css';
 import { PageControls, SkeletonRows } from './PageControls';
-import { rangeLabel, usePaging } from './paging';
+import { PAGE_SIZE, rangeLabel } from './paging';
 import { ThreadList } from './ThreadList';
+import { useLoadPage } from './useLoadPage';
 
 function EmptyState({ title, body, connect }: { title: string; body: string; connect?: boolean }) {
   return (
@@ -30,15 +25,13 @@ function EmptyState({ title, body, connect }: { title: string; body: string; con
   );
 }
 
-// Shows a banner when newer mail arrives while the user is on a later page.
-function useNewMailNotice(scope: ThreadScope, index: number) {
-  const top = useThreadPage(scope, { cursor: null, direction: 'next' });
-  const newestId = top.data?.items[0]?.id;
-  const [seen, setSeen] = useState(newestId);
-  // Re-baseline while on the first page (adjusting state during render, not in an effect).
-  if ((index === 0 || seen === undefined) && newestId !== seen) setSeen(newestId);
-  return index > 0 && !!newestId && !!seen && newestId !== seen;
-}
+const PROVIDER_NAME = {
+  GMAIL: 'Gmail',
+  OUTLOOK: 'Outlook',
+  ICLOUD: 'iCloud',
+  YAHOO: 'Yahoo',
+  IMAP: 'the mail server',
+} as const;
 
 const PROBLEM: Record<string, string> = {
   AUTH_FAILED: 'The mail server rejected this account’s password.',
@@ -58,12 +51,12 @@ export function UnifiedMailbox({
 }) {
   const accounts = useAccounts();
   const scope = useMemo<ThreadScope>(() => ({ kind: 'unified', filter }), [filter]);
-  const paging = usePaging();
-  const query = useThreadPage(scope, paging.page);
-  const newMail = useNewMailNotice(scope, paging.index);
+  const [page, setPage] = useState(1);
+  const query = useThreadPage(scope, page);
   const byId = useMemo(() => new Map((accounts.data ?? []).map((a) => [a.id, a])), [accounts.data]);
   const items = query.data?.items ?? [];
-  const atEnd = query.isSuccess && !query.data.nextCursor && items.length > 0;
+  const total = query.data?.total ?? 0;
+  const hasAccounts = (accounts.data?.length ?? 0) > 0;
 
   return (
     <section className={styles.panel} aria-label={title}>
@@ -73,21 +66,13 @@ export function UnifiedMailbox({
         basePath={basePath}
         accounts={byId}
         onRefresh={() => void query.refetch()}
-        banner={
-          newMail && (
-            <div className={styles.banner} role="status">
-              New mail arrived.
-              <button onClick={paging.first}>Back to newest</button>
-            </div>
-          )
-        }
         controls={
           <PageControls
-            label={rangeLabel(paging.index, items.length)}
-            canPrev={paging.index > 0}
-            canNext={!!query.data?.nextCursor}
-            onPrev={() => paging.prev(query.data?.prevCursor ?? null)}
-            onNext={() => query.data?.nextCursor && paging.next(query.data.nextCursor)}
+            label={rangeLabel(page, items.length, total || null)}
+            canPrev={page > 1}
+            canNext={page * PAGE_SIZE < total}
+            onPrev={() => setPage((p) => p - 1)}
+            onNext={() => setPage((p) => p + 1)}
             busy={query.isFetching && query.isPlaceholderData}
           />
         }
@@ -98,18 +83,18 @@ export function UnifiedMailbox({
             {describeError(query.error)}
           </p>
         )}
-        {query.isSuccess && items.length === 0 && (
+        {query.isSuccess && total === 0 && (
           <EmptyState
             title={filter === 'starred' ? 'No starred conversations' : 'Your inbox is empty'}
             body={
-              (accounts.data?.length ?? 0) > 0
+              hasAccounts
                 ? 'New mail from your connected accounts appears here within seconds.'
                 : 'Connect a Gmail, Outlook or IMAP account and new mail will show up here in real time.'
             }
-            connect={(accounts.data?.length ?? 0) === 0}
+            connect={!hasAccounts}
           />
         )}
-        {atEnd && (
+        {query.isSuccess && total > 0 && page * PAGE_SIZE >= total && (
           <p className={styles.endNote}>
             That is all the mail OneBox has fetched so far. Open an account to load older mail.
           </p>
@@ -123,14 +108,9 @@ function AccountHeader({ account }: { account: Account }) {
   return (
     <div className={styles.header}>
       <ProviderLogo provider={account.provider} size={28} />
-      <span
-        className={styles.dot}
-        style={{ background: accountColor(account.id) }}
-        aria-hidden="true"
-      />
       <div>
-        <h1>{accountLabel(account)}</h1>
-        {account.displayName && <div className={styles.email}>{account.emailAddress}</div>}
+        <h1>{account.emailAddress}</h1>
+        {account.displayName && <div className={styles.email}>{account.displayName}</div>}
       </div>
     </div>
   );
@@ -145,31 +125,12 @@ function AccountMailboxView({ accountId }: { accountId: string }) {
   const accounts = useAccounts();
   const account = accounts.data?.find((a) => a.id === accountId);
   const scope = useMemo<ThreadScope>(() => ({ kind: 'account', accountId }), [accountId]);
-  const paging = usePaging();
-  const query = useThreadPage(scope, paging.page);
+  const [page, setPage] = useState(1);
+  const query = useThreadPage(scope, page);
   const summary = useMailboxSummary(accountId);
-  const history = useRequestHistory(accountId);
-  const newMail = useNewMailNotice(scope, paging.index);
-  // Set while older mail is being fetched for the page after this one; `accepted` flips once the
-  // server has queued the fetch, because before that the status still describes the previous one.
-  const [waiting, setWaiting] = useState<{ anchor: string; accepted: boolean } | null>(null);
-
-  const items = query.data?.items ?? [];
-  const status = summary.data?.history.status;
-  const providerName = account
-    ? {
-        GMAIL: 'Gmail',
-        OUTLOOK: 'Outlook',
-        ICLOUD: 'iCloud',
-        YAHOO: 'Yahoo',
-        IMAP: 'the mail server',
-      }[account.provider]
-    : 'the mail server';
-
-  if (waiting?.accepted && (status === 'idle' || status === 'complete')) {
-    setWaiting(null);
-    paging.next(waiting.anchor);
-  }
+  const loader = useLoadPage(accountId, setPage);
+  const { cancel } = loader;
+  useEffect(() => cancel, [cancel]);
 
   if (accounts.isSuccess && !account) {
     return (
@@ -179,32 +140,18 @@ function AccountMailboxView({ accountId }: { accountId: string }) {
     );
   }
 
-  const fetching = waiting !== null || history.isPending;
-  const canNext =
-    !!query.data?.nextCursor || (!!summary.data?.hasMoreOnServer && !!query.data?.endCursor);
-
-  const onNext = () => {
-    if (query.data?.nextCursor) {
-      paging.next(query.data.nextCursor);
-      return;
-    }
-    const anchor = query.data?.endCursor;
-    if (!anchor) return;
-    setWaiting({ anchor, accepted: false });
-    history.mutate(undefined, {
-      onSuccess: () => setWaiting({ anchor, accepted: true }),
-      onError: () => setWaiting(null),
-    });
-  };
-
+  const items = query.data?.items ?? [];
+  const stored = query.data?.total ?? 0;
+  const canNext = page * PAGE_SIZE < stored || !!summary.data?.hasMoreOnServer;
+  const provider = account ? PROVIDER_NAME[account.provider] : 'the mail server';
   const problem = account && account.status !== 'CONNECTED' ? PROBLEM[account.status] : null;
 
   return (
-    <section className={styles.panel} aria-label={account ? accountLabel(account) : 'Account'}>
+    <section className={styles.panel} aria-label={account?.emailAddress ?? 'Account'}>
       {account && <AccountHeader account={account} />}
       <ThreadList
-        label={`${account ? accountLabel(account) : 'Account'} conversations`}
-        items={fetching ? [] : items}
+        label={`${account?.emailAddress ?? 'Account'} conversations`}
+        items={loader.loading ? [] : items}
         basePath={`/accounts/${accountId}`}
         onRefresh={() => {
           void query.refetch();
@@ -218,59 +165,40 @@ function AccountMailboxView({ accountId }: { accountId: string }) {
                 <Link to="/settings">Fix in Settings</Link>
               </div>
             )}
-            {status === 'error' && !fetching && (
+            {loader.failedPage !== null && (
               <div className={`${styles.banner} ${styles.warning}`} role="alert">
-                {summary.data?.history.error ?? 'Could not fetch older mail.'}
-                <button onClick={onNext}>Try again</button>
-              </div>
-            )}
-            {newMail && (
-              <div className={styles.banner} role="status">
-                New mail arrived.
-                <button onClick={paging.first}>Back to newest</button>
+                Something went wrong while loading older mail.
+                <button onClick={() => void loader.load(loader.failedPage!)}>Try again</button>
               </div>
             )}
           </>
         }
         controls={
           <PageControls
-            label={rangeLabel(
-              paging.index,
-              items.length,
-              items.length ? summary.data?.server?.total : null,
-            )}
-            canPrev={paging.index > 0}
+            label={rangeLabel(page, items.length, summary.data?.server?.total)}
+            canPrev={page > 1}
             canNext={canNext}
-            onPrev={() => paging.prev(query.data?.prevCursor ?? null)}
-            onNext={onNext}
-            busy={fetching || (query.isFetching && query.isPlaceholderData)}
+            onPrev={() => setPage((p) => p - 1)}
+            onNext={() => void loader.load(page + 1)}
+            busy={loader.loading || (query.isFetching && query.isPlaceholderData)}
           />
         }
       >
-        {fetching && <SkeletonRows label={`Fetching older mail from ${providerName}…`} />}
-        {!fetching && query.isPending && <SkeletonRows label="Loading conversations" />}
+        {loader.loading && <SkeletonRows label={`Loading older mail from ${provider}…`} />}
+        {!loader.loading && query.isPending && <SkeletonRows label="Loading conversations" />}
         {query.isError && (
           <p role="alert" className={styles.status}>
             {describeError(query.error)}
           </p>
         )}
-        {!fetching && query.isSuccess && items.length === 0 && paging.index === 0 && (
+        {!loader.loading && query.isSuccess && stored === 0 && (
           <EmptyState
             title="No mail yet"
             body="OneBox is syncing the newest messages from this account."
           />
         )}
-        {!fetching && query.isSuccess && items.length === 0 && paging.index > 0 && (
-          <div className={styles.empty}>
-            <h2>Nothing older here</h2>
-            <p>The mail that was just fetched is newer than this page.</p>
-            <button className={styles.linkButton} onClick={paging.first}>
-              Back to newest
-            </button>
-          </div>
-        )}
-        {!fetching && query.isSuccess && items.length > 0 && !canNext && status === 'complete' && (
-          <p className={styles.endNote}>You have reached the oldest message in this inbox.</p>
+        {!loader.loading && query.isSuccess && items.length > 0 && !canNext && (
+          <p className={styles.endNote}>You have reached the oldest email in this inbox.</p>
         )}
       </ThreadList>
     </section>
