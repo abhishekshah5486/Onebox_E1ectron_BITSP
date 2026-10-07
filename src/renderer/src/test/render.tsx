@@ -6,6 +6,7 @@ import type { ApiClient } from '../api/client';
 import { QueryProvider } from '../api/QueryProvider';
 import { AuthProvider } from '../auth/AuthProvider';
 import { ThemeProvider } from '../theme/ThemeProvider';
+import { UiVersionProvider } from '../theme/UiVersionProvider';
 import { fakeApi } from './fake-api';
 
 // Renders a page inside every app provider, plus a marker route to assert navigation.
@@ -28,20 +29,22 @@ export function renderPage(
 ) {
   return render(
     <ThemeProvider>
-      <AuthProvider api={api}>
-        <QueryProvider client={testQueryClient()}>
-          <MemoryRouter initialEntries={[path]}>
-            <Routes>
-              <Route path={path} element={ui} />
-              {extraRoutes
-                .filter((route) => route !== path)
-                .map((route) => (
-                  <Route key={route} path={route} element={<p>{`at ${route}`}</p>} />
-                ))}
-            </Routes>
-          </MemoryRouter>
-        </QueryProvider>
-      </AuthProvider>
+      <UiVersionProvider>
+        <AuthProvider api={api}>
+          <QueryProvider client={testQueryClient()}>
+            <MemoryRouter initialEntries={[path]}>
+              <Routes>
+                <Route path={path} element={ui} />
+                {extraRoutes
+                  .filter((route) => route !== path)
+                  .map((route) => (
+                    <Route key={route} path={route} element={<p>{`at ${route}`}</p>} />
+                  ))}
+              </Routes>
+            </MemoryRouter>
+          </QueryProvider>
+        </AuthProvider>
+      </UiVersionProvider>
     </ThemeProvider>,
   );
 }
