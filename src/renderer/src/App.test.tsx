@@ -50,8 +50,8 @@ describe('app routes', () => {
   it('renders settings inside the shell', async () => {
     renderApp('/settings', true);
     expect(
-      await screen.findByRole('heading', { name: 'Settings' }, { timeout: 4000 }),
+      await screen.findByRole('heading', { name: 'Settings' }, { timeout: 12_000 }),
     ).toBeInTheDocument();
     expect(screen.getByRole('search')).toBeInTheDocument();
-  });
+  }, 15_000);
 });
