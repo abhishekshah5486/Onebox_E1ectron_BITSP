@@ -1,30 +1,37 @@
 import {
-  useInfiniteQuery,
+  keepPreviousData,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
-  type InfiniteData,
 } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
-import { mailApi, type Thread, type ThreadFilter, type ThreadPage } from './mail';
+import { mailApi, type PageRequest, type Thread, type ThreadFilter, type ThreadPage } from './mail';
 
-// Until the realtime channel exists, lists refresh on an interval.
+// Until the realtime channel exists, lists and counts refresh on an interval.
 const REFRESH_MS = 30_000;
+const FETCHING_POLL_MS = 1500;
+
+export type ThreadScope =
+  { kind: 'unified'; filter: ThreadFilter } | { kind: 'account'; accountId: string };
 
 export const mailKeys = {
   all: ['mail'] as const,
-  threads: (filter: ThreadFilter) => ['mail', 'threads', filter] as const,
+  threads: (scope: ThreadScope, page: PageRequest) => ['mail', 'threads', scope, page] as const,
   thread: (id: string) => ['mail', 'thread', id] as const,
+  summary: (accountId: string) => ['mail', 'summary', accountId] as const,
   stats: ['mail', 'stats'] as const,
 };
 
-export function useThreads(filter: ThreadFilter) {
+export function useThreadPage(scope: ThreadScope, page: PageRequest) {
   const { api } = useAuth();
-  return useInfiniteQuery({
-    queryKey: mailKeys.threads(filter),
-    queryFn: ({ pageParam }) => mailApi.listThreads(api, { filter, cursor: pageParam }),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) => last.nextCursor,
+  return useQuery({
+    queryKey: mailKeys.threads(scope, page),
+    queryFn: () =>
+      scope.kind === 'account'
+        ? mailApi.listAccountThreads(api, scope.accountId, page)
+        : mailApi.listThreads(api, scope.filter, page),
+    placeholderData: keepPreviousData,
     refetchInterval: REFRESH_MS,
   });
 }
@@ -43,21 +50,42 @@ export function useMailStats() {
   });
 }
 
+const summaryQuery = (api: ReturnType<typeof useAuth>['api'], accountId: string) => ({
+  queryKey: mailKeys.summary(accountId),
+  queryFn: () => mailApi.summary(api, accountId),
+  // Poll quickly only while older mail is being fetched for this mailbox.
+  refetchInterval: (query: { state: { data?: { history: { status: string } } } }) =>
+    query.state.data?.history.status === 'fetching' ? FETCHING_POLL_MS : REFRESH_MS,
+});
+
+export function useMailboxSummary(accountId: string) {
+  const { api } = useAuth();
+  return useQuery(summaryQuery(api, accountId));
+}
+
+export function useMailboxSummaries(accountIds: string[]) {
+  const { api } = useAuth();
+  return useQueries({ queries: accountIds.map((id) => summaryQuery(api, id)) });
+}
+
+export function useRequestHistory(accountId: string) {
+  const { api } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => mailApi.requestHistory(api, accountId),
+    onSuccess: (summary) => queryClient.setQueryData(mailKeys.summary(accountId), summary),
+  });
+}
+
 function patchThreadEverywhere(
   queryClient: ReturnType<typeof useQueryClient>,
   id: string,
   update: (thread: Thread) => Thread,
 ) {
-  queryClient.setQueriesData<InfiniteData<ThreadPage>>({ queryKey: ['mail', 'threads'] }, (data) =>
-    data
-      ? {
-          ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            items: page.items.map((thread) => (thread.id === id ? update(thread) : thread)),
-          })),
-        }
-      : data,
+  queryClient.setQueriesData<ThreadPage>({ queryKey: ['mail', 'threads'] }, (page) =>
+    page
+      ? { ...page, items: page.items.map((thread) => (thread.id === id ? update(thread) : thread)) }
+      : page,
   );
 }
 
