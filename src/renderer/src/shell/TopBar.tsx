@@ -4,6 +4,7 @@ import { useAuth, useCurrentUser } from '../auth/AuthProvider';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { Logo } from '../ui/Logo';
+import { VersionSwitch } from '../ui/VersionSwitch';
 import { ThemeToggle } from './ThemeToggle';
 import styles from './TopBar.module.css';
 
@@ -36,6 +37,9 @@ export function TopBar({ onToggleMenu }: { onToggleMenu: () => void }) {
       </form>
 
       <div className={styles.actions}>
+        <span className={styles.versionSlot}>
+          <VersionSwitch />
+        </span>
         <ThemeToggle className={styles.iconButton} />
         <button
           className={styles.iconButton}

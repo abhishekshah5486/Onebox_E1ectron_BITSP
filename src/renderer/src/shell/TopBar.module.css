@@ -119,3 +119,8 @@
   height: 64px;
   font-size: 28px;
 }
+
+.versionSlot {
+  display: inline-flex;
+  margin-right: 8px;
+}

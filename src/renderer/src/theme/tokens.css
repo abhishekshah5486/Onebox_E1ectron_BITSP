@@ -56,3 +56,8 @@ body {
   font-family: var(--ob-font);
   font-size: 14px;
 }
+
+/* v2 (AWS console style) uses Cloudscape's own typeface. */
+:root[data-ui='v2'] {
+  --ob-font: 'Open Sans', 'Helvetica Neue', Roboto, Arial, sans-serif;
+}

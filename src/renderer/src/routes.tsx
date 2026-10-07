@@ -1,5 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ComponentType, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router';
+import type { ThreadFilter } from './api/mail';
 import { GuestOnly, RequireAuth } from './auth/guards';
 import { SignInPage } from './auth/SignInPage';
 import { SignUpPage } from './auth/SignUpPage';
@@ -7,18 +8,72 @@ import { FOLDER_LABEL, type FolderRole } from './mail/folders';
 import { AccountMailbox, UnifiedMailbox } from './mail/MailboxPage';
 import { ThreadPage } from './mail/ThreadPage';
 import { AppShell } from './shell/AppShell';
+import { useUiVersion } from './theme/UiVersionProvider';
 
-// Settings pulls in Cloudscape, so it loads only when opened.
+// Settings and the v2 console pull in Cloudscape, so they load only when needed.
 const SettingsPage = lazy(() => import('./settings/SettingsPage'));
+const loadConsole = () => import('./console');
+const ConsoleShell = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleShell })));
+const ConsoleUnifiedMailbox = lazy(() =>
+  loadConsole().then((m) => ({ default: m.ConsoleUnifiedMailbox })),
+);
+const ConsoleAccountMailbox = lazy(() =>
+  loadConsole().then((m) => ({ default: m.ConsoleAccountMailbox })),
+);
+const ConsoleThread = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleThread })));
+
+interface UnifiedProps {
+  filter: ThreadFilter;
+  folder?: FolderRole | null;
+  title: string;
+  basePath: string;
+}
+
+// The pieces each interface version supplies for the same set of routes.
+interface Kit {
+  Shell: ComponentType;
+  Unified: ComponentType<UnifiedProps>;
+  Account: ComponentType;
+  Thread: ComponentType<{ basePath: string }>;
+}
+
+const CLASSIC: Kit = {
+  Shell: AppShell,
+  Unified: UnifiedMailbox,
+  Account: AccountMailbox,
+  Thread: ThreadPage,
+};
+
+const CONSOLE: Kit = {
+  Shell: ConsoleShell,
+  Unified: ConsoleUnifiedMailbox,
+  Account: ConsoleAccountMailbox,
+  Thread: ConsoleThread,
+};
 
 const UNIFIED_FOLDERS: FolderRole[] = ['sent', 'drafts', 'spam', 'trash'];
 
-function AccountThread() {
+const loading = (label: string, children: ReactNode) => (
+  <Suspense fallback={<div role="status" aria-label={label} />}>{children}</Suspense>
+);
+
+function AccountThread({ Thread }: { Thread: Kit['Thread'] }) {
   const { accountId = '', folder = 'inbox' } = useParams();
-  return <ThreadPage basePath={`/accounts/${accountId}/${folder}`} />;
+  return <Thread basePath={`/accounts/${accountId}/${folder}`} />;
 }
 
 export function AppRoutes() {
+  const { version } = useUiVersion();
+  const { Shell, Unified, Account, Thread } = version === 'v2' ? CONSOLE : CLASSIC;
+  const unified = (key: string, props: UnifiedProps) => [
+    <Route key={key} path={props.basePath} element={<Unified key={key} {...props} />} />,
+    <Route
+      key={`${key}-thread`}
+      path={`${props.basePath}/:threadId`}
+      element={<Thread basePath={props.basePath} />}
+    />,
+  ];
+
   return (
     <Routes>
       <Route element={<GuestOnly />}>
@@ -26,52 +81,24 @@ export function AppRoutes() {
         <Route path="/signup" element={<SignUpPage />} />
       </Route>
       <Route element={<RequireAuth />}>
-        <Route element={<AppShell />}>
+        <Route element={loading('Loading', <Shell />)}>
+          {unified('inbox', { filter: 'all', title: 'All inboxes', basePath: '/inbox' })}
+          {unified('starred', { filter: 'starred', title: 'Starred', basePath: '/starred' })}
+          {UNIFIED_FOLDERS.flatMap((folder) =>
+            unified(folder, {
+              filter: 'all',
+              folder,
+              title: FOLDER_LABEL[folder],
+              basePath: `/${folder}`,
+            }),
+          )}
+          <Route path="/accounts/:accountId" element={<Account />} />
+          <Route path="/accounts/:accountId/:folder" element={<Account />} />
           <Route
-            path="/inbox"
-            element={
-              <UnifiedMailbox key="inbox" filter="all" title="All inboxes" basePath="/inbox" />
-            }
+            path="/accounts/:accountId/:folder/:threadId"
+            element={<AccountThread Thread={Thread} />}
           />
-          <Route path="/inbox/:threadId" element={<ThreadPage basePath="/inbox" />} />
-          <Route
-            path="/starred"
-            element={
-              <UnifiedMailbox key="starred" filter="starred" title="Starred" basePath="/starred" />
-            }
-          />
-          <Route path="/starred/:threadId" element={<ThreadPage basePath="/starred" />} />
-          {UNIFIED_FOLDERS.flatMap((folder) => [
-            <Route
-              key={folder}
-              path={`/${folder}`}
-              element={
-                <UnifiedMailbox
-                  key={folder}
-                  filter="all"
-                  folder={folder}
-                  title={FOLDER_LABEL[folder]}
-                  basePath={`/${folder}`}
-                />
-              }
-            />,
-            <Route
-              key={`${folder}-thread`}
-              path={`/${folder}/:threadId`}
-              element={<ThreadPage basePath={`/${folder}`} />}
-            />,
-          ])}
-          <Route path="/accounts/:accountId" element={<AccountMailbox />} />
-          <Route path="/accounts/:accountId/:folder" element={<AccountMailbox />} />
-          <Route path="/accounts/:accountId/:folder/:threadId" element={<AccountThread />} />
-          <Route
-            path="/settings"
-            element={
-              <Suspense fallback={<div role="status" aria-label="Loading settings" />}>
-                <SettingsPage />
-              </Suspense>
-            }
-          />
+          <Route path="/settings" element={loading('Loading settings', <SettingsPage />)} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/inbox" replace />} />

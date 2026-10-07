@@ -10,6 +10,7 @@ import { account } from '../test/settings-fixtures';
 import { fakeApi, routedGet, testUser } from '../test/fake-api';
 import { testQueryClient } from '../test/render';
 import { ThemeProvider } from '../theme/ThemeProvider';
+import { UiVersionProvider } from '../theme/UiVersionProvider';
 import { AppShell } from './AppShell';
 
 beforeEach(() => localStorage.clear());
@@ -17,30 +18,34 @@ beforeEach(() => localStorage.clear());
 async function renderShell(api = fakeApi({ restoreSession: vi.fn(async () => testUser) })) {
   render(
     <ThemeProvider>
-      <AuthProvider api={api}>
-        <QueryProvider client={testQueryClient()}>
-          <MemoryRouter initialEntries={['/inbox']}>
-            <Routes>
-              <Route element={<RequireAuth />}>
-                <Route element={<AppShell />}>
-                  <Route
-                    path="/inbox"
-                    element={<UnifiedMailbox filter="all" title="All inboxes" basePath="/inbox" />}
-                  />
-                  <Route
-                    path="/starred"
-                    element={
-                      <UnifiedMailbox filter="starred" title="Starred" basePath="/starred" />
-                    }
-                  />
-                  <Route path="/accounts/:accountId/:folder" element={<p>account page</p>} />
+      <UiVersionProvider>
+        <AuthProvider api={api}>
+          <QueryProvider client={testQueryClient()}>
+            <MemoryRouter initialEntries={['/inbox']}>
+              <Routes>
+                <Route element={<RequireAuth />}>
+                  <Route element={<AppShell />}>
+                    <Route
+                      path="/inbox"
+                      element={
+                        <UnifiedMailbox filter="all" title="All inboxes" basePath="/inbox" />
+                      }
+                    />
+                    <Route
+                      path="/starred"
+                      element={
+                        <UnifiedMailbox filter="starred" title="Starred" basePath="/starred" />
+                      }
+                    />
+                    <Route path="/accounts/:accountId/:folder" element={<p>account page</p>} />
+                  </Route>
                 </Route>
-              </Route>
-              <Route path="/settings" element={<p>at /settings</p>} />
-            </Routes>
-          </MemoryRouter>
-        </QueryProvider>
-      </AuthProvider>
+                <Route path="/settings" element={<p>at /settings</p>} />
+              </Routes>
+            </MemoryRouter>
+          </QueryProvider>
+        </AuthProvider>
+      </UiVersionProvider>
     </ThemeProvider>,
   );
   // The shell needs an authenticated user; wait for the session to restore.
@@ -158,6 +163,13 @@ describe('AppShell', () => {
     const nav = screen.getByRole('navigation', { name: 'Mailboxes' });
     expect(within(nav).queryByText('All inboxes')).not.toBeInTheDocument();
     expect(within(nav).getByTitle('All inboxes')).toBeInTheDocument();
+  });
+
+  it('switches to the v2 interface from the top bar', async () => {
+    await renderShell();
+    await userEvent.click(screen.getByRole('radio', { name: /v2 · Console/ }));
+    await waitFor(() => expect(localStorage.getItem('onebox.ui-version')).toBe('v2'));
+    expect(document.documentElement.dataset.ui).toBe('v2');
   });
 
   it('cycles the theme from the top bar', async () => {

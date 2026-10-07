@@ -35,6 +35,14 @@ describe('SettingsPage', () => {
     expect(localStorage.getItem('onebox.theme')).toBe('dark');
   });
 
+  it('switches between the v1 and v2 interfaces', async () => {
+    await renderSettings();
+    await userEvent.click(screen.getByRole('radio', { name: /v2 · Console/ }));
+
+    expect(localStorage.getItem('onebox.ui-version')).toBe('v2');
+    expect(document.documentElement.dataset.ui).toBe('v2');
+  });
+
   it('shows the accounts, preferences and integrations sections', async () => {
     await renderSettings();
     expect(await screen.findByText('No accounts connected')).toBeInTheDocument();
