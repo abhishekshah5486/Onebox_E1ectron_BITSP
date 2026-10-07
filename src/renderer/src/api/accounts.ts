@@ -1,6 +1,7 @@
 import type { ApiClient } from './client';
 
-export type Provider = 'GMAIL' | 'OUTLOOK' | 'IMAP';
+export type PresetProvider = 'GMAIL' | 'OUTLOOK' | 'ICLOUD' | 'YAHOO';
+export type Provider = PresetProvider | 'IMAP';
 export type AccountStatus = 'CONNECTED' | 'AUTH_FAILED' | 'UNREACHABLE' | 'TLS_ERROR' | 'DISABLED';
 
 export interface ServerSettings {
@@ -25,7 +26,7 @@ export interface Account {
 }
 
 export type CreateAccountInput =
-  | { provider: 'GMAIL' | 'OUTLOOK'; emailAddress: string; displayName?: string; password: string }
+  | { provider: PresetProvider; emailAddress: string; displayName?: string; password: string }
   | {
       provider: 'IMAP';
       emailAddress: string;
