@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
 afterEach(cleanup);
+
+// Cloudscape's first render can exceed the 1s default when the suite runs in parallel.
+configure({ asyncUtilTimeout: 3000 });
 
 import { vi } from 'vitest';
 
