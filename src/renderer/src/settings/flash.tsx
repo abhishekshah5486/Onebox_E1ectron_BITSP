@@ -23,7 +23,7 @@ export function FlashProvider({ children }: { children: ReactNode }) {
       const id = `flash-${nextId++}`;
       setItems((current) => [
         { ...flash, id, dismissible: true, onDismiss: () => dismiss(id) },
-        ...current.slice(0, 2),
+        ...current.slice(0, 1),
       ]);
       if (flash.type === 'success') setTimeout(() => dismiss(id), 5000);
     },
@@ -33,7 +33,7 @@ export function FlashProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => push, [push]);
   return (
     <FlashContext value={value}>
-      <Flashbar items={items} stackItems={items.length > 1} />
+      <Flashbar items={items} />
       {children}
     </FlashContext>
   );
