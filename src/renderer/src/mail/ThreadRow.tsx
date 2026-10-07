@@ -1,4 +1,7 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
+import { accountColor, accountLabel } from '../accounts/account-color';
+import { ProviderLogo } from '../accounts/ProviderLogo';
+import type { Account } from '../api/accounts';
 import type { Thread } from '../api/mail';
 import { Icon } from '../ui/Icon';
 import { displayName, formatListDate } from './format';
@@ -6,6 +9,8 @@ import styles from './ThreadRow.module.css';
 
 interface ThreadRowProps {
   thread: Thread;
+  // Set in unified views so each row shows which mailbox it came from.
+  account?: Account | undefined;
   selected: boolean;
   onOpen: (thread: Thread) => void;
   onToggleSelect: (thread: Thread) => void;
@@ -14,6 +19,7 @@ interface ThreadRowProps {
 
 export function ThreadRow({
   thread,
+  account,
   selected,
   onOpen,
   onToggleSelect,
@@ -59,6 +65,12 @@ export function ThreadRow({
         <Icon name="star" size={18} />
       </button>
       <span className={styles.sender}>
+        {account && (
+          <span className={styles.chip} title={accountLabel(account)}>
+            <span className={styles.chipDot} style={{ background: accountColor(account.id) }} />
+            <ProviderLogo provider={account.provider} size={14} />
+          </span>
+        )}
         {displayName(thread.lastFrom)}
         {thread.messageCount > 1 && <span className={styles.count}>{thread.messageCount}</span>}
       </span>

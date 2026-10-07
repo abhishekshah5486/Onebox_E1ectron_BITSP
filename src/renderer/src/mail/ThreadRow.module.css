@@ -83,3 +83,17 @@
 .read .date {
   color: var(--ob-text-muted);
 }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+  vertical-align: -2px;
+}
+
+.chipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}

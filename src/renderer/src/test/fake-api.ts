@@ -20,10 +20,22 @@ export const defaultPreferences = {
 const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/accounts' || path === '/settings/integrations') return { items: [] };
   if (path === '/settings/preferences') return defaultPreferences;
-  if (path.startsWith('/mail/threads?')) return { items: [], nextCursor: null };
+  if (path.startsWith('/mail/threads?') || /^\/mail\/accounts\/[^/]+\/threads/.test(path)) {
+    return { items: [], nextCursor: null, prevCursor: null, endCursor: null };
+  }
   if (path === '/mail/stats') return { unreadThreads: 0, starredThreads: 0, totalThreads: 0 };
   throw new Error(`fakeApi: unexpected GET ${path}`);
 };
+
+// Routes GET calls by path prefix; anything unmatched falls back to the empty defaults.
+export function routedGet(routes: Record<string, (path: string) => unknown>): ApiClient['get'] {
+  return vi.fn(async (path: string) => {
+    const match = Object.keys(routes)
+      .sort((a, b) => b.length - a.length)
+      .find((prefix) => path.startsWith(prefix));
+    return match ? routes[match]!(path) : defaultGet(path);
+  }) as ApiClient['get'];
+}
 
 export function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
