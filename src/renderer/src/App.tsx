@@ -1,4 +1,5 @@
 import { BrowserRouter, HashRouter } from 'react-router';
+import { QueryProvider } from './api/QueryProvider';
 import { AuthProvider } from './auth/AuthProvider';
 import { AppRoutes } from './routes';
 
@@ -8,9 +9,11 @@ const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter
 export function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <QueryProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </QueryProvider>
     </AuthProvider>
   );
 }
