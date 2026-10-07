@@ -234,7 +234,11 @@ function AccountMailboxView({ accountId }: { accountId: string }) {
         }
         controls={
           <PageControls
-            label={rangeLabel(paging.index, items.length, summary.data?.server?.total)}
+            label={rangeLabel(
+              paging.index,
+              items.length,
+              items.length ? summary.data?.server?.total : null,
+            )}
             canPrev={paging.index > 0}
             canNext={canNext}
             onPrev={() => paging.prev(query.data?.prevCursor ?? null)}
@@ -250,11 +254,20 @@ function AccountMailboxView({ accountId }: { accountId: string }) {
             {describeError(query.error)}
           </p>
         )}
-        {!fetching && query.isSuccess && items.length === 0 && (
+        {!fetching && query.isSuccess && items.length === 0 && paging.index === 0 && (
           <EmptyState
             title="No mail yet"
             body="OneBox is syncing the newest messages from this account."
           />
+        )}
+        {!fetching && query.isSuccess && items.length === 0 && paging.index > 0 && (
+          <div className={styles.empty}>
+            <h2>Nothing older here</h2>
+            <p>The mail that was just fetched is newer than this page.</p>
+            <button className={styles.linkButton} onClick={paging.first}>
+              Back to newest
+            </button>
+          </div>
         )}
         {!fetching && query.isSuccess && items.length > 0 && !canNext && status === 'complete' && (
           <p className={styles.endNote}>You have reached the oldest message in this inbox.</p>

@@ -183,6 +183,24 @@ describe('AccountMailbox', () => {
     expect(screen.getByRole('link', { name: 'Fix in Settings' })).toBeInTheDocument();
   });
 
+  it('offers a way back if a later page turns out empty', async () => {
+    const get = routedGet({
+      '/accounts': () => ({ items: [gmail] }),
+      [`/mail/accounts/${gmail.id}/summary`]: () => summary(),
+      [`/mail/accounts/${gmail.id}/threads`]: (path) =>
+        path.includes('cursor=c1') ? page([]) : page([thread({ subject: 'Recent' })], 'c1'),
+    });
+    renderAt(`/accounts/${gmail.id}`, fakeApi({ ...restore, get }));
+
+    await screen.findByText('Recent');
+    await userEvent.click(screen.getByRole('button', { name: 'Older' }));
+    expect(await screen.findByRole('heading', { name: 'Nothing older here' })).toBeInTheDocument();
+    expect(screen.queryByText(/0 of 8,300/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back to newest' }));
+    expect(await screen.findByText('Recent')).toBeInTheDocument();
+  });
+
   it('disables Older at the very end of the mailbox', async () => {
     renderAt(
       `/accounts/${gmail.id}`,
