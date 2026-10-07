@@ -2,6 +2,7 @@ import type { Provider } from '../api/accounts';
 import gmail from './logos/gmail.svg';
 import icloud from './logos/icloud.svg';
 import outlook from './logos/outlook.svg';
+import yahoo from './logos/yahoo.svg';
 
 const LABEL: Record<Provider, string> = {
   GMAIL: 'Gmail',
@@ -12,7 +13,12 @@ const LABEL: Record<Provider, string> = {
 };
 
 // Rendered through <img>, so an SVG can never run script inside the app.
-const LOGO: Partial<Record<Provider, string>> = { GMAIL: gmail, OUTLOOK: outlook, ICLOUD: icloud };
+const LOGO: Partial<Record<Provider, string>> = {
+  GMAIL: gmail,
+  OUTLOOK: outlook,
+  ICLOUD: icloud,
+  YAHOO: yahoo,
+};
 
 export function ProviderLogo({ provider, size = 20 }: { provider: Provider; size?: number }) {
   const label = LABEL[provider];
@@ -20,25 +26,6 @@ export function ProviderLogo({ provider, size = 20 }: { provider: Provider; size
   if (src) {
     return (
       <img src={src} alt={label} width={size} height={size} style={{ objectFit: 'contain' }} />
-    );
-  }
-
-  if (provider === 'YAHOO') {
-    return (
-      <svg role="img" aria-label={label} width={size} height={size} viewBox="0 0 24 24">
-        <rect width="24" height="24" rx="6" fill="#6001D2" />
-        <text
-          x="12"
-          y="17"
-          textAnchor="middle"
-          fontSize="13"
-          fontWeight="800"
-          fill="#fff"
-          fontFamily="Arial, sans-serif"
-        >
-          Y!
-        </text>
-      </svg>
     );
   }
 

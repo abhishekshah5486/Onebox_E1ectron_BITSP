@@ -5,4 +5,4 @@ remain trademarks of their owners and are used only to identify which service an
 - outlook.svg: File:Microsoft Outlook Icon (2025–present).svg
 - icloud.svg: File:ICloud logo.svg
 
-Yahoo has no square icon on Commons, so it is drawn as a "Y!" tile in ProviderLogo.tsx.
+- yahoo.svg: supplied by the project owner (vector trace of the Yahoo app icon)
