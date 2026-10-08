@@ -143,13 +143,38 @@
 }
 
 tr:hover .quick,
-tr:focus-within .quick,
+tr:has(:focus-visible) .quick,
 tr:hover .unsubscribe,
-tr:focus-within .unsubscribe {
+tr:has(:focus-visible) .unsubscribe {
   display: inline-flex;
 }
 
 tr:hover .time,
-tr:focus-within .time {
+tr:has(:focus-visible) .time {
   display: none;
+}
+
+/* A compact pill in Cloudscape's style, short enough not to stretch the row. */
+.pill {
+  height: 20px;
+  padding: 0 12px;
+  border: 2px solid var(--pill-color);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--pill-color);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pill:hover {
+  background: var(--pill-hover);
+}
+
+.pill:focus-visible {
+  outline: 2px solid var(--pill-color);
+  outline-offset: 2px;
 }

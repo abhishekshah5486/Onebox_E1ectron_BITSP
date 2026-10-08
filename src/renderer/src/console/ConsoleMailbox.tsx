@@ -7,7 +7,8 @@ import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
 import TextFilter from '@cloudscape-design/components/text-filter';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import * as tokens from '@cloudscape-design/design-tokens';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
@@ -47,6 +48,12 @@ const PROBLEM: Record<string, string> = {
   TLS_ERROR: 'This mail server’s certificate could not be verified.',
   DISABLED: 'Syncing is paused for this account.',
 };
+
+// Cloudscape tokens resolve to CSS variables, so the pill follows light and dark mode.
+const PILL_VARS = {
+  '--pill-color': tokens.colorTextButtonNormalDefault,
+  '--pill-hover': tokens.colorBackgroundButtonNormalHover,
+} as CSSProperties;
 
 // Below this table width the Account column shrinks to just the provider logo.
 export const COMPACT_TABLE_WIDTH = 1040;
@@ -153,7 +160,9 @@ function columns(
           )}
           {thread.canUnsubscribe && !thread.unsubscribedAt && (
             <span className={styles.unsubscribe} onClick={stop}>
-              <Button onClick={() => onUnsubscribe(thread)}>Unsubscribe</Button>
+              <button type="button" className={styles.pill} onClick={() => onUnsubscribe(thread)}>
+                Unsubscribe
+              </button>
             </span>
           )}
         </span>
@@ -287,7 +296,12 @@ function MailTable({
         </Alert>
       )}
       {unsubscribe.modal}
-      <div ref={tableRef} className={styles.table} data-compact={compact || undefined}>
+      <div
+        ref={tableRef}
+        className={styles.table}
+        data-compact={compact || undefined}
+        style={PILL_VARS}
+      >
         <Table
           variant="full-page"
           stickyHeader
