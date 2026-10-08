@@ -39,12 +39,34 @@
   --table-scroll-thumb: var(--ob-scroll-thumb);
 }
 
+/* The header and rows a shade apart, inside a rounded box, like Gemini's lists. */
 :root[data-ui='v1'] .table th {
-  background: var(--ob-surface) !important;
+  background: var(--ob-table-header) !important;
+  color: var(--ob-text-muted) !important;
+  font-weight: 500;
+}
+
+:root[data-ui='v1'] .table :global(table) {
+  border-collapse: separate;
+  border: 1px solid var(--ob-row-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Room on both ends, so text never touches the box edge. */
+:root[data-ui='v1'] .table th:first-child,
+:root[data-ui='v1'] .table td:first-child {
+  padding-inline-start: 12px !important;
+}
+
+:root[data-ui='v1'] .table th:last-child,
+:root[data-ui='v1'] .table td:last-child {
+  padding-inline-end: 12px !important;
 }
 
 :root[data-ui='v1'] .table tbody tr:not(:has(> td:first-child input:checked)) > td {
   border-block-end: 1px solid var(--ob-row-border) !important;
+  border-block-start: none !important;
   color: var(--ob-text);
 }
 

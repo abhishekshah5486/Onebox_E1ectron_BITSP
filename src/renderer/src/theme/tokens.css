@@ -18,6 +18,7 @@
   --ob-row-read: #f2f6fc;
   --ob-row-unread: #ffffff;
   --ob-settings-bg: #f0f4f9;
+  --ob-table-header: #f3f6fb;
   --ob-row-border: #ecedef;
   --ob-row-selected-ring: #a8c7fa;
   --ob-nav-hover: #e9eef6;
@@ -59,7 +60,8 @@
   --ob-row-selected-ring: #3260b0;
   --ob-row-read: #161616;
   --ob-row-unread: #2c2c2c;
-  --ob-settings-bg: #1b1b1b;
+  --ob-settings-bg: #171717;
+  --ob-table-header: #232425;
   --ob-row-border: #222222;
   /* Gmail lifts a hovered row with a pale halo in dark mode. */
   --ob-row-hover-shadow: 0 0 0 1px #414346, 0 0 6px 2px rgb(255 255 255 / 22%);
