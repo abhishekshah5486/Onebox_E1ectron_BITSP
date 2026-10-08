@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -41,6 +41,7 @@ const pageOf = (all: Thread[]) => (path: string) => {
 const summary = (overrides: Partial<MailboxSummary> = {}): MailboxSummary => ({
   accountId: gmail.id,
   folder: 'inbox',
+  label: null,
   server: { total: 8300, unread: 12, updatedAt: '2026-10-07T10:00:00Z' },
   fetched: { conversations: 50, messages: 50 },
   history: { status: 'idle', error: null },
@@ -69,6 +70,10 @@ function renderConsole(path: string, api: ApiClient) {
                     <Route path="/inbox/:threadId" element={<ConsoleThread basePath="/inbox" />} />
                     <Route
                       path="/accounts/:accountId/:folder"
+                      element={<ConsoleAccountMailbox />}
+                    />
+                    <Route
+                      path="/accounts/:accountId/labels/:label"
                       element={<ConsoleAccountMailbox />}
                     />
                     <Route path="/settings" element={<p>at /settings</p>} />
@@ -204,6 +209,125 @@ describe('v2 console', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Older' }));
     expect(await screen.findByText('Mail 51', {}, { timeout: 8000 })).toBeInTheDocument();
     expect(post).toHaveBeenCalledWith(`/mail/accounts/${gmail.id}/history?folder=inbox`);
+  });
+
+  it('archives selected rows from the header and moves them to a label', async () => {
+    let listed = threads(2);
+    const post = vi.fn(async (_path: string, body?: unknown) => {
+      const { threadIds } = body as { threadIds: string[] };
+      listed = listed.filter((t) => !threadIds.includes(t.id));
+      return { items: [] };
+    });
+    renderConsole(
+      `/accounts/${gmail.id}/inbox`,
+      fakeApi({
+        ...restore,
+        post: post as ApiClient['post'],
+        get: routedGet({
+          '/accounts': () => ({ items: [gmail] }),
+          [`/mail/accounts/${gmail.id}/folders`]: () => ({
+            items: [
+              { role: 'inbox', path: 'INBOX', name: 'INBOX', total: 2, unread: 0, updatedAt: '' },
+              {
+                role: 'label',
+                path: 'Receipts',
+                name: 'Receipts',
+                total: 0,
+                unread: 0,
+                updatedAt: '',
+              },
+            ],
+          }),
+          [`/mail/accounts/${gmail.id}/summary`]: () => summary({ hasMoreOnServer: false }),
+          [`/mail/accounts/${gmail.id}/threads`]: (path) => pageOf(listed)(path),
+        }),
+      }),
+    );
+
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Select Mail 1' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Archive' }));
+    expect(post).toHaveBeenCalledWith('/mail/threads/actions', {
+      threadIds: [threads(1)[0]!.id],
+      action: 'archive',
+    });
+    await waitFor(() => expect(screen.queryByText('Mail 1')).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select Mail 2' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Move to' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Receipts' }));
+    expect(post).toHaveBeenLastCalledWith('/mail/threads/actions', {
+      threadIds: [threads(2)[1]!.id],
+      action: 'move',
+      to: { label: 'Receipts' },
+      from: { role: 'inbox' },
+    });
+  });
+
+  it('asks before unsubscribing and reports the result', async () => {
+    const post = vi.fn(async () => ({ method: 'one-click', url: null }));
+    renderConsole(
+      `/inbox/${threads(1)[0]!.id}`,
+      fakeApi({
+        ...restore,
+        post: post as ApiClient['post'],
+        patch: vi.fn(async () => threads(1)[0]) as ApiClient['patch'],
+        get: routedGet({
+          '/accounts': () => ({ items: [gmail] }),
+          '/mail/threads/': () => ({
+            thread: { ...threads(1)[0]!, canUnsubscribe: true, unreadCount: 0 },
+            messages: [message({ subject: 'Mail 1' })],
+          }),
+        }),
+      }),
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Unsubscribe' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Unsubscribe from Priya?' });
+    expect(post).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Unsubscribe' }));
+
+    expect(await screen.findByText('Unsubscribed from Priya.')).toBeInTheDocument();
+    expect(post).toHaveBeenCalledWith(`/mail/threads/${threads(1)[0]!.id}/unsubscribe`);
+  });
+
+  it("lists each account's archive by its server name and its labels", async () => {
+    renderConsole(
+      '/inbox',
+      fakeApi({
+        ...restore,
+        get: routedGet({
+          '/accounts': () => ({ items: [gmail] }),
+          [`/mail/accounts/${gmail.id}/folders`]: () => ({
+            items: [
+              { role: 'inbox', path: 'INBOX', name: 'INBOX', total: 1, unread: 0, updatedAt: '' },
+              {
+                role: 'archive',
+                path: '[Gmail]/All Mail',
+                name: 'All Mail',
+                total: 9,
+                unread: 0,
+                updatedAt: '',
+              },
+              { role: 'label', path: 'Notes', name: 'Notes', total: 2, unread: 0, updatedAt: '' },
+            ],
+          }),
+        }),
+      }),
+    );
+    const accounts = await screen.findByRole('region', { name: 'Accounts' });
+    await userEvent.click(
+      await within(accounts).findByRole('button', {
+        name: `Show folders for ${gmail.emailAddress}`,
+      }),
+    );
+    expect(await within(accounts).findByRole('link', { name: 'All Mail' })).toHaveAttribute(
+      'href',
+      `/accounts/${gmail.id}/archive`,
+    );
+    expect(within(accounts).getByRole('link', { name: 'Notes' })).toHaveAttribute(
+      'href',
+      `/accounts/${gmail.id}/labels/Notes`,
+    );
   });
 
   it('highlights the folder a conversation was opened from', () => {

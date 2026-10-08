@@ -101,3 +101,55 @@
 .star {
   display: inline-flex;
 }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.filters > :first-child {
+  flex: 1 1 280px;
+  max-width: 480px;
+}
+
+.subjectCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.subjectCell > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.received {
+  display: flex;
+  align-items: center;
+}
+
+/* Revealed while the row is hovered or a control in it has focus. */
+.quick,
+.unsubscribe {
+  display: none;
+  flex: none;
+}
+
+.quick {
+  gap: 4px;
+}
+
+tr:hover .quick,
+tr:focus-within .quick,
+tr:hover .unsubscribe,
+tr:focus-within .unsubscribe {
+  display: inline-flex;
+}
+
+tr:hover .time,
+tr:focus-within .time {
+  display: none;
+}

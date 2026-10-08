@@ -7,11 +7,20 @@ import Spinner from '@cloudscape-design/components/spinner';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import type { Address, Message } from '../api/mail';
-import { useThread, useUpdateThread } from '../api/mail-queries';
+import {
+  useAccountFolders,
+  useThread,
+  useThreadAction,
+  useUpdateThread,
+} from '../api/mail-queries';
 import { describeError } from '../auth/errors';
 import { EmailFrame } from '../mail/EmailFrame';
+import type { ActionSpec } from '../mail/actions';
+import { viewFromPath } from '../mail/folders';
 import { displayName, formatBytes, formatMessageDate, formatUtc } from '../mail/format';
+import { ConsoleActions } from './ConsoleActions';
 import styles from './ConsoleThread.module.css';
+import { useUnsubscribeFlow } from './UnsubscribeFlow';
 
 const full = (address: Address) =>
   address.name ? `${address.name} <${address.address}>` : address.address;
@@ -147,8 +156,12 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
   const navigate = useNavigate();
   const query = useThread(threadId);
   const update = useUpdateThread();
+  const act = useThreadAction();
+  const unsubscribe = useUnsubscribeFlow();
   const markedRead = useRef(false);
   const thread = query.data?.thread;
+  const view = viewFromPath(basePath);
+  const folders = useAccountFolders(thread ? [thread.accountId] : [])[0]?.data?.items ?? null;
 
   useEffect(() => {
     if (thread && thread.unreadCount > 0 && !markedRead.current) {
@@ -158,6 +171,12 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
   }, [thread, update]);
 
   const back = () => void navigate(basePath);
+  // Every action here takes the conversation out of the list it was opened from.
+  const run = (request: ActionSpec) => {
+    if (!thread) return;
+    act.mutate({ threadIds: [thread.id], ...request });
+    back();
+  };
 
   return (
     <section className={styles.reader} aria-label="Conversation">
@@ -167,6 +186,15 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
             Back
           </Button>
           {/* Separate children, not a fragment, so SpaceBetween spaces each button. */}
+          {thread && (
+            <ConsoleActions
+              view={view}
+              folders={folders}
+              selected={[thread]}
+              onAction={run}
+              extraFlags={false}
+            />
+          )}
           {thread && (
             <Button
               onClick={() => {
@@ -193,12 +221,30 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
         )}
       </div>
 
+      {unsubscribe.modal}
+      {unsubscribe.notice && <div className={styles.flash}>{unsubscribe.notice}</div>}
       <div className={styles.pane}>
         {query.isPending && <Spinner size="large" />}
         {query.isError && <Alert type="error">{describeError(query.error)}</Alert>}
         {query.data && (
           <>
-            <h1 className={styles.subject}>{query.data.thread.subject || '(no subject)'}</h1>
+            <div className={styles.subjectRow}>
+              <h1 className={styles.subject}>{query.data.thread.subject || '(no subject)'}</h1>
+              {query.data.thread.canUnsubscribe &&
+                (query.data.thread.unsubscribedAt ? (
+                  <span className={styles.unsubscribed}>Unsubscribed</span>
+                ) : (
+                  // Styled by hand: the pane is white in both themes, Cloudscape buttons are not.
+                  <button
+                    type="button"
+                    className={styles.unsubscribe}
+                    disabled={unsubscribe.pending}
+                    onClick={() => unsubscribe.ask(query.data.thread)}
+                  >
+                    Unsubscribe
+                  </button>
+                ))}
+            </div>
             {query.data.messages.map((message, index, all) => (
               <ThreadMessage
                 key={message.id}

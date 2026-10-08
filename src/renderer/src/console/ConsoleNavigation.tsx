@@ -10,7 +10,14 @@ import type { Account } from '../api/accounts';
 import type { FolderCounts } from '../api/mail';
 import { useAccountFolders } from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
-import { FOLDER_LABEL, FOLDER_ROLES, folderBadge, type FolderRole } from '../mail/folders';
+import {
+  FOLDER_LABEL,
+  FOLDER_ORDER,
+  folderBadge,
+  folderName,
+  labelPath,
+  type FolderRole,
+} from '../mail/folders';
 import { countLabel } from '../mail/format';
 import styles from './ConsoleNavigation.module.css';
 import { useMiddleFit } from './useMiddleFit';
@@ -18,7 +25,7 @@ import { useMiddleFit } from './useMiddleFit';
 // Logo (16px) plus the gap after it, inside the account line.
 const LOGO_SPACE = 24;
 
-const UNIFIED: FolderRole[] = ['sent', 'drafts', 'spam', 'trash'];
+const UNIFIED: FolderRole[] = ['sent', 'drafts', 'archive', 'spam', 'trash'];
 
 // Cloudscape tokens resolve to CSS variables, so these follow light and dark mode.
 const TOKEN_VARS = {
@@ -47,12 +54,15 @@ function AccountItem({ account, folders }: { account: Account; folders: FolderCo
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const base = `/accounts/${account.id}`;
-  const byRole = new Map(folders.map((folder) => [folder.role, folder]));
+  const byRole = new Map(
+    folders.flatMap((folder) => (folder.role === 'label' ? [] : [[folder.role, folder] as const])),
+  );
+  const labels = folders.filter((folder) => folder.role === 'label');
   const countOf = (role: FolderRole) => {
     const counts = byRole.get(role);
     return counts ? folderBadge(role, counts) : 0;
   };
-  const roles = FOLDER_ROLES.filter((role) => role === 'inbox' || byRole.has(role));
+  const roles = FOLDER_ORDER.filter((role) => role === 'inbox' || byRole.has(role));
   const current = pathname.startsWith(`${base}/`);
   const trailing = useRef<HTMLSpanElement>(null);
   const [line, label] = useMiddleFit<HTMLDivElement>(account.emailAddress, LOGO_SPACE, trailing);
@@ -105,7 +115,7 @@ function AccountItem({ account, folders }: { account: Account; folders: FolderCo
                   `${styles.folder} ${isActive || activeHref(pathname) === `${base}/${role}` ? styles.active : ''}`
                 }
               >
-                {FOLDER_LABEL[role]}
+                {folderName(role, byRole.get(role)?.name)}
                 <Count
                   value={countOf(role)}
                   label={`${role === 'drafts' ? 'drafts' : 'unread'} in ${FOLDER_LABEL[role]}`}
@@ -113,6 +123,28 @@ function AccountItem({ account, folders }: { account: Account; folders: FolderCo
               </NavLink>
             </li>
           ))}
+          {labels.length > 0 && (
+            <li className={styles.labelsHeading} aria-hidden="true">
+              Labels
+            </li>
+          )}
+          {labels.map((label) => {
+            const to = labelPath(account.id, label.path);
+            return (
+              <li key={label.path}>
+                <NavLink
+                  to={to}
+                  title={label.name}
+                  className={({ isActive }) =>
+                    `${styles.folder} ${isActive || activeHref(pathname) === to ? styles.active : ''}`
+                  }
+                >
+                  <span className={styles.labelName}>{label.name}</span>
+                  <Count value={label.unread} label={`unread in ${label.name}`} />
+                </NavLink>
+              </li>
+            );
+          })}
         </ul>
       )}
     </li>

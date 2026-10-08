@@ -3,6 +3,7 @@ import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import Header from '@cloudscape-design/components/header';
 import Pagination from '@cloudscape-design/components/pagination';
+import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
 import TextFilter from '@cloudscape-design/components/text-filter';
@@ -10,20 +11,34 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
-import type { Thread, ThreadFilter } from '../api/mail';
+import type { FolderCounts, Thread, ThreadFilter } from '../api/mail';
 import {
+  useAccountFolders,
   useMailboxSummary,
+  useThreadAction,
   useThreadPage,
-  useUpdateThread,
   type ThreadScope,
 } from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
-import { FOLDER_LABEL, isFolderRole, type FolderRole } from '../mail/folders';
+import { folderActions, type ActionSpec } from '../mail/actions';
+import {
+  CATEGORY_LABEL,
+  FOLDER_LABEL,
+  folderName,
+  GMAIL_CATEGORIES,
+  isFolderRole,
+  labelPath,
+  type FolderRole,
+  type GmailCategory,
+  type MailboxView,
+} from '../mail/folders';
 import { displayName, formatUtc, middleTruncate } from '../mail/format';
 import { PAGE_SIZE } from '../mail/paging';
 import { useLoadPage } from '../mail/useLoadPage';
+import { actionIcon, ConsoleActions } from './ConsoleActions';
 import styles from './ConsoleMailbox.module.css';
+import { useUnsubscribeFlow } from './UnsubscribeFlow';
 
 const PROBLEM: Record<string, string> = {
   AUTH_FAILED: 'The mail server rejected this account’s password.',
@@ -48,11 +63,22 @@ function useWidth<T extends HTMLElement>() {
   return [ref, width] as const;
 }
 
+interface RowHandlers {
+  onToggleStar: (thread: Thread) => void;
+  onAction: (thread: Thread, request: ActionSpec) => void;
+  onUnsubscribe: (thread: Thread) => void;
+  view: MailboxView | null;
+}
+
+// Stops a click inside a cell from also opening the conversation.
+const stop = (event: React.MouseEvent) => event.stopPropagation();
+
 function columns(
   accounts: Map<string, Account> | null,
   compact: boolean,
-  onToggleStar: (thread: Thread) => void,
+  { onToggleStar, onAction, onUnsubscribe, view }: RowHandlers,
 ): TableProps.ColumnDefinition<Thread>[] {
+  const quick = folderActions(view).slice(0, 2);
   // The marker lets the stylesheet tell read rows from unread ones.
   const text = (thread: Thread, content: ReactNode) => (
     <span
@@ -69,8 +95,7 @@ function columns(
       header: '',
       width: 64,
       cell: (thread) => (
-        // Stops the click from also opening the conversation.
-        <span className={styles.star} onClick={(event) => event.stopPropagation()}>
+        <span className={styles.star} onClick={stop}>
           <Button
             variant="inline-icon"
             iconName={thread.isStarred ? 'star-filled' : 'star'}
@@ -116,26 +141,65 @@ function columns(
     {
       id: 'subject',
       header: 'Subject',
-      cell: (thread) =>
-        text(
-          thread,
-          <>
-            {thread.subject || '(no subject)'}
-            {thread.snippet && <span className={styles.snippet}> – {thread.snippet}</span>}
-          </>,
-        ),
+      cell: (thread) => (
+        <span className={styles.subjectCell}>
+          {text(
+            thread,
+            <>
+              {thread.subject || '(no subject)'}
+              {thread.snippet && <span className={styles.snippet}> – {thread.snippet}</span>}
+            </>,
+          )}
+          {thread.canUnsubscribe && !thread.unsubscribedAt && (
+            <span className={styles.unsubscribe} onClick={stop}>
+              <Button variant="inline-link" onClick={() => onUnsubscribe(thread)}>
+                Unsubscribe
+              </Button>
+            </span>
+          )}
+        </span>
+      ),
     },
     {
       id: 'received',
       header: 'Received (UTC)',
       width: 170,
-      cell: (thread) => text(thread, formatUtc(thread.lastMessageAt).replace(' UTC', '')),
+      // Like Gmail, quick actions take the date's place while the row is hovered.
+      cell: (thread) => (
+        <span className={styles.received}>
+          <span className={styles.time}>
+            {text(thread, formatUtc(thread.lastMessageAt).replace(' UTC', ''))}
+          </span>
+          <span className={styles.quick} onClick={stop}>
+            {quick.map((item) => (
+              <Button
+                key={item.id}
+                variant="inline-icon"
+                ariaLabel={`${item.label}: ${thread.subject || '(no subject)'}`}
+                {...actionIcon(item)}
+                onClick={() => onAction(thread, item.request)}
+              />
+            ))}
+            <Button
+              variant="inline-icon"
+              iconName="envelope"
+              ariaLabel={`${thread.unreadCount > 0 ? 'Mark as read' : 'Mark as unread'}: ${thread.subject || '(no subject)'}`}
+              onClick={() =>
+                onAction(thread, { action: thread.unreadCount > 0 ? 'read' : 'unread' })
+              }
+            />
+          </span>
+        </span>
+      ),
     },
   ];
 }
 
 function MailTable({
   scope,
+  view,
+  folders,
+  tabs,
   title,
   description,
   counter,
@@ -152,6 +216,11 @@ function MailTable({
   onRefresh,
 }: {
   scope: ThreadScope;
+  // The folder or label shown; null for views spanning folders, like Starred.
+  view: MailboxView | null;
+  // The account's folders and labels, for "Move to"; null in views spanning accounts.
+  folders: FolderCounts[] | null;
+  tabs?: ReactNode;
   title: string;
   description: string;
   counter: string | undefined;
@@ -171,7 +240,8 @@ function MailTable({
   const [tableRef, tableWidth] = useWidth<HTMLDivElement>();
   const compact = tableWidth < COMPACT_TABLE_WIDTH;
   const query = useThreadPage(scope, page);
-  const update = useUpdateThread();
+  const act = useThreadAction();
+  const unsubscribe = useUnsubscribeFlow();
   // Selection belongs to the page it was made on, so paging clears it.
   const [selection, setSelection] = useState<{ page: number; items: Thread[] }>({
     page,
@@ -193,14 +263,31 @@ function MailTable({
     );
   }, [query.data, filter]);
 
-  const bulk = (changes: { isRead?: boolean; isStarred?: boolean }) => {
-    for (const thread of selected) update.mutate({ id: thread.id, ...changes });
-    setSelected([]);
+  // Views spanning accounts can still offer labels when everything selected is from one.
+  const soleAccount =
+    folders === null &&
+    selected.length > 0 &&
+    selected.every((t) => t.accountId === selected[0]!.accountId)
+      ? selected[0]!.accountId
+      : null;
+  const soleFolders = useAccountFolders(soleAccount ? [soleAccount] : [])[0]?.data?.items ?? null;
+
+  const run = (threads: Thread[], request: ActionSpec) => {
+    act.mutate({ threadIds: threads.map((thread) => thread.id), ...request });
+    const done = new Set(threads.map((thread) => thread.id));
+    setSelected(selected.filter((thread) => !done.has(thread.id)));
   };
 
   return (
     <SpaceBetween size="m">
       {alerts}
+      {unsubscribe.notice}
+      {act.isError && (
+        <Alert type="error" dismissible onDismiss={() => act.reset()}>
+          {describeError(act.error)}
+        </Alert>
+      )}
+      {unsubscribe.modal}
       <div ref={tableRef} className={styles.table} data-compact={compact || undefined}>
         <Table
           variant="full-page"
@@ -215,9 +302,13 @@ function MailTable({
             itemSelectionLabel: (_, thread) => `Select ${thread.subject || '(no subject)'}`,
             tableLabel: `${title} conversations`,
           }}
-          columnDefinitions={columns(accounts, compact, (thread) =>
-            update.mutate({ id: thread.id, isStarred: !thread.isStarred }),
-          )}
+          columnDefinitions={columns(accounts, compact, {
+            view,
+            onToggleStar: (thread) =>
+              run([thread], { action: thread.isStarred ? 'unstar' : 'star' }),
+            onAction: (thread, request) => run([thread], request),
+            onUnsubscribe: unsubscribe.ask,
+          })}
           items={loading ? [] : items}
           loading={loading || query.isPending}
           loadingText={loading ? loadingText : 'Loading conversations'}
@@ -239,18 +330,12 @@ function MailTable({
               actions={
                 <SpaceBetween direction="horizontal" size="xs">
                   <Button iconName="refresh" ariaLabel="Refresh" onClick={onRefresh} />
-                  <Button disabled={selected.length === 0} onClick={() => bulk({ isRead: true })}>
-                    Mark as read
-                  </Button>
-                  <Button disabled={selected.length === 0} onClick={() => bulk({ isRead: false })}>
-                    Mark as unread
-                  </Button>
-                  <Button
-                    disabled={selected.length === 0}
-                    onClick={() => bulk({ isStarred: true })}
-                  >
-                    Star
-                  </Button>
+                  <ConsoleActions
+                    view={view}
+                    folders={folders ?? soleFolders}
+                    selected={selected}
+                    onAction={(request) => run(selected, request)}
+                  />
                 </SpaceBetween>
               }
             >
@@ -258,13 +343,16 @@ function MailTable({
             </Header>
           }
           filter={
-            <TextFilter
-              filteringText={filter}
-              filteringPlaceholder="Filter conversations on this page"
-              filteringAriaLabel="Filter conversations on this page"
-              onChange={({ detail }) => setFilter(detail.filteringText)}
-              countText={filter ? `${items.length} matches` : undefined}
-            />
+            <div className={styles.filters}>
+              <TextFilter
+                filteringText={filter}
+                filteringPlaceholder="Filter conversations on this page"
+                filteringAriaLabel="Filter conversations on this page"
+                onChange={({ detail }) => setFilter(detail.filteringText)}
+                countText={filter ? `${items.length} matches` : undefined}
+              />
+              {tabs}
+            </div>
           }
           pagination={
             <Pagination
@@ -283,6 +371,24 @@ function MailTable({
         />
       </div>
     </SpaceBetween>
+  );
+}
+
+// Gmail's inbox tabs; other providers' mail all counts as Primary.
+function CategoryControl({
+  value,
+  onChange,
+}: {
+  value: GmailCategory;
+  onChange: (category: GmailCategory) => void;
+}) {
+  return (
+    <SegmentedControl
+      label="Inbox categories"
+      selectedId={value}
+      options={GMAIL_CATEGORIES.map((id) => ({ id, text: CATEGORY_LABEL[id] }))}
+      onChange={({ detail }) => onChange(detail.selectedId as GmailCategory)}
+    />
   );
 }
 
@@ -321,7 +427,13 @@ export function ConsoleUnifiedMailbox({
 }) {
   const navigate = useNavigate();
   const accounts = useAccounts();
-  const scope = useMemo<ThreadScope>(() => ({ kind: 'unified', filter, folder }), [filter, folder]);
+  const tabbed =
+    filter === 'all' && !folder && (accounts.data ?? []).some((a) => a.provider === 'GMAIL');
+  const [category, setCategory] = useState<GmailCategory>('primary');
+  const scope = useMemo<ThreadScope>(
+    () => ({ kind: 'unified', filter, folder, category: tabbed ? category : null }),
+    [filter, folder, tabbed, category],
+  );
   const [page, setPage] = useState(1);
   const query = useThreadPage(scope, page);
   const byId = useMemo(() => new Map((accounts.data ?? []).map((a) => [a.id, a])), [accounts.data]);
@@ -331,6 +443,19 @@ export function ConsoleUnifiedMailbox({
   return (
     <MailTable
       scope={scope}
+      view={filter === 'starred' ? null : { role: folder ?? 'inbox' }}
+      folders={null}
+      tabs={
+        tabbed && (
+          <CategoryControl
+            value={category}
+            onChange={(next) => {
+              setCategory(next);
+              setPage(1);
+            }}
+          />
+        )
+      }
       title={title}
       description="Mail OneBox has fetched from every connected account. Open an account to load older mail."
       counter={query.data ? `(${total.toLocaleString()})` : undefined}
@@ -370,23 +495,34 @@ export function ConsoleUnifiedMailbox({
 }
 
 export function ConsoleAccountMailbox() {
-  const { accountId = '', folder } = useParams();
+  const { accountId = '', folder, label } = useParams();
+  if (label !== undefined) {
+    return (
+      <AccountTable key={`${accountId}/label/${label}`} accountId={accountId} view={{ label }} />
+    );
+  }
   if (!isFolderRole(folder)) return <Navigate to={`/accounts/${accountId}/inbox`} replace />;
-  return <AccountTable key={`${accountId}/${folder}`} accountId={accountId} folder={folder} />;
+  return (
+    <AccountTable key={`${accountId}/${folder}`} accountId={accountId} view={{ role: folder }} />
+  );
 }
 
-function AccountTable({ accountId, folder }: { accountId: string; folder: FolderRole }) {
+function AccountTable({ accountId, view }: { accountId: string; view: MailboxView }) {
   const navigate = useNavigate();
   const accounts = useAccounts();
   const account = accounts.data?.find((a) => a.id === accountId);
+  const folders = useAccountFolders([accountId])[0]?.data?.items ?? null;
+  const inbox = 'role' in view && view.role === 'inbox';
+  const tabbed = inbox && account?.provider === 'GMAIL';
+  const [category, setCategory] = useState<GmailCategory>('primary');
   const scope = useMemo<ThreadScope>(
-    () => ({ kind: 'account', accountId, folder }),
-    [accountId, folder],
+    () => ({ kind: 'account', accountId, view, category: tabbed ? category : null }),
+    [accountId, view, tabbed, category],
   );
   const [page, setPage] = useState(1);
   const query = useThreadPage(scope, page);
-  const summary = useMailboxSummary(accountId, folder);
-  const loader = useLoadPage(accountId, folder, setPage);
+  const summary = useMailboxSummary(accountId, view);
+  const loader = useLoadPage(accountId, view, setPage);
   const { cancel } = loader;
   useEffect(() => cancel, [cancel]);
 
@@ -402,11 +538,27 @@ function AccountTable({ accountId, folder }: { accountId: string; folder: Folder
   const server = summary.data?.server;
   const hasMore = !!summary.data?.hasMoreOnServer;
   const problem = account && account.status !== 'CONNECTED' ? PROBLEM[account.status] : null;
-  const label = FOLDER_LABEL[folder];
+  const label =
+    'label' in view
+      ? (folders?.find((f) => f.role === 'label' && f.path === view.label)?.name ?? view.label)
+      : folderName(view.role, folders?.find((f) => f.role === view.role)?.name);
 
   return (
     <MailTable
       scope={scope}
+      view={view}
+      folders={folders}
+      tabs={
+        tabbed && (
+          <CategoryControl
+            value={category}
+            onChange={(next) => {
+              setCategory(next);
+              setPage(1);
+            }}
+          />
+        )
+      }
       title={label}
       description={account?.emailAddress ?? ''}
       counter={
@@ -414,7 +566,9 @@ function AccountTable({ accountId, folder }: { accountId: string; folder: Folder
           ? `(${server.total.toLocaleString()}${server.unread ? `, ${server.unread.toLocaleString()} unread` : ''})`
           : undefined
       }
-      basePath={`/accounts/${accountId}/${folder}`}
+      basePath={
+        'label' in view ? labelPath(accountId, view.label) : `/accounts/${accountId}/${view.role}`
+      }
       accounts={null}
       page={page}
       pagesCount={Math.max(page, Math.ceil(stored / PAGE_SIZE))}
@@ -450,9 +604,9 @@ function AccountTable({ accountId, folder }: { accountId: string; folder: Folder
       }
       empty={
         <EmptyMessage
-          title={folder === 'inbox' ? 'No mail yet' : `Nothing in ${label}`}
+          title={inbox ? 'No mail yet' : `Nothing in ${label}`}
           body={
-            folder === 'inbox'
+            inbox
               ? 'OneBox is syncing the newest messages from this account.'
               : server === null
                 ? 'OneBox has not found this folder on the server yet. It checks every couple of minutes.'
