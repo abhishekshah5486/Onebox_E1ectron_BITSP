@@ -36,3 +36,15 @@
   background: #2e0a17;
   color: #f6d4df;
 }
+
+.modelName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modelName > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}

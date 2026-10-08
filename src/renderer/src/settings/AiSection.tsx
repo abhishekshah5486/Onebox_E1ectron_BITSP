@@ -165,6 +165,17 @@ export function AiSection() {
   );
 }
 
+// A model id with its maker's logo, as in the model picker.
+function ModelName({ model, suffix = '' }: { model: string; suffix?: string }) {
+  return (
+    <span className={styles.modelName}>
+      {model === AUTO_MODEL ? autoMark : <ModelLogo model={model} />}
+      {model === AUTO_MODEL ? 'Auto' : model}
+      {suffix}
+    </span>
+  );
+}
+
 const usd = (value: number) =>
   value === 0 ? '$0' : value < 0.01 ? `$${value.toFixed(6)}` : `$${value.toFixed(4)}`;
 const num = (value: number) => value.toLocaleString();
@@ -274,13 +285,18 @@ const CALL_COLUMNS: TableProps.ColumnDefinition<UsageCall>[] = [
     id: 'requestedModel',
     header: 'Selected model',
     sortingField: 'requestedModel',
-    cell: (row) => (row.requestedModel === 'auto' ? 'Auto' : row.requestedModel),
+    cell: (row) => <ModelName model={row.requestedModel} />,
   },
   {
     id: 'model',
     header: 'Used model',
     sortingField: 'modelUsed',
-    cell: (row) => (row.cacheHit ? `${row.modelUsed} (from cache)` : (row.modelUsed ?? '—')),
+    cell: (row) =>
+      row.modelUsed ? (
+        <ModelName model={row.modelUsed} suffix={row.cacheHit ? ' (from cache)' : ''} />
+      ) : (
+        '—'
+      ),
   },
   {
     id: 'fallbacks',
@@ -309,7 +325,13 @@ const CALL_COLUMNS: TableProps.ColumnDefinition<UsageCall>[] = [
 ];
 
 const groupColumns = (by: GroupBy): TableProps.ColumnDefinition<Group>[] => [
-  { id: 'key', header: GROUP_LABEL[by], sortingField: 'key', cell: (row) => row.key },
+  {
+    id: 'key',
+    header: GROUP_LABEL[by],
+    sortingField: 'key',
+    cell: (row) =>
+      by === 'model' && row.key !== 'No model' ? <ModelName model={row.key} /> : row.key,
+  },
   { id: 'calls', header: 'Calls', sortingField: 'calls', cell: (row) => num(row.calls) },
   ...tokenColumns<Group>(),
   {
