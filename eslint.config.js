@@ -32,6 +32,7 @@ export default defineConfig(
     languageOptions: { globals: globals.browser },
     extends: [reactHooks.configs.flat.recommended],
   },
-  { files: ['**/*.js'], extends: [tseslint.configs.disableTypeChecked] },
+  { files: ['**/*.js', 'scripts/*.mjs'], extends: [tseslint.configs.disableTypeChecked] },
+  { files: ['scripts/*.mjs'], languageOptions: { globals: globals.node } },
   prettier,
 );
