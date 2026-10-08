@@ -105,14 +105,15 @@
   background: var(--ob-surface-raised);
 }
 
-.cardPreview img {
+.thumbnail {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 .cardBadge {
-  opacity: 0.35;
+  display: grid;
+  opacity: 0.9;
 }
 
 .cardFooter {

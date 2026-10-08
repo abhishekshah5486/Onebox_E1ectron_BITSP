@@ -17,23 +17,23 @@ export type FileKind =
   | 'font'
   | 'file';
 
-export const FILE_KINDS: Record<FileKind, { label: string; color: string; name: string }> = {
-  pdf: { label: 'PDF', color: '#d93025', name: 'PDF' },
-  doc: { label: 'DOC', color: '#4285f4', name: 'Document' },
-  sheet: { label: 'XLS', color: '#188038', name: 'Spreadsheet' },
-  csv: { label: 'CSV', color: '#188038', name: 'Spreadsheet' },
-  slides: { label: 'PPT', color: '#e8710a', name: 'Presentation' },
-  image: { label: 'IMG', color: '#d93025', name: 'Image' },
-  video: { label: 'VID', color: '#c5221f', name: 'Video' },
-  audio: { label: 'AUD', color: '#9334e6', name: 'Audio' },
-  archive: { label: 'ZIP', color: '#5f6368', name: 'Archive' },
-  code: { label: '</>', color: '#12a4af', name: 'Code' },
-  text: { label: 'TXT', color: '#5f6368', name: 'Text' },
-  calendar: { label: 'ICS', color: '#1a73e8', name: 'Calendar invite' },
-  email: { label: 'EML', color: '#1a73e8', name: 'Email' },
-  app: { label: 'APP', color: '#5f6368', name: 'App' },
-  font: { label: 'Aa', color: '#5f6368', name: 'Font' },
-  file: { label: 'FILE', color: '#80868b', name: 'File' },
+export const FILE_KINDS: Record<FileKind, { name: string }> = {
+  pdf: { name: 'PDF' },
+  doc: { name: 'Document' },
+  sheet: { name: 'Spreadsheet' },
+  csv: { name: 'Spreadsheet' },
+  slides: { name: 'Presentation' },
+  image: { name: 'Image' },
+  video: { name: 'Video' },
+  audio: { name: 'Audio' },
+  archive: { name: 'Archive' },
+  code: { name: 'Code' },
+  text: { name: 'Text' },
+  calendar: { name: 'Calendar invite' },
+  email: { name: 'Email' },
+  app: { name: 'App' },
+  font: { name: 'Font' },
+  file: { name: 'File' },
 };
 
 const BY_EXTENSION: Record<string, FileKind> = {
@@ -147,108 +147,6 @@ const BY_EXTENSION: Record<string, FileKind> = {
   woff2: 'font',
 };
 
-// Names that are a format by themselves.
-const SPECIAL_NAMES: Record<string, { kind: FileKind; label: string; color: string }> = {
-  dockerfile: { kind: 'code', label: 'DOCK', color: '#2496ed' },
-  makefile: { kind: 'code', label: 'MAKE', color: '#6d8086' },
-  license: { kind: 'text', label: 'LIC', color: '#5f6368' },
-  readme: { kind: 'text', label: 'MD', color: '#083fa1' },
-};
-
-// Each language or app family in its own colour, as editors and Drive show them.
-const EXTENSION_COLORS: Record<string, string> = {
-  doc: '#2b579a',
-  docx: '#2b579a',
-  odt: '#2b579a',
-  rtf: '#2b579a',
-  pages: '#f28c28',
-  xls: '#217346',
-  xlsx: '#217346',
-  xlsm: '#217346',
-  ods: '#217346',
-  numbers: '#28a745',
-  csv: '#217346',
-  tsv: '#217346',
-  ppt: '#d24726',
-  pptx: '#d24726',
-  odp: '#d24726',
-  key: '#1a73e8',
-  py: '#3776ab',
-  ipynb: '#f37626',
-  go: '#00add8',
-  js: '#f7df1e',
-  jsx: '#61dafb',
-  ts: '#3178c6',
-  tsx: '#3178c6',
-  json: '#cb8a2c',
-  env: '#ecd53f',
-  html: '#e34c26',
-  htm: '#e34c26',
-  css: '#264de4',
-  java: '#e76f00',
-  kt: '#7f52ff',
-  swift: '#f05138',
-  c: '#555555',
-  h: '#555555',
-  cpp: '#00599c',
-  cs: '#239120',
-  rs: '#dea584',
-  rb: '#cc342d',
-  php: '#777bb4',
-  dart: '#0175c2',
-  scala: '#dc322f',
-  lua: '#000080',
-  r: '#276dc3',
-  vue: '#41b883',
-  svelte: '#ff3e00',
-  sh: '#4eaa25',
-  ps1: '#012456',
-  bat: '#4d4d4d',
-  sql: '#e38c00',
-  xml: '#0060ac',
-  yaml: '#cb171e',
-  yml: '#cb171e',
-  toml: '#9c4121',
-  ini: '#6d8086',
-  conf: '#6d8086',
-  cfg: '#6d8086',
-  gradle: '#02303a',
-  md: '#083fa1',
-  svg: '#ffb13b',
-};
-
-// Dark text on light colours (JavaScript yellow, .env), white elsewhere.
-function inkFor(color: string) {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
-  return 0.299 * r! + 0.587 * g! + 0.114 * b! > 160 ? '#1f1f1f' : '#ffffff';
-}
-
-export interface FileStyle {
-  kind: FileKind;
-  // Up to four letters, usually the extension: PDF, DOCX, PY, GO, JSON, ENV.
-  label: string;
-  color: string;
-  ink: string;
-}
-
-export function fileStyle(filename: string, contentType: string): FileStyle {
-  const name = filename.toLowerCase();
-  const special = name.startsWith('.env')
-    ? { kind: 'code' as const, label: 'ENV', color: '#ecd53f' }
-    : SPECIAL_NAMES[name.split('.')[0]!];
-  if (special) return { ...special, ink: inkFor(special.color) };
-  const kind = fileKind(filename, contentType);
-  const ext = name.includes('.') ? name.split('.').at(-1)! : '';
-  const known = ext && ext.length <= 4 && (BY_EXTENSION[ext] || EXTENSION_COLORS[ext]);
-  const color = (known && EXTENSION_COLORS[ext]) || FILE_KINDS[kind].color;
-  return {
-    kind,
-    label: known ? ext.toUpperCase() : FILE_KINDS[kind].label,
-    color,
-    ink: inkFor(color),
-  };
-}
-
 export function fileKind(filename: string, contentType: string): FileKind {
   const ext = filename.toLowerCase().split('.').at(-1) ?? '';
   if (filename.includes('.') && BY_EXTENSION[ext]) return BY_EXTENSION[ext];
@@ -276,6 +174,8 @@ export const canPreview = (contentType: string) => PREVIEW_TYPES.test(contentTyp
 
 // Code, config and text read fine as plain text, whatever type the sender gave them.
 export const readsAsText = (filename: string, contentType: string) => {
-  const kind = fileStyle(filename, contentType).kind;
+  const name = filename.toLowerCase();
+  if (name.startsWith('.env') || name === 'dockerfile' || name === 'makefile') return true;
+  const kind = fileKind(filename, contentType);
   return kind === 'code' || kind === 'text' || kind === 'csv' || kind === 'calendar';
 };

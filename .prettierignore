@@ -3,3 +3,4 @@ out/
 dist/
 coverage/
 dist-web/
+src/renderer/src/mail/attachments/file-icons.json

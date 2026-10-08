@@ -21,7 +21,7 @@ function Card({ file, onOpen }: { file: AttachmentFile; onOpen: () => void }) {
       >
         <span className={styles.cardPreview}>
           {url ? (
-            <img src={url} alt="" />
+            <img className={styles.thumbnail} src={url} alt="" />
           ) : (
             <span className={styles.cardBadge}>
               <FileBadge file={file} size={48} />
