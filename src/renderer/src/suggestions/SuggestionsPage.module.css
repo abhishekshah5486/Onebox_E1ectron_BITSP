@@ -103,3 +103,60 @@
 .gmailSearch:focus-visible {
   outline: 2px solid var(--ob-accent);
 }
+
+/* v1: Gmail's rows under console-style column headers, every row on one grid. */
+.grid {
+  --suggestion-columns: 40px minmax(140px, 190px) minmax(0, 1fr) 180px 96px 72px;
+}
+
+.grid[data-view='past'] {
+  --suggestion-columns: 40px minmax(140px, 190px) minmax(0, 1fr) 180px 96px 120px 72px;
+}
+
+.gridHead,
+.gridRow {
+  display: grid;
+  grid-template-columns: var(--suggestion-columns) !important;
+  align-items: center;
+  column-gap: 16px;
+}
+
+.gridHead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 36px;
+  padding: 0 16px 0 8px;
+  border-bottom: 1px solid var(--ob-border);
+  background: var(--ob-surface);
+  color: var(--ob-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.alignEnd {
+  text-align: right;
+}
+
+.cell {
+  overflow: hidden;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Row actions float over the row's right end, like Gmail's, so no column is kept for them. */
+.overlay {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  bottom: 0;
+  padding-left: 24px;
+  background: linear-gradient(to right, transparent, var(--ob-row-read) 24px);
+}
+
+.gridRow > :last-child {
+  min-width: 0;
+  padding-left: 0;
+}

@@ -737,7 +737,24 @@ function GmailSuggestions({
           </button>
         ))}
       </div>
-      <div className={mailStyles.list} role="grid" aria-label="Suggestions">
+      <div
+        className={`${mailStyles.list} ${styles.grid}`}
+        data-view={view}
+        role="grid"
+        aria-label="Suggestions"
+      >
+        {/* Column headers like a cloud console table, over Gmail's rows. */}
+        <div className={styles.gridHead} role="row">
+          <span role="columnheader" />
+          <span role="columnheader">From</span>
+          <span role="columnheader">Subject</span>
+          <span role="columnheader">{waiting ? 'Suggested label' : 'Label'}</span>
+          <span role="columnheader">Confidence</span>
+          {!waiting && <span role="columnheader">Outcome</span>}
+          <span role="columnheader" className={styles.alignEnd}>
+            Received
+          </span>
+        </div>
         {loading && <p className={mailStyles.status}>Loading…</p>}
         {error !== null && <p className={mailStyles.status}>{describeError(error)}</p>}
         {!loading && error === null && rows.length === 0 && (
@@ -759,7 +776,7 @@ function GmailSuggestions({
               tabIndex={0}
               aria-selected={isSelected}
               aria-label={`${senderName(row.suggestion.from)}, ${subjectOf(row)}, ${row.result.name}`}
-              className={`${rowStyles.row} ${rowStyles.read} ${isSelected ? rowStyles.selected : ''}`}
+              className={`${rowStyles.row} ${rowStyles.read} ${styles.gridRow} ${isSelected ? rowStyles.selected : ''}`}
               onClick={() => onOpen(row)}
               onKeyDown={(event) =>
                 event.key === 'Enter' && event.target === event.currentTarget && onOpen(row)
@@ -778,11 +795,10 @@ function GmailSuggestions({
                   <GmailIcon name={isSelected ? 'checkboxChecked' : 'checkbox'} size={20} />
                 </button>
               ) : (
-                <span />
+                <span className={rowStyles.star}>
+                  <GmailIcon name="sparkle" size={18} />
+                </span>
               )}
-              <span className={rowStyles.star}>
-                <GmailIcon name="sparkle" size={18} />
-              </span>
               <span className={rowStyles.sender}>
                 {account && (
                   <span className={rowStyles.chip} data-tooltip={account.emailAddress}>
@@ -792,14 +808,15 @@ function GmailSuggestions({
                 <span className={rowStyles.senderName}>{senderName(row.suggestion.from)}</span>
               </span>
               <span className={rowStyles.summary}>
-                <span className={rowStyles.label}>
-                  {row.result.name} · {row.result.confidence.toFixed(2)}
-                </span>
                 <span className={rowStyles.subject}>{subjectOf(row)}</span>
                 {snippet && <span className={rowStyles.snippet}> - {snippet}</span>}
               </span>
+              <span className={styles.cell}>
+                <span className={rowStyles.label}>{row.result.name}</span>
+              </span>
+              <span className={styles.cell}>{row.result.confidence.toFixed(2)}</span>
+              {!waiting && <span className={styles.cell}>{outcome?.text ?? ''}</span>}
               <span className={rowStyles.end}>
-                {outcome && <span className={rowStyles.label}>{outcome.text}</span>}
                 <span
                   className={rowStyles.date}
                   data-tooltip={formatFullDate(row.suggestion.receivedAt)}
@@ -807,7 +824,7 @@ function GmailSuggestions({
                   {formatListDate(row.suggestion.receivedAt)}
                 </span>
                 {waiting && (
-                  <span className={rowStyles.hoverActions}>
+                  <span className={`${rowStyles.hoverActions} ${styles.overlay}`}>
                     <span onClick={stop(() => {})}>
                       <WhyPopover result={row.result}>
                         <IconButton size="small" icon="info" label={`Why ${row.result.name}`} />
