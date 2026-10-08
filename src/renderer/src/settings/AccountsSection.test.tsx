@@ -130,7 +130,7 @@ describe('AccountsSection', () => {
     }));
     setup({ post: post as ApiClient['post'] });
 
-    await userEvent.click(await screen.findByRole('radio', { name: 'me@gmail.com' }));
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'me@gmail.com' }));
     await userEvent.click(screen.getByRole('button', { name: 'Test connection' }));
 
     expect(post).toHaveBeenCalledWith('/accounts/a1/test');
@@ -141,7 +141,7 @@ describe('AccountsSection', () => {
     const del = vi.fn(async () => undefined);
     setup({ delete: del as ApiClient['delete'] });
 
-    await userEvent.click(await screen.findByRole('radio', { name: 'me@gmail.com' }));
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'me@gmail.com' }));
     await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
     expect(del).not.toHaveBeenCalled();

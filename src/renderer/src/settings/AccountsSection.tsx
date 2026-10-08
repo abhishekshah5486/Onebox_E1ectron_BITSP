@@ -9,11 +9,16 @@ import StatusIndicator, {
 } from '@cloudscape-design/components/status-indicator';
 import Table from '@cloudscape-design/components/table';
 import { useState } from 'react';
+import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account, AccountStatus } from '../api/accounts';
 import { useAccounts, useRemoveAccount, useTestAccount, useUpdateAccount } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { AddAccountModal } from './AddAccountModal';
+import { LOCALE } from '../mail/format';
 import { useFlash } from './flash';
+import tableStyles from '../ui/DataTable.module.css';
+import styles from './LabelsSection.module.css';
+import { LoadError } from '../ui/LoadError';
 
 const STATUS: Record<AccountStatus, { type: StatusIndicatorProps.Type; label: string }> = {
   CONNECTED: { type: 'success', label: 'Connected' },
@@ -31,7 +36,15 @@ const PROVIDER_LABEL = {
   IMAP: 'IMAP',
 } as const;
 
-const formatTime = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : '—');
+const formatTime = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleString(LOCALE, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : '—';
 
 export function AccountsSection() {
   const accounts = useAccounts();
@@ -39,12 +52,16 @@ export function AccountsSection() {
   const updateAccount = useUpdateAccount();
   const removeAccount = useRemoveAccount();
   const flash = useFlash();
-  const [selected, setSelected] = useState<Account | null>(null);
+  const [selected, setSelected] = useState<Account[]>([]);
   const [adding, setAdding] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const items = accounts.data ?? [];
-  const current = items.find((item) => item.id === selected?.id) ?? null;
+  // Fresh copies of what is ticked, so statuses stay current after an action.
+  const current = items.filter((item) => selected.some((picked) => picked.id === item.id));
+  const many = () =>
+    current.length === 1 ? current[0]!.emailAddress : `${current.length} accounts`;
+  const allPaused = current.length > 0 && current.every((item) => item.status === 'DISABLED');
   const fail = (error: unknown) => flash({ type: 'error', content: describeError(error) });
 
   const runTest = (account: Account) =>
@@ -81,31 +98,32 @@ export function AccountsSection() {
       },
     );
 
-  const remove = (account: Account) =>
-    removeAccount.mutate(account.id, {
-      onSuccess: () => {
-        flash({ type: 'success', content: `Removed ${account.emailAddress}.` });
-        setSelected(null);
-        setConfirmRemove(false);
-      },
-      onError: fail,
-    });
+  const remove = (accounts: Account[]) => {
+    for (const account of accounts) {
+      removeAccount.mutate(account.id, {
+        onSuccess: () => flash({ type: 'success', content: `Removed ${account.emailAddress}.` }),
+        onError: fail,
+      });
+    }
+    setSelected([]);
+    setConfirmRemove(false);
+  };
 
   return (
-    <>
+    <div className={tableStyles.table}>
       <Table
         variant="container"
         loading={accounts.isLoading}
         loadingText="Loading accounts"
-        selectionType="single"
-        selectedItems={current ? [current] : []}
-        onSelectionChange={({ detail }) => setSelected(detail.selectedItems[0] ?? null)}
+        selectionType="multi"
+        selectedItems={current}
+        onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
         trackBy="id"
         items={items}
         ariaLabels={{
           selectionGroupLabel: 'Accounts',
           itemSelectionLabel: (_, item) => item.emailAddress,
-          allItemsSelectionLabel: () => 'all',
+          allItemsSelectionLabel: () => 'Select all accounts',
         }}
         header={
           <Header
@@ -115,24 +133,24 @@ export function AccountsSection() {
             actions={
               <SpaceBetween direction="horizontal" size="xs">
                 <Button
-                  disabled={!current}
+                  disabled={current.length === 0}
                   loading={testAccount.isPending}
-                  onClick={() => current && runTest(current)}
+                  onClick={() => current.forEach(runTest)}
                 >
                   Test connection
                 </Button>
                 <ButtonDropdown
-                  disabled={!current}
+                  disabled={current.length === 0}
                   items={[
-                    {
-                      id: 'toggle',
-                      text: current?.status === 'DISABLED' ? 'Resume syncing' : 'Pause syncing',
-                    },
+                    { id: 'toggle', text: allPaused ? 'Resume syncing' : 'Pause syncing' },
                     { id: 'remove', text: 'Remove' },
                   ]}
                   onItemClick={({ detail }) => {
-                    if (!current) return;
-                    if (detail.id === 'toggle') toggle(current);
+                    if (detail.id === 'toggle') {
+                      current
+                        .filter((item) => (item.status === 'DISABLED') === allPaused)
+                        .forEach(toggle);
+                    }
                     if (detail.id === 'remove') setConfirmRemove(true);
                   }}
                 >
@@ -150,14 +168,15 @@ export function AccountsSection() {
         columnDefinitions={[
           {
             id: 'email',
-            header: 'Email',
+            header: 'Account',
             cell: (item) => (
-              <>
-                <Box fontWeight="bold">{item.displayName ?? item.emailAddress}</Box>
-                {item.displayName && <Box color="text-body-secondary">{item.emailAddress}</Box>}
-              </>
+              <span className={styles.account} title={item.emailAddress}>
+                <ProviderLogo provider={item.provider} size={16} />
+                <span>{item.emailAddress}</span>
+              </span>
             ),
           },
+          { id: 'name', header: 'Name', cell: (item) => item.displayName ?? '—' },
           { id: 'provider', header: 'Provider', cell: (item) => PROVIDER_LABEL[item.provider] },
           { id: 'server', header: 'Server', cell: (item) => `${item.imap.host}:${item.imap.port}` },
           {
@@ -190,8 +209,12 @@ export function AccountsSection() {
         }
       />
       {accounts.isError && (
-        <Box color="text-status-error" padding={{ top: 's' }}>
-          {describeError(accounts.error)}
+        <Box padding={{ top: 's' }}>
+          <LoadError
+            error={accounts.error}
+            header="Accounts could not be loaded"
+            onRetry={() => void accounts.refetch()}
+          />
         </Box>
       )}
 
@@ -204,7 +227,7 @@ export function AccountsSection() {
       />
 
       <Modal
-        visible={confirmRemove && !!current}
+        visible={confirmRemove && current.length > 0}
         onDismiss={() => setConfirmRemove(false)}
         header="Remove account"
         footer={
@@ -216,7 +239,7 @@ export function AccountsSection() {
               <Button
                 variant="primary"
                 loading={removeAccount.isPending}
-                onClick={() => current && remove(current)}
+                onClick={() => remove(current)}
               >
                 Remove
               </Button>
@@ -224,9 +247,9 @@ export function AccountsSection() {
           </Box>
         }
       >
-        Remove <b>{current?.emailAddress}</b>? OneBox stops syncing it and forgets its stored
-        password. Mail in the mailbox itself is not touched.
+        Remove <b>{many()}</b>? OneBox stops syncing and forgets the stored password. Mail in the
+        mailbox itself is not touched.
       </Modal>
-    </>
+    </div>
   );
 }
