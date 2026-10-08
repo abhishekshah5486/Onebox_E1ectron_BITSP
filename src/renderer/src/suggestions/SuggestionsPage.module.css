@@ -40,16 +40,10 @@
   color: var(--muted);
 }
 
-.label > span:first-child {
-  text-decoration: underline dashed;
-  text-underline-offset: 4px;
-}
-
 .info {
   display: inline-flex;
   flex: none;
-  color: var(--muted);
-  cursor: help;
+  cursor: pointer;
 }
 
 .received {
@@ -73,34 +67,35 @@ tr:has(:focus-visible) .time {
   display: none;
 }
 
-/* Compact versions of the header's buttons, short enough not to stretch the row. */
-.pill {
-  height: 20px;
-  padding: 0 12px;
-  border: 2px solid var(--pill-color);
-  border-radius: 16px;
+/* Bold blue tick and cross, in the inbox's hover-action style. */
+.mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
   background: transparent;
-  color: var(--pill-color);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 16px;
-  white-space: nowrap;
+  color: var(--link);
   cursor: pointer;
 }
 
-.pill:hover {
+.mark svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mark:hover {
   background: var(--pill-hover);
 }
 
-.pill:focus-visible {
-  outline: 2px solid var(--pill-color);
-  outline-offset: 2px;
-}
-
-.primary,
-.primary:hover {
-  border-color: var(--pill-primary-bg);
-  background: var(--pill-primary-bg);
-  color: var(--pill-primary-text);
+.mark:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
 }

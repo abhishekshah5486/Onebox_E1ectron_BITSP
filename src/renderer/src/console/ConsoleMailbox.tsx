@@ -58,7 +58,11 @@ const PILL_VARS = {
 // Below this table width the Account column shrinks to just the provider logo.
 export const COMPACT_TABLE_WIDTH = 1040;
 
-function useWidth<T extends HTMLElement>() {
+// What the mail list's fixed columns take (selection, star, account, from, received); its
+// Subject column gets the rest. Other tables size their Subject the same way.
+export const INBOX_FIXED_COLUMNS = 52 + 64 + 220 + 200 + 170;
+
+export function useWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   const [width, setWidth] = useState(Infinity);
   useEffect(() => {

@@ -30,6 +30,7 @@ import { useAccountFolders, useThreadsById } from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
 import mailStyles from '../mail/MailboxPage.module.css';
+import { INBOX_FIXED_COLUMNS, useWidth } from '../console/ConsoleMailbox';
 import { formatFullDate, formatUtc } from '../mail/format';
 import { FlashProvider, useFlash } from '../settings/flash';
 import { useUiVersion } from '../theme/UiVersionProvider';
@@ -41,8 +42,7 @@ import styles from './SuggestionsPage.module.css';
 const PILL_VARS = {
   '--pill-color': tokens.colorTextButtonNormalDefault,
   '--pill-hover': tokens.colorBackgroundButtonNormalHover,
-  '--pill-primary-bg': tokens.colorBackgroundButtonPrimaryDefault,
-  '--pill-primary-text': tokens.colorTextButtonPrimaryDefault,
+  '--link': tokens.colorTextLinkDefault,
   '--muted': tokens.colorTextBodySecondary,
 } as CSSProperties;
 
@@ -116,6 +116,11 @@ function SuggestionsTable() {
   const [selected, setSelected] = useState<Row[]>([]);
   const [confirming, setConfirming] = useState<Confirming | null>(null);
   const [search, setSearch] = useState('');
+  const [tableRef, tableWidth] = useWidth<HTMLDivElement>();
+  // The same width the inbox gives Subject in this window; the extra columns scroll sideways.
+  const subjectWidth = Number.isFinite(tableWidth)
+    ? Math.max(320, Math.round(tableWidth - INBOX_FIXED_COLUMNS))
+    : 440;
   const accounts = useAccounts().data ?? [];
   const folderQueries = useAccountFolders(accounts.map((account) => account.id));
   const accountOf = (id: string) => accounts.find((account) => account.id === id);
@@ -236,7 +241,7 @@ function SuggestionsTable() {
     {
       id: 'subject',
       header: 'Subject',
-      width: 440,
+      width: subjectWidth,
       cell: (row) => {
         const snippet = snippetOf(row.suggestion.threadId);
         return (
@@ -261,17 +266,19 @@ function SuggestionsTable() {
       width: 200,
       cell: ({ result }) => (
         <span className={styles.label}>
-          <span className={styles.clip}>{result.name}</span>
           <Popover
             size="medium"
             renderWithPortal
+            dismissButton={false}
+            triggerType="custom"
             header={`Why “${result.name}”?`}
             content={result.reason}
           >
             <span className={styles.info} aria-label={`Why ${result.name}`}>
-              <Icon name="status-info" size="small" />
+              <Icon name="status-info" size="small" variant="link" />
             </span>
           </Popover>
+          <span className={styles.clip}>{result.name}</span>
         </span>
       ),
     },
@@ -309,19 +316,25 @@ function SuggestionsTable() {
           <span className={styles.quick}>
             <button
               type="button"
-              className={styles.pill}
-              aria-label={`Decline ${row.result.name} for ${subjectOf(row)}`}
-              onClick={() => setConfirming({ kind: 'decline', rows: [row] })}
-            >
-              Decline
-            </button>
-            <button
-              type="button"
-              className={`${styles.pill} ${styles.primary}`}
+              className={styles.mark}
+              title="Accept"
               aria-label={`Accept ${row.result.name} for ${subjectOf(row)}`}
               onClick={() => setConfirming({ kind: 'accept', rows: [row] })}
             >
-              Accept
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2.5 8.5l3.5 3.5 7.5-8" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={styles.mark}
+              title="Decline"
+              aria-label={`Decline ${row.result.name} for ${subjectOf(row)}`}
+              onClick={() => setConfirming({ kind: 'decline', rows: [row] })}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+              </svg>
             </button>
           </span>
         )}
@@ -363,7 +376,7 @@ function SuggestionsTable() {
 
   const none = selected.length === 0;
   return (
-    <div className={`${tableStyles.table} ${tableStyles.fixed}`} style={PILL_VARS}>
+    <div ref={tableRef} className={`${tableStyles.table} ${tableStyles.fixed}`} style={PILL_VARS}>
       <Table
         variant={full ? 'full-page' : 'container'}
         stickyHeader={full}
@@ -371,6 +384,7 @@ function SuggestionsTable() {
         items={shown}
         wrapLines={false}
         filter={tabs}
+        stickyColumns={{ first: 0, last: 1 }}
         loading={query.isPending}
         loadingText="Loading suggestions"
         selectionType={waiting ? 'multi' : undefined}
