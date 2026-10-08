@@ -86,20 +86,28 @@
   outline-offset: 1px;
 }
 
-/* v1: Gmail's in-list search, at the right of the toolbar. */
-.gmailSearch {
-  width: 260px;
-  height: 32px;
-  margin-left: auto;
-  padding: 0 14px;
-  border: none;
-  border-radius: 16px;
-  background: var(--ob-search-bg);
-  color: var(--ob-text);
-  font: inherit;
-  font-size: 14px;
+/* v1: Gmail's label chip, and row actions that show while the row is hovered. */
+.chip {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--ob-chip-bg);
+  color: var(--ob-chip-text);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: middle;
 }
 
-.gmailSearch:focus-visible {
-  outline: 2px solid var(--ob-accent);
+:root[data-ui='v1'] .actions {
+  opacity: 0;
+}
+
+:root[data-ui='v1'] tr:hover .actions,
+:root[data-ui='v1'] tr:has(:focus-visible) .actions,
+:root[data-ui='v1'] tr:has([aria-expanded='true']) .actions {
+  opacity: 1;
 }
