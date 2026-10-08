@@ -26,6 +26,10 @@ const defaultGet = async (path: string): Promise<unknown> => {
   if (path.startsWith('/mail/threads?') || /^\/mail\/accounts\/[^/]+\/threads/.test(path)) {
     return { items: [], page: 1, pageSize: 50, total: 0 };
   }
+  if (path === '/ai/suggestions/count') return { count: 0 };
+  if (path.startsWith('/ai/suggestions')) return { items: [], total: 0, page: 1, pageSize: 50 };
+  if (path === '/ai/labels') return { items: [] };
+  if (path === '/llm/models') return { items: [], purposes: [], choices: {} };
   if (path === '/mail/stats') return { unreadThreads: 0, starredThreads: 0, totalThreads: 0 };
   throw new Error(`fakeApi: unexpected GET ${path}`);
 };
