@@ -4,7 +4,14 @@ import type { ThreadFilter } from './api/mail';
 import { GuestOnly, RequireAuth } from './auth/guards';
 import { SignInPage } from './auth/SignInPage';
 import { SignUpPage } from './auth/SignUpPage';
-import { FOLDER_LABEL, labelPath, type FolderRole } from './mail/folders';
+import {
+  FOLDER_LABEL,
+  labelPath,
+  MAIL_CATEGORIES,
+  MAIL_CATEGORY_LABEL,
+  type FolderRole,
+  type MailCategory,
+} from './mail/folders';
 import { AccountMailbox, UnifiedMailbox } from './mail/MailboxPage';
 import { ThreadPage } from './mail/ThreadPage';
 import { AppShell } from './shell/AppShell';
@@ -25,6 +32,7 @@ const ConsoleThread = lazy(() => loadConsole().then((m) => ({ default: m.Console
 interface UnifiedProps {
   filter: ThreadFilter;
   folder?: FolderRole | null;
+  tagged?: MailCategory | null;
   title: string;
   basePath: string;
 }
@@ -98,6 +106,14 @@ export function AppRoutes() {
               basePath: `/${folder}`,
             }),
           )}
+          {MAIL_CATEGORIES.flatMap((category) =>
+            unified(`category-${category}`, {
+              filter: 'all',
+              tagged: category,
+              title: MAIL_CATEGORY_LABEL[category],
+              basePath: `/category/${category}`,
+            }),
+          )}
           <Route path="/accounts/:accountId" element={<Account />} />
           <Route path="/accounts/:accountId/labels/:label" element={<Account />} />
           <Route
@@ -110,6 +126,7 @@ export function AppRoutes() {
             element={<AccountThread Thread={Thread} />}
           />
           <Route path="/settings" element={loading('Loading settings', <SettingsPage />)} />
+          <Route path="/settings/labels" element={loading('Loading settings', <SettingsPage />)} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/inbox" replace />} />

@@ -21,7 +21,7 @@ const AUTONOMY: { value: AutonomyMode; label: string; description: string }[] = 
   { value: 'AUTO', label: 'Autonomous', description: 'AI acts on safe actions automatically' },
 ];
 
-type Draft = Omit<Preferences, 'updatedAt'>;
+type Draft = Pick<Preferences, 'markSeenOnFetch' | 'autonomyMode' | 'signature' | 'timezone'>;
 
 export function PreferencesSection() {
   const preferences = usePreferences();
