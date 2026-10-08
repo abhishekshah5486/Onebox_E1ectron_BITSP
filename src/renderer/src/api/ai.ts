@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import type { ApiClient } from './client';
 
-export type ModelProvider = 'OPENAI' | 'GEMINI' | 'ANTHROPIC';
+export type ModelProvider = 'OPENAI' | 'GEMINI' | 'ANTHROPIC' | 'PERPLEXITY';
 export type ModelPurpose = 'classify' | 'extract' | 'draft' | 'summarize';
 export const AUTO_MODEL = 'auto';
 

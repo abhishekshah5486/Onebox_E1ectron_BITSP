@@ -12,7 +12,7 @@ import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
 import TextFilter from '@cloudscape-design/components/text-filter';
-import { useMemo, useState, type ReactElement } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AUTO_MODEL,
   useChooseModel,
@@ -28,6 +28,7 @@ import { formatUtc } from '../mail/format';
 import tableStyles from '../ui/DataTable.module.css';
 import styles from './AiSection.module.css';
 import { useFlash } from './flash';
+import { ModelLogo } from './ModelLogo';
 import { LoadError } from '../ui/LoadError';
 
 const PURPOSE: Record<ModelPurpose, { label: string; description: string }> = {
@@ -47,46 +48,18 @@ const PROVIDER: Record<ModelProvider, string> = {
   OPENAI: 'OpenAI',
   GEMINI: 'Google Gemini',
   ANTHROPIC: 'Anthropic',
+  PERPLEXITY: 'Perplexity',
 };
 
-// Simple marks so each provider is recognisable in the list.
-const mark = (provider: ModelProvider | 'AUTO') => {
-  const paths: Record<typeof provider, ReactElement> = {
-    AUTO: (
-      <path
-        d="M8 1.5l1.6 3.9 3.9 1.6-3.9 1.6L8 12.5 6.4 8.6 2.5 7l3.9-1.6zM13 11l.7 1.3 1.3.7-1.3.7L13 15l-.7-1.3-1.3-.7 1.3-.7z"
-        fill="#539fe5"
-      />
-    ),
-    OPENAI: (
-      <path
-        d="M8 1.6a3.2 3.2 0 0 1 3 2.1 3.2 3.2 0 0 1 2.6 4.6 3.2 3.2 0 0 1-2.6 4.9A3.2 3.2 0 0 1 5 13.3a3.2 3.2 0 0 1-2.6-4.6A3.2 3.2 0 0 1 5 3.8a3.2 3.2 0 0 1 3-2.2z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.4"
-      />
-    ),
-    GEMINI: (
-      <path
-        d="M8 1c.6 3.6 3.4 6.4 7 7-3.6.6-6.4 3.4-7 7-.6-3.6-3.4-6.4-7-7 3.6-.6 6.4-3.4 7-7z"
-        fill="#4c8df6"
-      />
-    ),
-    ANTHROPIC: (
-      <path
-        d="M8 1v14M1 8h14M3 3l10 10M13 3L3 13"
-        stroke="#d97757"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    ),
-  };
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      {paths[provider]}
-    </svg>
-  );
-};
+// Auto's own mark; every model shows its maker's logo.
+const autoMark = (
+  <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <path
+      d="M8 1.5l1.6 3.9 3.9 1.6-3.9 1.6L8 12.5 6.4 8.6 2.5 7l3.9-1.6zM13 11l.7 1.3 1.3.7-1.3.7L13 15l-.7-1.3-1.3-.7 1.3-.7z"
+      fill="#539fe5"
+    />
+  </svg>
+);
 
 function optionsFor(models: ModelOption[]): SelectProps.Options {
   const groups = (Object.keys(PROVIDER) as ModelProvider[]).map((provider) => ({
@@ -98,7 +71,7 @@ function optionsFor(models: ModelOption[]): SelectProps.Options {
         label: model.name,
         description: model.available ? model.description : `${model.description} · not set up`,
         disabled: !model.available,
-        iconSvg: mark(provider),
+        iconSvg: <ModelLogo model={model.id} provider={provider} />,
       })),
   }));
   return [
@@ -107,7 +80,7 @@ function optionsFor(models: ModelOption[]): SelectProps.Options {
       label: 'Auto',
       labelTag: 'Recommended',
       description: 'Always picks the best available model',
-      iconSvg: mark('AUTO'),
+      iconSvg: autoMark,
     },
     ...groups.filter((group) => group.options.length > 0),
   ];
@@ -156,6 +129,8 @@ export function AiSection() {
                   <Select
                     selectedOption={flat(options).find((option) => option.value === chosen) ?? null}
                     options={options}
+                    // Shows the chosen model with its maker's logo, not just its name.
+                    triggerVariant="option"
                     ariaLabel={`Model for ${PURPOSE[purpose].label.toLowerCase()}`}
                     onChange={({ detail }) => {
                       const modelId = detail.selectedOption.value ?? AUTO_MODEL;
