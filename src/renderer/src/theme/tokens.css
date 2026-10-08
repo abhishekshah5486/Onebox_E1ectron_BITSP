@@ -16,29 +16,59 @@
   --ob-selected-soft: #e8f0fe;
   --ob-row-selected: #c2dbff;
   --ob-row-read: #f2f6fc;
+  --ob-row-unread: #ffffff;
+  --ob-row-border: #ecedef;
+  --ob-row-selected-ring: #a8c7fa;
+  --ob-nav-hover: #e9eef6;
+  --ob-scroll-thumb: #c4c7c5;
+  --ob-row-hover-shadow: 0 0 0 1px #dadce0, 0 0 6px 2px rgb(60 64 67 / 28%);
+  --ob-icon-hover: rgb(68 71 70 / 8%);
   --ob-star: #f4b400;
+  --ob-tooltip-bg: #3c4043;
+  --ob-tooltip-text: #ffffff;
+  --ob-snackbar-bg: #303030;
+  --ob-snackbar-text: #f2f2f2;
+  --ob-snackbar-action: #a8c7fa;
+  --ob-chip-bg: #e1e3e1;
+  --ob-outline: #747775;
   --ob-danger: #b3261e;
   --ob-shadow: 0 1px 3px rgb(60 64 67 / 30%), 0 4px 8px 3px rgb(60 64 67 / 15%);
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --ob-bg: #141517;
-  --ob-surface: #1e1f22;
-  --ob-surface-hover: #2a2c30;
-  --ob-surface-raised: #2a2c30;
-  --ob-nav-active: #3a3d43;
-  --ob-search-bg: #2a2c30;
+  /* Sampled from Gmail's dark theme. */
+  --ob-bg: #111111;
+  --ob-surface: #2c2c2c;
+  --ob-surface-hover: #3a3a3a;
+  --ob-surface-raised: #2c2c2c;
+  --ob-nav-active: #595959;
+  --ob-nav-hover: #414141;
+  --ob-search-bg: #474747;
   --ob-text: #e3e3e3;
-  --ob-text-muted: #a8abb0;
-  --ob-border: #2f3136;
+  --ob-text-muted: #a8abaf;
+  --ob-border: #363636;
   --ob-accent: #a8c7fa;
   --ob-accent-contrast: #062e6f;
   --ob-accent-hover: #d3e3fd;
   --ob-selected-soft: #1c2b45;
-  --ob-row-selected: #1d4fbf;
-  --ob-row-read: #1a1b1e;
-  --ob-star: #fdd663;
+  --ob-row-selected: #164ea6;
+  --ob-row-selected-ring: #3260b0;
+  --ob-row-read: #161616;
+  --ob-row-unread: #2c2c2c;
+  --ob-row-border: #222222;
+  /* Gmail lifts a hovered row with a pale halo in dark mode. */
+  --ob-row-hover-shadow: 0 0 0 1px #414346, 0 0 6px 2px rgb(255 255 255 / 22%);
+  --ob-icon-hover: rgb(227 227 227 / 12%);
+  --ob-star: #a8c7fa;
+  --ob-tooltip-bg: #e3e3e3;
+  --ob-tooltip-text: #1f1f1f;
+  --ob-snackbar-bg: #e3e3e3;
+  --ob-snackbar-text: #1f1f1f;
+  --ob-snackbar-action: #0b57d0;
+  --ob-chip-bg: #454746;
+  --ob-outline: #8e918f;
+  --ob-scroll-thumb: #808080;
   --ob-danger: #f2b8b5;
   --ob-shadow: 0 1px 3px rgb(0 0 0 / 60%), 0 4px 8px 3px rgb(0 0 0 / 30%);
 }
@@ -47,6 +77,13 @@
   --ob-radius: 16px;
   --ob-radius-pill: 999px;
   --ob-font: 'Google Sans Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Like Gmail, confirm dialogs stay light in both themes. */
+  --ob-dialog-bg: #ffffff;
+  --ob-dialog-text: #1f1f1f;
+  --ob-dialog-muted: #444746;
+  --ob-dialog-accent: #0b57d0;
+  --ob-dialog-on-accent: #ffffff;
+  --ob-dialog-hover: #e8f0fe;
 }
 
 body {

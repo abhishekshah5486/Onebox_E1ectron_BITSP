@@ -24,22 +24,24 @@
   color: var(--ob-text-muted);
 }
 
-/* Beats the toolbar's round icon-button rule. */
-.menu .item {
+.item {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
   height: 36px;
   padding: 0 16px;
+  border: none;
   border-radius: 0;
+  background: transparent;
   font: inherit;
+  cursor: pointer;
   font-size: 14px;
   color: var(--ob-text);
   text-align: left;
 }
 
-.menu .item:hover,
-.menu .item:focus-visible {
+.item:hover,
+.item:focus-visible {
   background: var(--ob-surface-hover);
 }

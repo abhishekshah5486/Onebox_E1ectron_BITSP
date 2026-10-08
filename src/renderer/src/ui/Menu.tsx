@@ -1,15 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from '../ui/Icon';
-import type { MoveTarget } from './actions';
-import styles from './MoveMenu.module.css';
+import { Icon, type IconName } from './Icon';
+import { IconButton } from './IconButton';
+import styles from './Menu.module.css';
 
-// "Move to" menu for the toolbar: folders first, then labels.
-export function MoveMenu({
-  targets,
-  onMove,
+export interface MenuItem {
+  key: string;
+  label: string;
+  icon?: IconName;
+}
+
+// An icon button that opens a list of choices, closed by a choice, Escape or a click outside.
+export function Menu({
+  label,
+  icon,
+  heading,
+  items,
+  onSelect,
+  size,
 }: {
-  targets: MoveTarget[];
-  onMove: (target: MoveTarget) => void;
+  label: string;
+  icon: IconName;
+  heading?: string;
+  items: MenuItem[];
+  onSelect: (key: string) => void;
+  size?: 'small' | 'normal';
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -30,30 +44,30 @@ export function MoveMenu({
 
   return (
     <div ref={root} className={styles.root}>
-      <button
-        aria-label="Move to"
-        title="Move to"
+      <IconButton
+        icon={icon}
+        label={label}
+        size={size}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-      >
-        <Icon name="move" size={20} />
-      </button>
+      />
       {open && (
-        <div className={styles.menu} role="menu" aria-label="Move to">
-          <div className={styles.heading}>Move to:</div>
-          {targets.map((target) => (
+        <div className={styles.menu} role="menu" aria-label={label}>
+          {heading && <div className={styles.heading}>{heading}</div>}
+          {items.map((item) => (
             <button
-              key={target.key}
+              key={item.key}
+              type="button"
               role="menuitem"
               className={styles.item}
               onClick={() => {
                 setOpen(false);
-                onMove(target);
+                onSelect(item.key);
               }}
             >
-              <Icon name={'label' in target.target ? 'label' : 'move'} size={18} />
-              {target.label}
+              {item.icon && <Icon name={item.icon} size={18} />}
+              {item.label}
             </button>
           ))}
         </div>

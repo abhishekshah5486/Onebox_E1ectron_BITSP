@@ -1,0 +1,55 @@
+.region {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 950;
+}
+
+.snackbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 280px;
+  max-width: 560px;
+  min-height: 48px;
+  padding: 0 8px 0 16px;
+  border-radius: 4px;
+  background: var(--ob-snackbar-bg);
+  color: var(--ob-snackbar-text);
+  font-size: 14px;
+  box-shadow: var(--ob-shadow);
+}
+
+.snackbar > span {
+  flex: 1;
+}
+
+.action,
+.close {
+  border: none;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.action {
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 4px;
+  color: var(--ob-snackbar-action);
+  font-weight: 500;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: inherit;
+}
+
+.action:hover,
+.close:hover {
+  background: rgb(255 255 255 / 10%);
+}

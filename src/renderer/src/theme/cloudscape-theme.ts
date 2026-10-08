@@ -5,12 +5,12 @@ const both = (light: string, dark: string) => ({ light, dark });
 // Maps Cloudscape's palette onto the OneBox tokens in tokens.css so both UI kits read as one.
 export const oneboxCloudscapeTheme: Theme = {
   tokens: {
-    colorBackgroundLayoutMain: both('#ffffff', '#1e1f22'),
-    colorBackgroundContainerContent: both('#ffffff', '#1e1f22'),
-    colorBackgroundContainerHeader: both('#ffffff', '#1e1f22'),
-    colorBackgroundInputDefault: both('#ffffff', '#1e1f22'),
-    colorBorderDividerDefault: both('#e3e6ea', '#2f3136'),
-    colorBorderContainerTop: both('#e3e6ea', '#2f3136'),
+    colorBackgroundLayoutMain: both('#ffffff', '#2c2c2c'),
+    colorBackgroundContainerContent: both('#ffffff', '#2c2c2c'),
+    colorBackgroundContainerHeader: both('#ffffff', '#2c2c2c'),
+    colorBackgroundInputDefault: both('#ffffff', '#2c2c2c'),
+    colorBorderDividerDefault: both('#e3e6ea', '#363636'),
+    colorBorderContainerTop: both('#e3e6ea', '#363636'),
     colorBackgroundItemSelected: both('#e8f0fe', '#1c2b45'),
     colorBorderItemSelected: both('#0b57d0', '#a8c7fa'),
     colorBorderItemFocused: both('#0b57d0', '#a8c7fa'),
