@@ -1,4 +1,4 @@
-import type { FolderRole, GmailCategory, MailboxView } from '../mail/folders';
+import type { FolderRole, GmailCategory, MailboxView, MailCategory } from '../mail/folders';
 import type { ApiClient } from './client';
 
 export interface Address {
@@ -12,6 +12,7 @@ export interface Thread {
   folders: FolderRole[];
   labels: string[];
   category: GmailCategory | null;
+  categories: MailCategory[];
   canUnsubscribe: boolean;
   unsubscribedAt: string | null;
   subject: string;
@@ -49,6 +50,8 @@ export interface Message {
   isStarred: boolean;
   receivedAt: string;
   sentAt: string | null;
+  // Who sent and signed it, per the user's own provider; null for older mail.
+  authentication: Authentication | null;
 }
 
 export type ThreadFilter = 'all' | 'unread' | 'starred';
@@ -83,6 +86,11 @@ export interface FolderCounts {
   updatedAt: string;
 }
 
+export interface MailboxLabel {
+  path: string;
+  name: string;
+}
+
 export interface MailStats {
   unreadThreads: number;
   starredThreads: number;
@@ -103,6 +111,12 @@ export interface ActionRequest {
   to?: MailboxTarget;
 }
 
+export interface Authentication {
+  mailedBy: string | null;
+  signedBy: string | null;
+  encrypted: boolean | null;
+}
+
 export interface UnsubscribeResult {
   method: 'one-click' | 'link' | 'mailto';
   url: string | null;
@@ -121,9 +135,10 @@ export const mailApi = {
     folder: FolderRole | null,
     page: number,
     category?: GmailCategory | null,
+    tagged?: MailCategory | null,
   ) =>
     api.get<ThreadPage>(
-      `/mail/threads?${pageParams(page, { filter, ...(folder && { folder }), ...(category && { category }) })}`,
+      `/mail/threads?${pageParams(page, { filter, ...(folder && { folder }), ...(category && { category }), ...(tagged && { tagged }) })}`,
     ),
   listAccountThreads: (
     api: ApiClient,
@@ -150,8 +165,16 @@ export const mailApi = {
   updateThread: (api: ApiClient, id: string, changes: { isRead?: boolean; isStarred?: boolean }) =>
     api.patch<Thread>(`/mail/threads/${id}`, changes),
   act: (api: ApiClient, request: ActionRequest) =>
-    api.post<{ items: Thread[] }>('/mail/threads/actions', request),
+    api.post<{ items: Thread[]; undoToken: string | null }>('/mail/threads/actions', request),
+  undo: (api: ApiClient, undoToken: string) =>
+    api.post<{ items: Thread[] }>('/mail/threads/undo', { undoToken }),
   unsubscribe: (api: ApiClient, id: string) =>
     api.post<UnsubscribeResult>(`/mail/threads/${id}/unsubscribe`),
+  createLabel: (api: ApiClient, accountId: string, name: string) =>
+    api.post<{ items: MailboxLabel[] }>(`/mail/accounts/${accountId}/labels`, { name }),
+  renameLabel: (api: ApiClient, accountId: string, path: string, name: string) =>
+    api.patch<{ items: MailboxLabel[] }>(`/mail/accounts/${accountId}/labels`, { path, name }),
+  deleteLabel: (api: ApiClient, accountId: string, path: string) =>
+    api.post<{ items: MailboxLabel[] }>(`/mail/accounts/${accountId}/labels/delete`, { path }),
   stats: (api: ApiClient) => api.get<MailStats>('/mail/stats'),
 };

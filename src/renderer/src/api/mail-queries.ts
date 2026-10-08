@@ -6,7 +6,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
-import { viewKey, type FolderRole, type GmailCategory, type MailboxView } from '../mail/folders';
+import {
+  viewKey,
+  type FolderRole,
+  type GmailCategory,
+  type MailboxView,
+  type MailCategory,
+} from '../mail/folders';
 import {
   mailApi,
   type ActionRequest,
@@ -25,6 +31,8 @@ export type ThreadScope =
       filter: ThreadFilter;
       folder: FolderRole | null;
       category?: GmailCategory | null;
+      // A sidebar category view across folders.
+      tagged?: MailCategory | null;
     }
   | { kind: 'account'; accountId: string; view: MailboxView; category?: GmailCategory | null };
 
@@ -45,7 +53,7 @@ export function useThreadPage(scope: ThreadScope, page: number) {
     queryFn: () =>
       scope.kind === 'account'
         ? mailApi.listAccountThreads(api, scope.accountId, scope.view, page, scope.category)
-        : mailApi.listThreads(api, scope.filter, scope.folder, page, scope.category),
+        : mailApi.listThreads(api, scope.filter, scope.folder, page, scope.category, scope.tagged),
     placeholderData: keepPreviousData,
     refetchInterval: REFRESH_MS,
   });
@@ -157,6 +165,15 @@ export function useThreadAction() {
   });
 }
 
+export function useUndo() {
+  const { api } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (undoToken: string) => mailApi.undo(api, undoToken),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: mailKeys.all }),
+  });
+}
+
 // One-click unsubscribes on the server; otherwise the sender's page or address opens outside.
 export function useUnsubscribe() {
   const { api } = useAuth();
@@ -168,5 +185,25 @@ export function useUnsubscribe() {
       void queryClient.invalidateQueries({ queryKey: mailKeys.thread(threadId) });
       void queryClient.invalidateQueries({ queryKey: ['mail', 'threads'] });
     },
+  });
+}
+
+// Creates, renames or deletes a label on the mail server; the folder list refreshes afterwards.
+export function useLabelChange(accountId: string) {
+  const { api } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (
+      change:
+        | { type: 'create'; name: string }
+        | { type: 'rename'; path: string; name: string }
+        | { type: 'delete'; path: string },
+    ) =>
+      change.type === 'create'
+        ? mailApi.createLabel(api, accountId, change.name)
+        : change.type === 'rename'
+          ? mailApi.renameLabel(api, accountId, change.path, change.name)
+          : mailApi.deleteLabel(api, accountId, change.path),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: mailKeys.all }),
   });
 }

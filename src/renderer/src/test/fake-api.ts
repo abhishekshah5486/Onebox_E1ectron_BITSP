@@ -13,6 +13,9 @@ export const defaultPreferences = {
   autonomyMode: 'MANUAL',
   signature: null,
   timezone: 'UTC',
+  sidebarHidden: ['category:social', 'category:updates', 'category:forums', 'category:promotions'],
+  chipsHidden: [],
+  inboxTabs: ['promotions', 'social', 'updates', 'forums'],
   updatedAt: null,
 };
 

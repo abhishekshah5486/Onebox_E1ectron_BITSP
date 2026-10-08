@@ -6,6 +6,7 @@ export const thread = (overrides: Partial<Thread> = {}): Thread => ({
   folders: ['inbox'],
   labels: [],
   category: null,
+  categories: [],
   canUnsubscribe: false,
   unsubscribedAt: null,
   subject: 'Demo next week?',
@@ -37,5 +38,6 @@ export const message = (overrides: Partial<Message> = {}): Message => ({
   isStarred: false,
   receivedAt: '2026-10-06T10:00:00.000Z',
   sentAt: null,
+  authentication: null,
   ...overrides,
 });

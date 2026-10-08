@@ -17,6 +17,12 @@ export interface Preferences {
   autonomyMode: AutonomyMode;
   signature: string | null;
   timezone: string;
+  // View keys hidden from the sidebar: "sent", "category:travel", "label:<accountId>:<path>".
+  sidebarHidden: string[];
+  // Labels ("label:<accountId>:<path>") whose chips are hidden in the message list.
+  chipsHidden: string[];
+  // Gmail inbox tabs shown besides Primary.
+  inboxTabs: string[];
   updatedAt: string | null;
 }
 
