@@ -9,13 +9,19 @@ import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { FolderCounts } from '../api/mail';
 import { useAccountFolders } from '../api/mail-queries';
-import { useAccounts } from '../api/queries';
+import { useAccounts, usePreferences } from '../api/queries';
+import { CONSOLE_ICONS } from './consoleIcons';
 import {
   FOLDER_LABEL,
   FOLDER_ORDER,
   folderBadge,
+  categoryKey,
+  DEFAULT_SIDEBAR_HIDDEN,
   folderName,
+  labelKey,
   labelPath,
+  MAIL_CATEGORIES,
+  MAIL_CATEGORY_LABEL,
   type FolderRole,
 } from '../mail/folders';
 import { countLabel } from '../mail/format';
@@ -57,12 +63,17 @@ function AccountItem({ account, folders }: { account: Account; folders: FolderCo
   const byRole = new Map(
     folders.flatMap((folder) => (folder.role === 'label' ? [] : [[folder.role, folder] as const])),
   );
-  const labels = folders.filter((folder) => folder.role === 'label');
+  const hidden = new Set(usePreferences().data?.sidebarHidden ?? DEFAULT_SIDEBAR_HIDDEN);
+  const labels = folders.filter(
+    (folder) => folder.role === 'label' && !hidden.has(labelKey(account.id, folder.path)),
+  );
   const countOf = (role: FolderRole) => {
     const counts = byRole.get(role);
     return counts ? folderBadge(role, counts) : 0;
   };
-  const roles = FOLDER_ORDER.filter((role) => role === 'inbox' || byRole.has(role));
+  const roles = FOLDER_ORDER.filter(
+    (role) => role === 'inbox' || (byRole.has(role) && !hidden.has(role)),
+  );
   const current = pathname.startsWith(`${base}/`);
   const trailing = useRef<HTMLSpanElement>(null);
   const [line, label] = useMiddleFit<HTMLDivElement>(account.emailAddress, LOGO_SPACE, trailing);
@@ -139,6 +150,7 @@ function AccountItem({ account, folders }: { account: Account; folders: FolderCo
                     `${styles.folder} ${isActive || activeHref(pathname) === to ? styles.active : ''}`
                   }
                 >
+                  <span className={styles.labelIcon}>{CONSOLE_ICONS.label}</span>
                   <span className={styles.labelName}>{label.name}</span>
                   <Count value={label.unread} label={`unread in ${label.name}`} />
                 </NavLink>
@@ -171,6 +183,9 @@ export function ConsoleNavigation() {
   const count = (role: FolderRole) => (
     <Count value={unifiedCount(role)} label={`in ${FOLDER_LABEL[role]}`} />
   );
+  const hidden = new Set(usePreferences().data?.sidebarHidden ?? DEFAULT_SIDEBAR_HIDDEN);
+  const shown = <T extends { key: string }>(items: T[]) =>
+    items.filter((item) => !hidden.has(item.key));
 
   return (
     <div style={TOKEN_VARS}>
@@ -184,13 +199,29 @@ export function ConsoleNavigation() {
             title: 'All accounts',
             items: [
               { type: 'link', text: 'Inbox', href: '/inbox', info: count('inbox') },
-              { type: 'link', text: 'Starred', href: '/starred' },
-              ...UNIFIED.map((role): SideNavigationProps.Link => ({
-                type: 'link',
-                text: FOLDER_LABEL[role],
-                href: `/${role}`,
-                info: count(role),
-              })),
+              ...shown([
+                { key: 'starred', type: 'link' as const, text: 'Starred', href: '/starred' },
+                ...UNIFIED.filter((role) => role === 'sent' || role === 'drafts').map((role) => ({
+                  key: role,
+                  type: 'link' as const,
+                  text: FOLDER_LABEL[role],
+                  href: `/${role}`,
+                  info: count(role),
+                })),
+                ...MAIL_CATEGORIES.map((category) => ({
+                  key: categoryKey(category),
+                  type: 'link' as const,
+                  text: MAIL_CATEGORY_LABEL[category],
+                  href: `/category/${category}`,
+                })),
+                ...UNIFIED.filter((role) => role !== 'sent' && role !== 'drafts').map((role) => ({
+                  key: role,
+                  type: 'link' as const,
+                  text: FOLDER_LABEL[role],
+                  href: `/${role}`,
+                  info: count(role),
+                })),
+              ]).map(({ key: _key, ...link }): SideNavigationProps.Link => link),
             ],
           },
         ]}
@@ -210,7 +241,11 @@ export function ConsoleNavigation() {
       <SideNavigation
         activeHref={activeHref(pathname)}
         onFollow={follow}
-        items={[{ type: 'divider' }, { type: 'link', text: 'Settings', href: '/settings' }]}
+        items={[
+          { type: 'divider' },
+          { type: 'link', text: 'Manage labels', href: '/settings/labels' },
+          { type: 'link', text: 'Settings', href: '/settings' },
+        ]}
       />
     </div>
   );

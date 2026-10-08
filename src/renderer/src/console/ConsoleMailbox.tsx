@@ -19,7 +19,7 @@ import {
   useThreadPage,
   type ThreadScope,
 } from '../api/mail-queries';
-import { useAccounts } from '../api/queries';
+import { useAccounts, usePreferences } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { folderActions, type ActionSpec } from '../mail/actions';
 import {
@@ -32,6 +32,7 @@ import {
   type FolderRole,
   type GmailCategory,
   type MailboxView,
+  type MailCategory,
 } from '../mail/folders';
 import { displayName, formatUtc, middleTruncate } from '../mail/format';
 import { PAGE_SIZE } from '../mail/paging';
@@ -152,9 +153,7 @@ function columns(
           )}
           {thread.canUnsubscribe && !thread.unsubscribedAt && (
             <span className={styles.unsubscribe} onClick={stop}>
-              <Button variant="inline-link" onClick={() => onUnsubscribe(thread)}>
-                Unsubscribe
-              </Button>
+              <Button onClick={() => onUnsubscribe(thread)}>Unsubscribe</Button>
             </span>
           )}
         </span>
@@ -375,6 +374,12 @@ function MailTable({
 }
 
 // Gmail's inbox tabs; other providers' mail all counts as Primary.
+// Primary plus the tabs turned on in Manage labels.
+function useInboxTabs(): GmailCategory[] {
+  const enabled = usePreferences().data?.inboxTabs ?? ['promotions', 'social', 'updates', 'forums'];
+  return GMAIL_CATEGORIES.filter((tab) => tab === 'primary' || enabled.includes(tab));
+}
+
 function CategoryControl({
   value,
   onChange,
@@ -382,11 +387,12 @@ function CategoryControl({
   value: GmailCategory;
   onChange: (category: GmailCategory) => void;
 }) {
+  const tabs = useInboxTabs();
   return (
     <SegmentedControl
       label="Inbox categories"
       selectedId={value}
-      options={GMAIL_CATEGORIES.map((id) => ({ id, text: CATEGORY_LABEL[id] }))}
+      options={tabs.map((id) => ({ id, text: CATEGORY_LABEL[id] }))}
       onChange={({ detail }) => onChange(detail.selectedId as GmailCategory)}
     />
   );
@@ -417,22 +423,29 @@ function EmptyMessage({
 export function ConsoleUnifiedMailbox({
   filter,
   folder = null,
+  tagged = null,
   title,
   basePath,
 }: {
   filter: ThreadFilter;
   folder?: FolderRole | null;
+  tagged?: MailCategory | null;
   title: string;
   basePath: string;
 }) {
   const navigate = useNavigate();
   const accounts = useAccounts();
+  const tabs = useInboxTabs();
   const tabbed =
-    filter === 'all' && !folder && (accounts.data ?? []).some((a) => a.provider === 'GMAIL');
+    filter === 'all' &&
+    !folder &&
+    !tagged &&
+    tabs.length > 1 &&
+    (accounts.data ?? []).some((a) => a.provider === 'GMAIL');
   const [category, setCategory] = useState<GmailCategory>('primary');
   const scope = useMemo<ThreadScope>(
-    () => ({ kind: 'unified', filter, folder, category: tabbed ? category : null }),
-    [filter, folder, tabbed, category],
+    () => ({ kind: 'unified', filter, folder, tagged, category: tabbed ? category : null }),
+    [filter, folder, tagged, tabbed, category],
   );
   const [page, setPage] = useState(1);
   const query = useThreadPage(scope, page);
@@ -443,7 +456,7 @@ export function ConsoleUnifiedMailbox({
   return (
     <MailTable
       scope={scope}
-      view={filter === 'starred' ? null : { role: folder ?? 'inbox' }}
+      view={filter === 'starred' || tagged ? null : { role: folder ?? 'inbox' }}
       folders={null}
       tabs={
         tabbed && (
@@ -513,7 +526,8 @@ function AccountTable({ accountId, view }: { accountId: string; view: MailboxVie
   const account = accounts.data?.find((a) => a.id === accountId);
   const folders = useAccountFolders([accountId])[0]?.data?.items ?? null;
   const inbox = 'role' in view && view.role === 'inbox';
-  const tabbed = inbox && account?.provider === 'GMAIL';
+  const tabs = useInboxTabs();
+  const tabbed = inbox && account?.provider === 'GMAIL' && tabs.length > 1;
   const [category, setCategory] = useState<GmailCategory>('primary');
   const scope = useMemo<ThreadScope>(
     () => ({ kind: 'account', accountId, view, category: tabbed ? category : null }),

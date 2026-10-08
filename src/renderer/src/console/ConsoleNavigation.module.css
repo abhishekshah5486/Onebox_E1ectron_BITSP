@@ -141,11 +141,29 @@
   font-weight: 700;
 }
 
+/* A section, not a folder: a rule, small caps and space set it apart. */
 .labelsHeading {
-  margin-top: 6px;
-  font-size: 12px;
+  margin: 10px 0 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--nav-divider);
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--nav-muted);
+}
+
+.labelIcon {
+  display: inline-flex;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--nav-muted);
+}
+
+.labelIcon svg {
+  width: 14px;
+  height: 14px;
 }
 
 .labelName {

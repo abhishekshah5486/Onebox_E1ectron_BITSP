@@ -10,17 +10,21 @@ import {
   type ActionSpec,
 } from '../mail/actions';
 import type { MailboxView } from '../mail/folders';
-import { Icon } from '../ui/Icon';
+import { CONSOLE_ICONS } from './consoleIcons';
 
-// Cloudscape's icon where one fits, else the Material one used by v1.
+// Cloudscape's own icon where one fits, else one drawn in its style.
 export function actionIcon(item: ActionItem): Pick<ButtonProps, 'iconName' | 'iconSvg'> {
   switch (item.id) {
     case 'trash':
       return { iconName: 'remove' };
+    case 'archive':
+      return { iconSvg: CONSOLE_ICONS.archive };
     case 'spam':
-      return { iconName: 'status-warning' };
+      return { iconSvg: CONSOLE_ICONS.spam };
+    case 'delete':
+      return { iconSvg: CONSOLE_ICONS.deleteForever };
     default:
-      return { iconSvg: <Icon name={item.icon} size={16} /> };
+      return { iconSvg: CONSOLE_ICONS.inbox };
   }
 }
 
