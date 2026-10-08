@@ -7,6 +7,7 @@ import { IconButton } from '../ui/IconButton';
 import type { ActionItem, ActionSpec } from './actions';
 import { displayName, formatFullDate, formatListDate } from './format';
 import styles from './ThreadRow.module.css';
+import { AttachmentChips } from './attachments/AttachmentChips';
 import { UnsubscribeButton } from './UnsubscribeButton';
 
 interface ThreadRowProps {
@@ -53,6 +54,7 @@ export function ThreadRow({
       aria-label={`${unread ? 'Unread, ' : ''}${displayName(thread.lastFrom)}, ${subject}`}
       className={[
         styles.row,
+        thread.attachments.length > 0 ? styles.withFiles : '',
         unread ? styles.unread : styles.read,
         selected ? styles.selected : '',
       ].join(' ')}
@@ -98,6 +100,11 @@ export function ThreadRow({
         <span className={styles.subject}>{subject}</span>
         {thread.snippet && <span className={styles.snippet}> - {thread.snippet}</span>}
       </span>
+      {thread.attachments.length > 0 && (
+        <span className={styles.files}>
+          <AttachmentChips files={thread.attachments} />
+        </span>
+      )}
       <span className={styles.end}>
         <span className={styles.date} data-tooltip={formatFullDate(thread.lastMessageAt)}>
           {formatListDate(thread.lastMessageAt)}

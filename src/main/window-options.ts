@@ -15,6 +15,8 @@ export function windowOptions(preloadPath: string): BrowserWindowConstructorOpti
       nodeIntegration: false,
       webSecurity: true,
       spellcheck: true,
+      // Chromium's own PDF viewer, for attachment previews.
+      plugins: true,
     },
   };
 }

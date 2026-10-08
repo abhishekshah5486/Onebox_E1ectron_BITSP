@@ -35,6 +35,7 @@ import {
 } from '../mail/folders';
 import { displayName, formatUtc, middleTruncate } from '../mail/format';
 import { PAGE_SIZE } from '../mail/paging';
+import { AttachmentChips } from '../mail/attachments/AttachmentChips';
 import { useLoadPage } from '../mail/useLoadPage';
 import { useMailAction } from '../mail/useMailAction';
 import { actionIcon, ConsoleActions } from './ConsoleActions';
@@ -154,21 +155,24 @@ function columns(
       id: 'subject',
       header: 'Subject',
       cell: (thread) => (
-        <span className={styles.subjectCell}>
-          {text(
-            thread,
-            <>
-              {thread.subject || '(no subject)'}
-              {thread.snippet && <span className={styles.snippet}> – {thread.snippet}</span>}
-            </>,
-          )}
-          {thread.canUnsubscribe && !thread.unsubscribedAt && (
-            <span className={styles.unsubscribe} onClick={stop}>
-              <button type="button" className={styles.pill} onClick={() => onUnsubscribe(thread)}>
-                Unsubscribe
-              </button>
-            </span>
-          )}
+        <span className={styles.subjectStack}>
+          <span className={styles.subjectCell}>
+            {text(
+              thread,
+              <>
+                {thread.subject || '(no subject)'}
+                {thread.snippet && <span className={styles.snippet}> – {thread.snippet}</span>}
+              </>,
+            )}
+            {thread.canUnsubscribe && !thread.unsubscribedAt && (
+              <span className={styles.unsubscribe} onClick={stop}>
+                <button type="button" className={styles.pill} onClick={() => onUnsubscribe(thread)}>
+                  Unsubscribe
+                </button>
+              </span>
+            )}
+          </span>
+          {thread.attachments.length > 0 && <AttachmentChips files={thread.attachments} />}
         </span>
       ),
     },

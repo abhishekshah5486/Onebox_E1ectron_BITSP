@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Address, Message } from '../api/mail';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
+import { AttachmentCards } from './attachments/AttachmentCards';
 import { EmailFrame } from './EmailFrame';
-import { displayName, formatBytes, formatFullDate, formatMessageDate } from './format';
+import { displayName, formatFullDate, formatMessageDate } from './format';
 import styles from './ThreadPage.module.css';
 
 const full = (address: Address) =>
@@ -98,7 +99,9 @@ export function MessageCard({
   const [showImages, setShowImages] = useState(false);
   const [details, setDetails] = useState(false);
   const detailsRef = useRef<HTMLDivElement>(null);
-  const files = message.attachments.filter((attachment) => !attachment.inline);
+  const files = message.attachments
+    .map((attachment, index) => ({ ...attachment, messageId: message.id, index }))
+    .filter((attachment) => !attachment.inline);
   const sender = displayName(message.from);
 
   useEffect(() => {
@@ -206,16 +209,7 @@ export function MessageCard({
           ) : (
             <pre className={styles.text}>{message.textBody}</pre>
           )}
-          {files.length > 0 && (
-            <div className={styles.attachments} aria-label="Attachments">
-              {files.map((file) => (
-                <span key={file.filename} className={styles.attachment}>
-                  <Icon name="draft" size={16} />
-                  {file.filename} · {formatBytes(file.sizeBytes)}
-                </span>
-              ))}
-            </div>
-          )}
+          <AttachmentCards files={files} />
         </div>
       )}
     </article>

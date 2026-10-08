@@ -9,12 +9,13 @@ import { useNavigate, useParams } from 'react-router';
 import type { Address, Message } from '../api/mail';
 import { useAccountFolders, useThread, useUpdateThread } from '../api/mail-queries';
 import { describeError } from '../auth/errors';
+import { AttachmentCards } from '../mail/attachments/AttachmentCards';
 import { EmailFrame } from '../mail/EmailFrame';
 import type { ActionSpec } from '../mail/actions';
 import { viewFromPath } from '../mail/folders';
 import { useMailAction } from '../mail/useMailAction';
 import { useFlash } from '../settings/flash';
-import { displayName, formatBytes, formatMessageDate, formatUtc } from '../mail/format';
+import { displayName, formatMessageDate, formatUtc } from '../mail/format';
 import { ConsoleActions } from './ConsoleActions';
 import styles from './ConsoleThread.module.css';
 import { useUnsubscribeFlow } from './UnsubscribeFlow';
@@ -55,7 +56,9 @@ function ThreadMessage({
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [showImages, setShowImages] = useState(false);
-  const files = message.attachments.filter((attachment) => !attachment.inline);
+  const files = message.attachments
+    .map((attachment, index) => ({ ...attachment, messageId: message.id, index }))
+    .filter((attachment) => !attachment.inline);
   const sender = displayName(message.from);
 
   return (
@@ -132,15 +135,7 @@ function ThreadMessage({
           ) : (
             <pre className={styles.text}>{message.textBody}</pre>
           )}
-          {files.length > 0 && (
-            <div className={styles.attachments} aria-label="Attachments">
-              {files.map((file) => (
-                <span key={file.filename} className={styles.attachment}>
-                  {file.filename} · {formatBytes(file.sizeBytes)}
-                </span>
-              ))}
-            </div>
-          )}
+          <AttachmentCards files={files} />
         </div>
       )}
     </article>

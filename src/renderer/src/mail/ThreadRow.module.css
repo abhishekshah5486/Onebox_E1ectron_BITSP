@@ -165,3 +165,20 @@
   line-height: 18px;
   vertical-align: 1px;
 }
+
+/* Gmail gives a conversation with files a second line of chips under its subject. */
+.withFiles {
+  grid-template-rows: 40px auto;
+  height: auto;
+  padding-bottom: 8px;
+}
+
+.files {
+  grid-column: 4 / 6;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.withFiles > :not(.files) {
+  grid-row: 1;
+}

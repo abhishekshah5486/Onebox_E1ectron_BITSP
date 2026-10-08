@@ -87,16 +87,24 @@ export function createApiClient({
     return refreshing;
   }
 
-  async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
-    let response = await send(method, path, body);
+  async function authorized(method: Method, path: string, body?: unknown): Promise<Response> {
+    const response = await send(method, path, body);
     if (response.status === 401 && !NO_REFRESH_PATHS.includes(path)) {
-      if (await refreshSession()) {
-        response = await send(method, path, body);
-      } else {
-        onSessionExpired?.();
-      }
+      if (await refreshSession()) return send(method, path, body);
+      onSessionExpired?.();
     }
-    return parse<T>(response);
+    return response;
+  }
+
+  async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+    return parse<T>(await authorized(method, path, body));
+  }
+
+  // A file, e.g. an attachment; errors arrive as the usual JSON.
+  async function blob(path: string): Promise<Blob> {
+    const response = await authorized('GET', path);
+    if (!response.ok) return parse<never>(response);
+    return response.blob();
   }
 
   async function startSession(path: string, body: unknown): Promise<User> {
@@ -111,6 +119,7 @@ export function createApiClient({
     patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
     put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
     delete: <T>(path: string) => request<T>('DELETE', path),
+    blob,
 
     login: (email: string, password: string) => startSession('/auth/login', { email, password }),
     register: (input: { name: string; email: string; password: string }) =>

@@ -17,6 +17,7 @@ export const thread = (overrides: Partial<Thread> = {}): Thread => ({
   unreadCount: 1,
   isStarred: false,
   hasAttachments: false,
+  attachments: [],
   lastMessageAt: '2026-10-06T10:00:00.000Z',
   ...overrides,
 });

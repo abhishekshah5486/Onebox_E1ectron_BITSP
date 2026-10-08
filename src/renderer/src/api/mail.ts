@@ -23,7 +23,17 @@ export interface Thread {
   unreadCount: number;
   isStarred: boolean;
   hasAttachments: boolean;
+  // The first few files across its messages, for chips in the list.
+  attachments: AttachmentRef[];
   lastMessageAt: string;
+}
+
+export interface AttachmentRef {
+  messageId: string;
+  index: number;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
 }
 
 export interface Attachment {
@@ -177,6 +187,8 @@ export const mailApi = {
   deleteLabel: (api: ApiClient, accountId: string, path: string) =>
     api.post<{ items: MailboxLabel[] }>(`/mail/accounts/${accountId}/labels/delete`, { path }),
   stats: (api: ApiClient) => api.get<MailStats>('/mail/stats'),
+  attachment: (api: ApiClient, messageId: string, index: number, inline = false) =>
+    api.blob(`/mail/messages/${messageId}/attachments/${index}${inline ? '?inline=true' : ''}`),
   lookup: (api: ApiClient, threadIds: string[]) =>
     api.post<{ items: Thread[] }>('/mail/threads/lookup', { threadIds }),
 };

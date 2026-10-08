@@ -1,0 +1,282 @@
+/* List chips: Gmail's outlined pills under the subject. */
+.chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chip {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 180px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--ob-outline);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--ob-icon-hover);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: 1px;
+}
+
+.chip svg {
+  flex: none;
+}
+
+.chipName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.more {
+  align-self: center;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+}
+
+/* Reading pane cards. */
+.cards {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dotted var(--ob-border);
+}
+
+.cardsHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--ob-text);
+  font-size: 14px;
+}
+
+.cardGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.card {
+  position: relative;
+  width: 180px;
+  height: 120px;
+  overflow: hidden;
+  border: 1px solid var(--ob-border);
+  border-radius: 4px;
+  background: var(--ob-surface-hover);
+}
+
+.cardOpen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardPreview {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ob-surface-raised);
+}
+
+.cardPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardBadge {
+  opacity: 0.35;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border-top: 1px solid var(--ob-border);
+}
+
+.cardFooter svg,
+.cardHoverHead svg {
+  flex: none;
+}
+
+.cardName {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The hover sheet covers the card; clicks still reach the card underneath. */
+.cardHover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--ob-surface-hover) 94%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+
+.cardHoverHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cardHoverName {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ob-text);
+  font-size: 13px;
+  font-weight: 600;
+  word-break: break-all;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.cardSize {
+  margin-left: 26px;
+  color: var(--ob-text-muted);
+  font-size: 12px;
+}
+
+.cardActions {
+  position: absolute;
+  bottom: 8px;
+  left: 34px;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.card:hover .cardHover,
+.card:hover .cardActions,
+.card:focus-within .cardHover,
+.card:focus-within .cardActions {
+  opacity: 1;
+}
+
+/* Full-window viewer. */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  background: rgb(0 0 0 / 85%);
+  color: #e3e3e3;
+}
+
+.viewerBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px;
+  background: rgb(0 0 0 / 50%);
+  color: #e3e3e3;
+}
+
+.viewerBar button {
+  color: #e3e3e3;
+}
+
+.viewerName {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.viewerSize {
+  flex: 1;
+  color: #a8abaf;
+  font-size: 13px;
+}
+
+.viewerBody {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 0;
+  padding: 24px;
+}
+
+.viewerImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.viewerFrame {
+  width: min(1000px, 100%);
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+.viewerText {
+  width: min(900px, 100%);
+  max-height: 100%;
+  margin: 0;
+  padding: 24px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #1e1f20;
+  color: #e3e3e3;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.noPreview {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  color: #c4c7c5;
+}
+
+.viewerButton {
+  height: 36px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 18px;
+  background: #a8c7fa;
+  color: #062e6f;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}

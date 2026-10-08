@@ -29,6 +29,14 @@
   border-radius: 16px;
   background: #ffffff;
   color: #1f1f1f;
+  /* Light colours for what sits on the white page, such as attachment cards. */
+  --ob-text: #1f1f1f;
+  --ob-text-muted: #444746;
+  --ob-border: #e0e0e0;
+  --ob-outline: #747775;
+  --ob-icon-hover: rgb(68 71 70 / 8%);
+  --ob-surface-raised: #ffffff;
+  --ob-surface-hover: #f2f2f2;
 }
 
 .subject {

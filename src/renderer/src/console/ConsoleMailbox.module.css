@@ -178,3 +178,10 @@ tr:has(:focus-visible) .time {
   outline: 2px solid var(--pill-color);
   outline-offset: 2px;
 }
+
+/* A conversation with files shows Gmail-style chips under its subject. */
+.subjectStack {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}

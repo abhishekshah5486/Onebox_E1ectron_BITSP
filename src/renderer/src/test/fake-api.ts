@@ -51,6 +51,7 @@ export function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     patch: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
+    blob: vi.fn(async () => new Blob()),
     login: vi.fn(async () => testUser),
     register: vi.fn(async () => testUser),
     restoreSession: vi.fn(async () => null),
