@@ -4,7 +4,7 @@ import type { ThreadFilter } from './api/mail';
 import { GuestOnly, RequireAuth } from './auth/guards';
 import { SignInPage } from './auth/SignInPage';
 import { SignUpPage } from './auth/SignUpPage';
-import { FOLDER_LABEL, type FolderRole } from './mail/folders';
+import { FOLDER_LABEL, labelPath, type FolderRole } from './mail/folders';
 import { AccountMailbox, UnifiedMailbox } from './mail/MailboxPage';
 import { ThreadPage } from './mail/ThreadPage';
 import { AppShell } from './shell/AppShell';
@@ -51,15 +51,21 @@ const CONSOLE: Kit = {
   Thread: ConsoleThread,
 };
 
-const UNIFIED_FOLDERS: FolderRole[] = ['sent', 'drafts', 'spam', 'trash'];
+const UNIFIED_FOLDERS: FolderRole[] = ['sent', 'drafts', 'archive', 'spam', 'trash'];
 
 const loading = (label: string, children: ReactNode) => (
   <Suspense fallback={<div role="status" aria-label={label} />}>{children}</Suspense>
 );
 
 function AccountThread({ Thread }: { Thread: Kit['Thread'] }) {
-  const { accountId = '', folder = 'inbox' } = useParams();
-  return <Thread basePath={`/accounts/${accountId}/${folder}`} />;
+  const { accountId = '', folder = 'inbox', label } = useParams();
+  return (
+    <Thread
+      basePath={
+        label !== undefined ? labelPath(accountId, label) : `/accounts/${accountId}/${folder}`
+      }
+    />
+  );
 }
 
 export function AppRoutes() {
@@ -93,6 +99,11 @@ export function AppRoutes() {
             }),
           )}
           <Route path="/accounts/:accountId" element={<Account />} />
+          <Route path="/accounts/:accountId/labels/:label" element={<Account />} />
+          <Route
+            path="/accounts/:accountId/labels/:label/:threadId"
+            element={<AccountThread Thread={Thread} />}
+          />
           <Route path="/accounts/:accountId/:folder" element={<Account />} />
           <Route
             path="/accounts/:accountId/:folder/:threadId"

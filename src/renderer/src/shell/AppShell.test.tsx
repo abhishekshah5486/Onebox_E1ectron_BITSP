@@ -148,6 +148,52 @@ describe('AppShell', () => {
     expect(screen.getByText('account page')).toBeInTheDocument();
   });
 
+  it("names gmail's archive All Mail and lists the account's labels", async () => {
+    await renderShell(
+      fakeApi({
+        restoreSession: vi.fn(async () => testUser),
+        get: routedGet({
+          '/accounts': () => ({ items: [work] }),
+          [`/mail/accounts/${work.id}/folders`]: () => ({
+            items: [
+              { role: 'inbox', path: 'INBOX', name: 'INBOX', total: 5, unread: 0, updatedAt: '' },
+              {
+                role: 'archive',
+                path: '[Gmail]/All Mail',
+                name: 'All Mail',
+                total: 90,
+                unread: 3,
+                updatedAt: '',
+              },
+              {
+                role: 'label',
+                path: 'Work/Clients',
+                name: 'Work/Clients',
+                total: 4,
+                unread: 1,
+                updatedAt: '',
+              },
+            ],
+          }),
+        }),
+      }),
+    );
+    const nav = screen.getByRole('navigation', { name: 'Mailboxes' });
+    await userEvent.click(
+      await within(nav).findByRole('button', { name: 'Show folders for me@corp.example' }),
+    );
+    const group = within(nav).getByRole('group', { name: 'me@corp.example folders' });
+    expect(await within(group).findByRole('link', { name: /All Mail/ })).toHaveAttribute(
+      'href',
+      `/accounts/${work.id}/archive`,
+    );
+    expect(within(group).getByRole('link', { name: /Work\/Clients/ })).toHaveAttribute(
+      'href',
+      `/accounts/${work.id}/labels/Work%2FClients`,
+    );
+    expect(within(group).getByLabelText('1 unread in Work/Clients')).toBeInTheDocument();
+  });
+
   it('navigates to Starred', async () => {
     await renderShell();
     await userEvent.click(screen.getByRole('link', { name: /Starred/ }));

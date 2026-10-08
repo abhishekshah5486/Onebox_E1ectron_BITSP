@@ -3,12 +3,26 @@ import { Link, Navigate, useParams } from 'react-router';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { ThreadFilter } from '../api/mail';
-import { useMailboxSummary, useThreadPage, type ThreadScope } from '../api/mail-queries';
+import {
+  useAccountFolders,
+  useMailboxSummary,
+  useThreadPage,
+  type ThreadScope,
+} from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { ButtonLink } from '../ui/Button';
 import { Icon } from '../ui/Icon';
-import { FOLDER_LABEL, isFolderRole, type FolderRole } from './folders';
+import {
+  CATEGORY_LABEL,
+  FOLDER_LABEL,
+  folderName,
+  GMAIL_CATEGORIES,
+  isFolderRole,
+  type FolderRole,
+  type GmailCategory,
+  type MailboxView,
+} from './folders';
 import styles from './MailboxPage.module.css';
 import { PageControls, SkeletonRows } from './PageControls';
 import { PAGE_SIZE, rangeLabel } from './paging';
@@ -22,6 +36,31 @@ function EmptyState({ title, body, connect }: { title: string; body: string; con
       <h2>{title}</h2>
       <p>{body}</p>
       {connect && <ButtonLink to="/settings">Connect an account</ButtonLink>}
+    </div>
+  );
+}
+
+// Gmail's inbox tabs; other providers' mail all counts as Primary.
+function CategoryTabs({
+  value,
+  onChange,
+}: {
+  value: GmailCategory;
+  onChange: (category: GmailCategory) => void;
+}) {
+  return (
+    <div className={styles.tabs} role="tablist" aria-label="Inbox categories">
+      {GMAIL_CATEGORIES.map((category) => (
+        <button
+          key={category}
+          role="tab"
+          aria-selected={value === category}
+          className={styles.tab}
+          onClick={() => onChange(category)}
+        >
+          {CATEGORY_LABEL[category]}
+        </button>
+      ))}
     </div>
   );
 }
@@ -70,7 +109,13 @@ export function UnifiedMailbox({
   basePath: string;
 }) {
   const accounts = useAccounts();
-  const scope = useMemo<ThreadScope>(() => ({ kind: 'unified', filter, folder }), [filter, folder]);
+  const tabbed =
+    filter === 'all' && !folder && (accounts.data ?? []).some((a) => a.provider === 'GMAIL');
+  const [category, setCategory] = useState<GmailCategory>('primary');
+  const scope = useMemo<ThreadScope>(
+    () => ({ kind: 'unified', filter, folder, category: tabbed ? category : null }),
+    [filter, folder, tabbed, category],
+  );
   const [page, setPage] = useState(1);
   const query = useThreadPage(scope, page);
   const byId = useMemo(() => new Map((accounts.data ?? []).map((a) => [a.id, a])), [accounts.data]);
@@ -86,6 +131,19 @@ export function UnifiedMailbox({
         items={items}
         basePath={basePath}
         accounts={byId}
+        view={filter === 'starred' ? null : { role: folder ?? 'inbox' }}
+        folders={null}
+        tabs={
+          tabbed && (
+            <CategoryTabs
+              value={category}
+              onChange={(next) => {
+                setCategory(next);
+                setPage(1);
+              }}
+            />
+          )
+        }
         onRefresh={() => void query.refetch()}
         controls={
           <PageControls
@@ -117,14 +175,14 @@ export function UnifiedMailbox({
   );
 }
 
-function AccountHeader({ account, folder }: { account: Account; folder: FolderRole }) {
+function AccountHeader({ account, title }: { account: Account; title: string }) {
   return (
     <div className={styles.header}>
       <ProviderLogo provider={account.provider} size={28} />
       <div>
         <h1>{account.emailAddress}</h1>
         <div className={styles.email}>
-          {FOLDER_LABEL[folder]}
+          {title}
           {account.displayName && ` · ${account.displayName}`}
         </div>
       </div>
@@ -132,15 +190,15 @@ function AccountHeader({ account, folder }: { account: Account; folder: FolderRo
   );
 }
 
-function accountEmpty(folder: FolderRole, notFound: boolean) {
-  if (folder === 'inbox') {
+function accountEmpty(view: MailboxView, title: string, notFound: boolean) {
+  if ('role' in view && view.role === 'inbox') {
     return {
       title: 'No mail yet',
       body: 'OneBox is syncing the newest messages from this account.',
     };
   }
   return {
-    title: `Nothing in ${FOLDER_LABEL[folder]}`,
+    title: `Nothing in ${title}`,
     body: notFound
       ? 'OneBox has not found this folder on the server yet. It checks every couple of minutes.'
       : 'This folder is empty.',
@@ -148,24 +206,48 @@ function accountEmpty(folder: FolderRole, notFound: boolean) {
 }
 
 export function AccountMailbox() {
-  const { accountId = '', folder } = useParams();
+  const { accountId = '', folder, label } = useParams();
+  if (label !== undefined) {
+    return (
+      <AccountMailboxView
+        key={`${accountId}/label/${label}`}
+        accountId={accountId}
+        view={{ label }}
+      />
+    );
+  }
   if (!isFolderRole(folder)) return <Navigate to={`/accounts/${accountId}/inbox`} replace />;
   return (
-    <AccountMailboxView key={`${accountId}/${folder}`} accountId={accountId} folder={folder} />
+    <AccountMailboxView
+      key={`${accountId}/${folder}`}
+      accountId={accountId}
+      view={{ role: folder }}
+    />
   );
 }
 
-function AccountMailboxView({ accountId, folder }: { accountId: string; folder: FolderRole }) {
+function AccountMailboxView({ accountId, view }: { accountId: string; view: MailboxView }) {
   const accounts = useAccounts();
   const account = accounts.data?.find((a) => a.id === accountId);
+  const folders = useAccountFolders([accountId])[0]?.data?.items ?? null;
+  const tabbed = 'role' in view && view.role === 'inbox' && account?.provider === 'GMAIL';
+  const [category, setCategory] = useState<GmailCategory>('primary');
   const scope = useMemo<ThreadScope>(
-    () => ({ kind: 'account', accountId, folder }),
-    [accountId, folder],
+    () => ({ kind: 'account', accountId, view, category: tabbed ? category : null }),
+    [accountId, view, tabbed, category],
   );
   const [page, setPage] = useState(1);
   const query = useThreadPage(scope, page);
-  const summary = useMailboxSummary(accountId, folder);
-  const loader = useLoadPage(accountId, folder, setPage);
+  const summary = useMailboxSummary(accountId, view);
+  const loader = useLoadPage(accountId, view, setPage);
+  const title =
+    'label' in view
+      ? (folders?.find((f) => f.role === 'label' && f.path === view.label)?.name ?? view.label)
+      : folderName(view.role, folders?.find((f) => f.role === view.role)?.name);
+  const basePath =
+    'label' in view
+      ? `/accounts/${accountId}/labels/${encodeURIComponent(view.label)}`
+      : `/accounts/${accountId}/${view.role}`;
   const { cancel } = loader;
   useEffect(() => cancel, [cancel]);
 
@@ -185,11 +267,24 @@ function AccountMailboxView({ accountId, folder }: { accountId: string; folder: 
 
   return (
     <section className={styles.panel} aria-label={account?.emailAddress ?? 'Account'}>
-      {account && <AccountHeader account={account} folder={folder} />}
+      {account && <AccountHeader account={account} title={title} />}
       <ThreadList
-        label={`${account?.emailAddress ?? 'Account'} ${FOLDER_LABEL[folder]} conversations`}
+        label={`${account?.emailAddress ?? 'Account'} ${title} conversations`}
         items={loader.loading ? [] : items}
-        basePath={`/accounts/${accountId}/${folder}`}
+        basePath={basePath}
+        view={view}
+        folders={folders}
+        tabs={
+          tabbed && (
+            <CategoryTabs
+              value={category}
+              onChange={(next) => {
+                setCategory(next);
+                setPage(1);
+              }}
+            />
+          )
+        }
         onRefresh={() => {
           void query.refetch();
           void summary.refetch();
@@ -229,7 +324,7 @@ function AccountMailboxView({ accountId, folder }: { accountId: string; folder: 
           </p>
         )}
         {!loader.loading && query.isSuccess && stored === 0 && (
-          <EmptyState {...accountEmpty(folder, summary.data?.server === null)} />
+          <EmptyState {...accountEmpty(view, title, summary.data?.server === null)} />
         )}
         {!loader.loading && query.isSuccess && items.length > 0 && !canNext && (
           <p className={styles.endNote}>You have reached the oldest email in this folder.</p>

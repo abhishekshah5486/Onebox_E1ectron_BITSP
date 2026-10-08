@@ -35,6 +35,7 @@ const pageOf = (all: Thread[]) => (path: string) => {
 const summary = (overrides: Partial<MailboxSummary> = {}): MailboxSummary => ({
   accountId: gmail.id,
   folder: 'inbox',
+  label: null,
   server: { total: 8300, unread: 12, updatedAt: '2026-10-07T10:00:00Z' },
   fetched: { conversations: 50, messages: 50 },
   history: { status: 'idle', error: null },
@@ -66,6 +67,7 @@ function renderAt(path: string, api: ApiClient) {
                 />
                 <Route path="/accounts/:accountId" element={<AccountMailbox />} />
                 <Route path="/accounts/:accountId/:folder" element={<AccountMailbox />} />
+                <Route path="/accounts/:accountId/labels/:label" element={<AccountMailbox />} />
               </Routes>
             </Gate>
           </MemoryRouter>
@@ -257,5 +259,115 @@ describe('AccountMailbox', () => {
     );
     expect(await screen.findByText(/rejected this account’s password/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Fix in Settings' })).toBeInTheDocument();
+  });
+});
+
+describe('conversation actions', () => {
+  const folders = {
+    items: [
+      { role: 'inbox', path: 'INBOX', name: 'INBOX', total: 2, unread: 0, updatedAt: '' },
+      {
+        role: 'archive',
+        path: '[Gmail]/All Mail',
+        name: 'All Mail',
+        total: 9,
+        unread: 0,
+        updatedAt: '',
+      },
+      { role: 'label', path: 'Receipts', name: 'Receipts', total: 1, unread: 0, updatedAt: '' },
+    ],
+  };
+  // Like the server, conversations moved out of the list stop being listed.
+  const actionApi = (items: Thread[]) => {
+    let listed = items;
+    const post = vi.fn(async (path: string, body?: unknown) => {
+      if (path.endsWith('/unsubscribe')) return { method: 'one-click', url: null };
+      const { threadIds } = body as { threadIds: string[] };
+      listed = listed.filter((t) => !threadIds.includes(t.id));
+      return { items: [] };
+    });
+    const get = routedGet({
+      '/accounts': () => ({ items: [gmail] }),
+      [`/mail/accounts/${gmail.id}/folders`]: () => folders,
+      [`/mail/accounts/${gmail.id}/summary`]: () => summary({ hasMoreOnServer: false }),
+      [`/mail/accounts/${gmail.id}/threads`]: (path) => pageOf(listed)(path),
+      '/mail/threads': (path) => pageOf(listed)(path),
+    });
+    return { api: fakeApi({ ...restore, get, post: post as ApiClient['post'] }), post, get };
+  };
+  const select = async (subject: string) => {
+    const row = (await screen.findByText(subject)).closest('[role="row"]') as HTMLElement;
+    await userEvent.click(within(row).getByRole('checkbox', { name: 'Select conversation' }));
+  };
+
+  it('archives the selected conversations and drops them from the list at once', async () => {
+    const [keep, done] = threads(2);
+    const { api, post } = actionApi([keep!, done!]);
+    renderAt('/inbox', api);
+    await select('Mail 2');
+    const toolbar = screen.getByRole('toolbar', { name: 'Mail actions' });
+    await userEvent.click(within(toolbar).getByRole('button', { name: 'Archive' }));
+
+    expect(post).toHaveBeenCalledWith('/mail/threads/actions', {
+      threadIds: [done!.id],
+      action: 'archive',
+    });
+    await waitFor(() => expect(screen.queryByText('Mail 2')).not.toBeInTheDocument());
+    expect(screen.getByText('Mail 1')).toBeInTheDocument();
+  });
+
+  it("moves to one of the account's labels from its folder", async () => {
+    const { api, post } = actionApi(threads(1));
+    renderAt(`/accounts/${gmail.id}/archive`, api);
+    expect(await screen.findByRole('heading', { name: gmail.emailAddress })).toBeInTheDocument();
+    expect(await screen.findByText(/All Mail/)).toBeInTheDocument();
+    await select('Mail 1');
+    await userEvent.click(screen.getByRole('button', { name: 'Move to' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Receipts' }));
+
+    expect(post).toHaveBeenCalledWith('/mail/threads/actions', {
+      threadIds: [threads(1)[0]!.id],
+      action: 'move',
+      to: { label: 'Receipts' },
+      from: { role: 'archive' },
+    });
+  });
+
+  it('lists a label by its path', async () => {
+    const { api, get } = actionApi(threads(1));
+    renderAt(`/accounts/${gmail.id}/labels/${encodeURIComponent('Work/Clients')}`, api);
+    expect(await screen.findByText('Mail 1')).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith(expect.stringMatching(/threads\?.*label=Work%2FClients/));
+  });
+
+  it('shows gmail tabs on the inbox and asks for the chosen one', async () => {
+    const { api, get } = actionApi(threads(1));
+    renderAt('/inbox', api);
+    const tabs = await screen.findByRole('tablist', { name: 'Inbox categories' });
+    expect(within(tabs).getByRole('tab', { name: 'Primary' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await userEvent.click(within(tabs).getByRole('tab', { name: 'Promotions' }));
+    await waitFor(() =>
+      expect(get).toHaveBeenCalledWith(expect.stringMatching(/category=promotions/)),
+    );
+  });
+
+  it('unsubscribes from a row after a confirming second click', async () => {
+    const { api, post } = actionApi([thread({ ...threads(1)[0]!, canUnsubscribe: true })]);
+    renderAt('/inbox', api);
+    // The pill only shows while the row is hovered, which jsdom cannot do.
+    const hidden = { hidden: true };
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Unsubscribe from Priya', ...hidden }),
+    );
+    expect(post).not.toHaveBeenCalled();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Confirm unsubscribe from Priya', ...hidden }),
+    );
+
+    expect(await screen.findByRole('status', hidden)).toHaveTextContent('Unsubscribed');
+    expect(post).toHaveBeenCalledWith(`/mail/threads/${threads(1)[0]!.id}/unsubscribe`);
   });
 });

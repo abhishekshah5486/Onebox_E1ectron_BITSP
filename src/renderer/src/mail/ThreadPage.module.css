@@ -141,3 +141,14 @@
   padding: 24px;
   color: var(--ob-text-muted);
 }
+
+.subjectRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 4px 0 20px;
+}
+
+.subjectRow .subject {
+  margin: 0;
+}

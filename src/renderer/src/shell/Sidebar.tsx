@@ -8,8 +8,10 @@ import { useAccounts } from '../api/queries';
 import {
   FOLDER_ICON,
   FOLDER_LABEL,
-  FOLDER_ROLES,
+  FOLDER_ORDER,
   folderBadge,
+  folderName,
+  labelPath,
   type FolderRole,
 } from '../mail/folders';
 import { Icon } from '../ui/Icon';
@@ -40,8 +42,11 @@ function AccountItem({
   const [open, setOpen] = useState<boolean | null>(null);
   // Expanded while one of its folders is open, until the user toggles it themselves.
   const expanded = open ?? pathname.startsWith(`${base}/`);
-  const byRole = new Map(folders.map((folder) => [folder.role, folder]));
-  const roles = FOLDER_ROLES.filter((role) => role === 'inbox' || byRole.has(role));
+  const byRole = new Map(
+    folders.flatMap((folder) => (folder.role === 'label' ? [] : [[folder.role, folder] as const])),
+  );
+  const labels = folders.filter((folder) => folder.role === 'label');
+  const roles = FOLDER_ORDER.filter((role) => role === 'inbox' || byRole.has(role));
   const countOf = (role: FolderRole) => {
     const counts = byRole.get(role);
     return counts ? folderBadge(role, counts) : 0;
@@ -88,11 +93,24 @@ function AccountItem({
           {roles.map((role) => (
             <NavLink key={role} to={`${base}/${role}`} className={navClass}>
               <Icon name={FOLDER_ICON[role]} size={18} />
-              {FOLDER_LABEL[role]}
+              {folderName(role, byRole.get(role)?.name)}
               {badge(
                 countOf(role),
                 badgeLabel(role, countOf(role), `${account.emailAddress} ${FOLDER_LABEL[role]}`),
               )}
+            </NavLink>
+          ))}
+          {labels.length > 0 && <p className={styles.labelsHeading}>Labels</p>}
+          {labels.map((label) => (
+            <NavLink
+              key={label.path}
+              to={labelPath(account.id, label.path)}
+              className={navClass}
+              title={label.name}
+            >
+              <Icon name="label" size={18} />
+              <span className={styles.label}>{label.name}</span>
+              {badge(label.unread, `${label.unread} unread in ${label.name}`)}
             </NavLink>
           ))}
         </div>
@@ -129,7 +147,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
   }[] = [
     { to: '/inbox', label: 'All inboxes', icon: 'inbox', role: 'inbox' },
     { to: '/starred', label: 'Starred', icon: 'star' },
-    ...(['sent', 'drafts', 'spam', 'trash'] as const).map((role) => ({
+    ...(['sent', 'drafts', 'archive', 'spam', 'trash'] as const).map((role) => ({
       to: `/${role}`,
       label: FOLDER_LABEL[role],
       icon: FOLDER_ICON[role],

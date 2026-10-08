@@ -3,8 +3,10 @@ import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { Thread } from '../api/mail';
 import { Icon } from '../ui/Icon';
+import type { ActionItem, ActionSpec } from './actions';
 import { displayName, formatListDate } from './format';
 import styles from './ThreadRow.module.css';
+import { UnsubscribeButton } from './UnsubscribeButton';
 
 interface ThreadRowProps {
   thread: Thread;
@@ -14,6 +16,9 @@ interface ThreadRowProps {
   onOpen: (thread: Thread) => void;
   onToggleSelect: (thread: Thread) => void;
   onToggleStar: (thread: Thread) => void;
+  // Shown in place of the date while the row is hovered, like Gmail.
+  hoverActions?: ActionItem[];
+  onAction?: (thread: Thread, action: ActionSpec) => void;
 }
 
 export function ThreadRow({
@@ -23,6 +28,8 @@ export function ThreadRow({
   onOpen,
   onToggleSelect,
   onToggleStar,
+  hoverActions = [],
+  onAction,
 }: ThreadRowProps) {
   const unread = thread.unreadCount > 0;
   const stop = (handler: () => void) => (event: MouseEvent) => {
@@ -80,9 +87,44 @@ export function ThreadRow({
         className={styles.attachment}
         aria-label={thread.hasAttachments ? 'Has attachments' : undefined}
       >
+        {thread.canUnsubscribe && (
+          <span className={styles.unsubscribe}>
+            <UnsubscribeButton
+              threadId={thread.id}
+              sender={displayName(thread.lastFrom)}
+              unsubscribed={!!thread.unsubscribedAt}
+              size="small"
+            />
+          </span>
+        )}
         {thread.hasAttachments && <Icon name="draft" size={16} />}
       </span>
-      <span className={styles.date}>{formatListDate(thread.lastMessageAt)}</span>
+      <span className={styles.end}>
+        <span className={styles.date}>{formatListDate(thread.lastMessageAt)}</span>
+        {onAction && (
+          <span className={styles.hoverActions}>
+            {[
+              ...hoverActions,
+              {
+                id: 'read',
+                label: unread ? 'Mark as read' : 'Mark as unread',
+                icon: unread ? ('markRead' as const) : ('mail' as const),
+                request: { action: unread ? ('read' as const) : ('unread' as const) },
+              },
+            ].map((item) => (
+              <button
+                key={item.id}
+                className={styles.iconButton}
+                aria-label={`${item.label}: ${thread.subject || '(no subject)'}`}
+                title={item.label}
+                onClick={stop(() => onAction(thread, item.request))}
+              >
+                <Icon name={item.icon} size={18} />
+              </button>
+            ))}
+          </span>
+        )}
+      </span>
     </div>
   );
 }

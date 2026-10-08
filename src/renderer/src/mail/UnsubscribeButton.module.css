@@ -1,0 +1,44 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--ob-border);
+  border-radius: 12px;
+  background: var(--ob-surface);
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--ob-surface-hover);
+}
+
+.small {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.confirm {
+  border-color: var(--ob-accent);
+  color: var(--ob-accent);
+}
+
+.done {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ob-text-muted);
+  cursor: default;
+}
+
+.error {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ob-danger);
+  cursor: default;
+}

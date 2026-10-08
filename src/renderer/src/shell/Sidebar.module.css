@@ -140,3 +140,12 @@
   padding-left: 52px;
   gap: 14px;
 }
+
+.labelsHeading {
+  margin: 8px 0 2px 32px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ob-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

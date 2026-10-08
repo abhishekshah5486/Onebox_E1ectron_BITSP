@@ -13,6 +13,11 @@ import { buildSrcDoc } from './EmailFrame';
 import { ThreadPage } from './ThreadPage';
 
 const id = 'a'.repeat(64);
+const post = vi.fn(async (path: string) =>
+  path.endsWith('/unsubscribe')
+    ? { method: 'link', url: 'https://news.example/out' }
+    : { items: [] },
+);
 
 function WhenSignedIn() {
   return useAuth().state.status === 'authenticated' ? <ThreadPage /> : null;
@@ -22,6 +27,7 @@ function setup(data: {
   thread: ReturnType<typeof thread>;
   messages: ReturnType<typeof message>[];
 }) {
+  post.mockClear();
   const patch = vi.fn(async (_path: string, body: object) => ({
     ...data.thread,
     ...body,
@@ -36,6 +42,7 @@ function setup(data: {
             path === `/mail/threads/${id}` ? data : { items: [], nextCursor: null },
           ) as ApiClient['get'],
           patch: patch as ApiClient['patch'],
+          post: post as ApiClient['post'],
         })}
       >
         <QueryProvider client={testQueryClient()}>
@@ -122,6 +129,31 @@ describe('ThreadPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Back to list' }));
     expect(await screen.findByText('at /inbox')).toBeInTheDocument();
+  });
+});
+
+describe('ThreadPage actions', () => {
+  it('archives from the toolbar and goes back to the list', async () => {
+    setup({ thread: thread({ unreadCount: 0 }), messages: [message()] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Archive' }));
+    expect(post).toHaveBeenCalledWith('/mail/threads/actions', {
+      threadIds: [id],
+      action: 'archive',
+    });
+    expect(await screen.findByText('at /inbox')).toBeInTheDocument();
+  });
+
+  it("opens the sender's unsubscribe page when one-click is not offered", async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    setup({ thread: thread({ unreadCount: 0, canUnsubscribe: true }), messages: [message()] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Unsubscribe from Priya' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm unsubscribe from Priya' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Opened the sender’s unsubscribe page',
+    );
+    expect(open).toHaveBeenCalledWith('https://news.example/out', '_blank', 'noopener,noreferrer');
+    open.mockRestore();
   });
 });
 
