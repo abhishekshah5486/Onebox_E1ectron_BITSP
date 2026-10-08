@@ -10,6 +10,7 @@ import { useCurrentUser } from '../auth/AuthProvider';
 import { useTheme, type ThemePreference } from '../theme/ThemeProvider';
 import { useUiVersion, type UiVersion } from '../theme/UiVersionProvider';
 import { AccountsSection } from './AccountsSection';
+import { AiSection } from './AiSection';
 import { FlashProvider } from './flash';
 import { IntegrationsSection } from './IntegrationsSection';
 import { LabelsSection } from './LabelsSection';
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'accounts', label: 'Accounts', content: <AccountsSection /> },
   { id: 'mail', label: 'Mail', content: <PreferencesSection /> },
   { id: 'labels', label: 'Labels', content: <LabelsSection /> },
+  { id: 'ai', label: 'AI', content: <AiSection /> },
   { id: 'integrations', label: 'Integrations', content: <IntegrationsSection /> },
   { id: 'appearance', label: 'Appearance', content: <Appearance /> },
 ];

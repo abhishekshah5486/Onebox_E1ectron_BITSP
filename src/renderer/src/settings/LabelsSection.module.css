@@ -1,0 +1,12 @@
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  white-space: nowrap;
+}
+
+.account > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
