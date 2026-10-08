@@ -26,6 +26,7 @@ export const keys = {
   accounts: ['accounts'] as const,
   preferences: ['preferences'] as const,
   integrations: ['integrations'] as const,
+  googleDrive: ['google-drive'] as const,
 };
 
 function useApi() {
@@ -135,4 +136,28 @@ export function useRotateSecret() {
 export function useRemoveIntegration() {
   const api = useApi();
   return useIntegrationMutation((id: string) => settingsApi.removeIntegration(api, id));
+}
+
+// Polls while the Google sign-in window is open, until the account shows up.
+export function useGoogleDrive(waiting = false) {
+  const api = useApi();
+  return useQuery({
+    queryKey: keys.googleDrive,
+    queryFn: () => settingsApi.googleDrive(api),
+    refetchInterval: waiting ? 2000 : false,
+  });
+}
+
+export function useConnectGoogleDrive() {
+  const api = useApi();
+  return useMutation({ mutationFn: () => settingsApi.connectGoogleDrive(api) });
+}
+
+export function useDisconnectGoogleDrive() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => settingsApi.disconnectGoogleDrive(api),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.googleDrive }),
+  });
 }

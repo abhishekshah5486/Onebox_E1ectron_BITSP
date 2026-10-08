@@ -12,6 +12,7 @@ import { useUiVersion, type UiVersion } from '../theme/UiVersionProvider';
 import { AccountsSection } from './AccountsSection';
 import { AiSection } from './AiSection';
 import { FlashProvider } from './flash';
+import { GoogleDriveCard } from './GoogleDriveCard';
 import { IntegrationsSection } from './IntegrationsSection';
 import { LabelsSection } from './LabelsSection';
 import { PreferencesSection } from './PreferencesSection';
@@ -22,7 +23,16 @@ const TABS = [
   { id: 'mail', label: 'Mail', content: <PreferencesSection /> },
   { id: 'labels', label: 'Labels', content: <LabelsSection /> },
   { id: 'ai', label: 'AI', content: <AiSection /> },
-  { id: 'integrations', label: 'Integrations', content: <IntegrationsSection /> },
+  {
+    id: 'integrations',
+    label: 'Integrations',
+    content: (
+      <SpaceBetween size="l">
+        <GoogleDriveCard />
+        <IntegrationsSection />
+      </SpaceBetween>
+    ),
+  },
   { id: 'appearance', label: 'Appearance', content: <Appearance /> },
 ];
 

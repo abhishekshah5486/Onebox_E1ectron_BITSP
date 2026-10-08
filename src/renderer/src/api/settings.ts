@@ -60,7 +60,18 @@ export interface IntegrationTestResult {
   integration: Integration;
 }
 
+export interface GoogleDriveStatus {
+  configured: boolean;
+  connected: boolean;
+  email: string | null;
+  connectedAt: string | null;
+}
+
 export const settingsApi = {
+  googleDrive: (api: ApiClient) => api.get<GoogleDriveStatus>('/settings/integrations/google'),
+  connectGoogleDrive: (api: ApiClient) =>
+    api.post<{ url: string }>('/settings/integrations/google/connect'),
+  disconnectGoogleDrive: (api: ApiClient) => api.delete<void>('/settings/integrations/google'),
   getPreferences: (api: ApiClient) => api.get<Preferences>('/settings/preferences'),
   updatePreferences: (api: ApiClient, changes: Partial<Omit<Preferences, 'updatedAt'>>) =>
     api.patch<Preferences>('/settings/preferences', changes),
