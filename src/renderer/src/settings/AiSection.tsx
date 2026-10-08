@@ -1,11 +1,12 @@
+import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
+import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Container from '@cloudscape-design/components/container';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
 import Pagination from '@cloudscape-design/components/pagination';
-import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import Select, { type SelectProps } from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
@@ -134,46 +135,49 @@ export function AiSection() {
           </Header>
         }
       >
-        {models.isPending && <StatusIndicator type="loading">Loading models</StatusIndicator>}
-        {models.isError && (
-          <LoadError
-            error={models.error}
-            header="Models could not be loaded"
-            onRetry={() => void models.refetch()}
-          />
-        )}
-        <ColumnLayout columns={2}>
-          {(models.data?.purposes ?? []).map((purpose) => {
-            const chosen = models.data?.choices[purpose] ?? AUTO_MODEL;
-            return (
-              <FormField
-                key={purpose}
-                label={PURPOSE[purpose].label}
-                description={PURPOSE[purpose].description}
-              >
-                <Select
-                  selectedOption={flat(options).find((option) => option.value === chosen) ?? null}
-                  options={options}
-                  ariaLabel={`Model for ${PURPOSE[purpose].label.toLowerCase()}`}
-                  onChange={({ detail }) => {
-                    const modelId = detail.selectedOption.value ?? AUTO_MODEL;
-                    choose.mutate(
-                      { purpose, modelId },
-                      {
-                        onSuccess: () =>
-                          flash({
-                            type: 'success',
-                            content: `${PURPOSE[purpose].label} now uses ${detail.selectedOption.label ?? 'Auto'}.`,
-                          }),
-                        onError: (error) => flash({ type: 'error', content: describeError(error) }),
-                      },
-                    );
-                  }}
-                />
-              </FormField>
-            );
-          })}
-        </ColumnLayout>
+        <SpaceBetween size="l">
+          {models.isPending && <StatusIndicator type="loading">Loading models</StatusIndicator>}
+          {models.isError && (
+            <LoadError
+              error={models.error}
+              header="Models could not be loaded"
+              onRetry={() => void models.refetch()}
+            />
+          )}
+          <ColumnLayout columns={2}>
+            {(models.data?.purposes ?? []).map((purpose) => {
+              const chosen = models.data?.choices[purpose] ?? AUTO_MODEL;
+              return (
+                <FormField
+                  key={purpose}
+                  label={PURPOSE[purpose].label}
+                  description={PURPOSE[purpose].description}
+                >
+                  <Select
+                    selectedOption={flat(options).find((option) => option.value === chosen) ?? null}
+                    options={options}
+                    ariaLabel={`Model for ${PURPOSE[purpose].label.toLowerCase()}`}
+                    onChange={({ detail }) => {
+                      const modelId = detail.selectedOption.value ?? AUTO_MODEL;
+                      choose.mutate(
+                        { purpose, modelId },
+                        {
+                          onSuccess: () =>
+                            flash({
+                              type: 'success',
+                              content: `${PURPOSE[purpose].label} now uses ${detail.selectedOption.label ?? 'Auto'}.`,
+                            }),
+                          onError: (error) =>
+                            flash({ type: 'error', content: describeError(error) }),
+                        },
+                      );
+                    }}
+                  />
+                </FormField>
+              );
+            })}
+          </ColumnLayout>
+        </SpaceBetween>
       </Container>
       <UsageTable />
     </SpaceBetween>
@@ -242,6 +246,13 @@ function groupCalls(calls: UsageCall[], by: Exclude<GroupBy, 'none'>): Group[] {
 
 const PAGE = 25;
 
+const PERIODS = [
+  { id: '1', text: 'Today' },
+  { id: '7', text: 'Last 7 days' },
+  { id: '30', text: 'Last 30 days' },
+  { id: '90', text: 'Last 90 days' },
+];
+
 // Columns shared by single calls and groups of them, with how to sort each.
 const tokenColumns = <T extends Group | UsageCall>(): TableProps.ColumnDefinition<T>[] => [
   {
@@ -279,15 +290,22 @@ const CALL_COLUMNS: TableProps.ColumnDefinition<UsageCall>[] = [
     cell: (row) => purposeLabel(row.purpose),
   },
   {
+    id: 'requestedModel',
+    header: 'Selected model',
+    sortingField: 'requestedModel',
+    cell: (row) => (row.requestedModel === 'auto' ? 'Auto' : row.requestedModel),
+  },
+  {
     id: 'model',
-    header: 'Model',
+    header: 'Used model',
     sortingField: 'modelUsed',
-    cell: (row) =>
-      row.cacheHit
-        ? `${row.modelUsed} · cached`
-        : row.fallbacks
-          ? `${row.modelUsed ?? '—'} · ${row.fallbacks} fallback${row.fallbacks > 1 ? 's' : ''}`
-          : (row.modelUsed ?? '—'),
+    cell: (row) => (row.cacheHit ? `${row.modelUsed} (from cache)` : (row.modelUsed ?? '—')),
+  },
+  {
+    id: 'fallbacks',
+    header: 'Fallback',
+    sortingField: 'fallbacks',
+    cell: (row) => (row.fallbacks ? `Yes (${row.fallbacks})` : 'No'),
   },
   ...tokenColumns<UsageCall>(),
   {
@@ -399,11 +417,7 @@ function UsageTable() {
           <Header
             variant="h2"
             counter={totals ? `(${num(totals.calls)})` : undefined}
-            description={
-              totals
-                ? `${usd(totals.costUsd)} · ${num(totals.inputTokens)} input tokens (${num(totals.cacheReadTokens)} from the provider's cache) · ${num(totals.outputTokens)} output · ${num(totals.cacheHits)} answered from OneBox's cache · ${num(totals.failures)} failed`
-                : 'Every AI call OneBox made for you.'
-            }
+            description="Every AI call OneBox made for you, what it used and what it cost."
             actions={
               <SpaceBetween direction="horizontal" size="xs">
                 <Button
@@ -411,20 +425,35 @@ function UsageTable() {
                   ariaLabel="Reload usage"
                   onClick={() => void usage.refetch()}
                 />
-                <SegmentedControl
-                  label="Period"
-                  selectedId={days}
-                  onChange={({ detail }) => {
-                    setDays(detail.selectedId);
+                <ButtonDropdown
+                  items={(Object.keys(GROUP_LABEL) as GroupBy[]).map((id) => ({
+                    id,
+                    text: id === 'none' ? 'No grouping' : `By ${GROUP_LABEL[id].toLowerCase()}`,
+                  }))}
+                  onItemClick={({ detail }) => {
+                    const next = detail.id as GroupBy;
+                    setGroupBy(next);
+                    setPage(1);
+                    setSorting(
+                      next === 'none'
+                        ? { field: 'createdAt', descending: true }
+                        : { field: 'calls', descending: true },
+                    );
+                  }}
+                >
+                  {groupBy === 'none'
+                    ? 'Group by'
+                    : `Grouped by ${GROUP_LABEL[groupBy].toLowerCase()}`}
+                </ButtonDropdown>
+                <ButtonDropdown
+                  items={PERIODS.map((period) => ({ id: period.id, text: period.text }))}
+                  onItemClick={({ detail }) => {
+                    setDays(detail.id);
                     setPage(1);
                   }}
-                  options={[
-                    { id: '1', text: 'Today' },
-                    { id: '7', text: '7 days' },
-                    { id: '30', text: '30 days' },
-                    { id: '90', text: '90 days' },
-                  ]}
-                />
+                >
+                  {PERIODS.find((period) => period.id === days)?.text}
+                </ButtonDropdown>
               </SpaceBetween>
             }
           >
@@ -432,7 +461,12 @@ function UsageTable() {
           </Header>
         }
         filter={
-          <div className={styles.toolbar}>
+          <div className={styles.filters}>
+            {totals && (
+              <Alert type="info">
+                {`${usd(totals.costUsd)} · ${num(totals.inputTokens)} input tokens (${num(totals.cacheReadTokens)} from the provider's cache) · ${num(totals.outputTokens)} output · ${num(totals.cacheHits)} answered from OneBox's cache · ${num(totals.failures)} failed`}
+              </Alert>
+            )}
             <TextFilter
               filteringText={filter}
               filteringPlaceholder="Search by task, model or result"
@@ -442,24 +476,6 @@ function UsageTable() {
                 setFilter(detail.filteringText);
                 setPage(1);
               }}
-            />
-            <SegmentedControl
-              label="Group by"
-              selectedId={groupBy}
-              onChange={({ detail }) => {
-                const next = detail.selectedId as GroupBy;
-                setGroupBy(next);
-                setPage(1);
-                setSorting(
-                  next === 'none'
-                    ? { field: 'createdAt', descending: true }
-                    : { field: 'calls', descending: true },
-                );
-              }}
-              options={(Object.keys(GROUP_LABEL) as GroupBy[]).map((id) => ({
-                id,
-                text: id === 'none' ? 'No grouping' : `By ${GROUP_LABEL[id].toLowerCase()}`,
-              }))}
             />
           </div>
         }

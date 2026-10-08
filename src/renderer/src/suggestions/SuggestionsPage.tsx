@@ -56,7 +56,7 @@ const OUTCOME: Record<
   accepted: { type: 'success', text: 'Accepted' },
   rejected: { type: 'stopped', text: 'Declined' },
   assigned: { type: 'info', text: 'Filed by you' },
-  discarded: { type: 'stopped', text: 'Discarded' },
+  discarded: { type: 'stopped', text: 'Deleted' },
 };
 
 // "Priya <priya@acme.example>" reads as Priya.
@@ -86,7 +86,7 @@ const describe = (rows: Row[]) => {
 const TITLE = {
   accept: ['Accept suggestion?', 'Accept'],
   decline: ['Decline suggestion?', 'Decline'],
-  discard: ['Discard suggestions?', 'Discard'],
+  discard: ['Delete suggestions?', 'Delete'],
   move: ['Move to another label?', 'Move'],
 } as const;
 
@@ -99,7 +99,7 @@ function confirmText(action: Confirming) {
     case 'decline':
       return `Decline ${what}? The email stays as it is, and AI learns from your choice.`;
     case 'discard':
-      return `Discard ${what}? Nothing is labelled and AI learns nothing from it.`;
+      return `Delete ${what}? Nothing is labelled and AI learns nothing from it.`;
     case 'move':
       return `File ${emails.length === 1 ? `“${subjectOf(action.rows[0]!)}”` : `${emails.length} emails`} under “${action.name}” instead? Its other suggestions are declined.`;
   }
@@ -263,23 +263,43 @@ function SuggestionsTable() {
     {
       id: 'label',
       header: waiting ? 'Suggested label' : 'Label',
-      width: 200,
+      width: 180,
       cell: ({ result }) => (
-        <span className={styles.label}>
+        <span className={styles.clip}>
           <Popover
             size="medium"
             renderWithPortal
             dismissButton={false}
-            triggerType="custom"
             header={`Why “${result.name}”?`}
             content={result.reason}
           >
-            <span className={styles.info} aria-label={`Why ${result.name}`}>
-              <Icon name="status-info" size="small" variant="link" />
-            </span>
+            {result.name}
           </Popover>
-          <span className={styles.clip}>{result.name}</span>
         </span>
+      ),
+    },
+    {
+      id: 'why',
+      header: 'Why',
+      width: 70,
+      cell: ({ result }) => (
+        <Popover
+          size="medium"
+          renderWithPortal
+          dismissButton={false}
+          triggerType="custom"
+          header={`Why “${result.name}”?`}
+          content={result.reason}
+        >
+          <span
+            className={styles.info}
+            role="button"
+            tabIndex={0}
+            aria-label={`Why ${result.name}`}
+          >
+            <Icon name="status-info" variant="link" />
+          </span>
+        </Popover>
       ),
     },
     {
@@ -305,42 +325,67 @@ function SuggestionsTable() {
   columns.push({
     id: 'received',
     header: 'Received (UTC)',
-    width: 190,
-    // Like the inbox, the row's actions take the date's place while it is hovered.
+    width: 170,
     cell: (row) => (
-      <span className={styles.received}>
-        <span className={styles.time} title={formatFullDate(row.suggestion.receivedAt)}>
-          {formatUtc(row.suggestion.receivedAt).replace(' UTC', '')}
-        </span>
-        {waiting && (
-          <span className={styles.quick}>
-            <button
-              type="button"
-              className={styles.mark}
-              title="Accept"
-              aria-label={`Accept ${row.result.name} for ${subjectOf(row)}`}
-              onClick={() => setConfirming({ kind: 'accept', rows: [row] })}
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M2.5 8.5l3.5 3.5 7.5-8" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={styles.mark}
-              title="Decline"
-              aria-label={`Decline ${row.result.name} for ${subjectOf(row)}`}
-              onClick={() => setConfirming({ kind: 'decline', rows: [row] })}
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
-              </svg>
-            </button>
-          </span>
-        )}
+      <span title={formatFullDate(row.suggestion.receivedAt)}>
+        {formatUtc(row.suggestion.receivedAt).replace(' UTC', '')}
       </span>
     ),
   });
+  if (waiting) {
+    columns.push({
+      id: 'actions',
+      header: 'Actions',
+      width: 280,
+      cell: (row) => {
+        const others = labelsOf(row.suggestion.accountId).filter(
+          (label) => label.path !== row.result.path,
+        );
+        return (
+          <span className={styles.actions}>
+            <Button
+              wrapText={false}
+              ariaLabel={`Accept ${row.result.name} for ${subjectOf(row)}`}
+              onClick={() => setConfirming({ kind: 'accept', rows: [row] })}
+            >
+              Accept
+            </Button>
+            <Button
+              wrapText={false}
+              ariaLabel={`Decline ${row.result.name} for ${subjectOf(row)}`}
+              onClick={() => setConfirming({ kind: 'decline', rows: [row] })}
+            >
+              Decline
+            </Button>
+            <ButtonDropdown
+              variant="icon"
+              expandToViewport
+              ariaLabel={`More actions for ${subjectOf(row)}`}
+              items={[
+                {
+                  id: 'move',
+                  text: 'Move to label',
+                  disabled: others.length === 0,
+                  items: others.map((label) => ({ id: `move:${label.path}`, text: label.name })),
+                },
+                { id: 'delete', text: 'Delete' },
+              ]}
+              onItemClick={({ detail }) => {
+                if (detail.id === 'delete') {
+                  setConfirming({ kind: 'discard', rows: [row] });
+                  return;
+                }
+                const label = others.find((item) => `move:${item.path}` === detail.id);
+                if (label) {
+                  setConfirming({ kind: 'move', rows: [row], path: label.path, name: label.name });
+                }
+              }}
+            />
+          </span>
+        );
+      },
+    });
+  }
 
   const tabs = (
     <div className={styles.filters}>
@@ -417,7 +462,7 @@ function SuggestionsTable() {
                     disabled={none}
                     onClick={() => setConfirming({ kind: 'discard', rows: selected })}
                   >
-                    Discard
+                    Delete
                   </Button>
                 )}
                 {waiting && (

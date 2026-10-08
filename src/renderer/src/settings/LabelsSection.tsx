@@ -8,6 +8,7 @@ import Input from '@cloudscape-design/components/input';
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
 import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
+import Pagination from '@cloudscape-design/components/pagination';
 import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import Select from '@cloudscape-design/components/select';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
@@ -56,6 +57,7 @@ const MODE_OPTIONS = (['auto', 'suggest', 'off'] as const).map((value) => ({
         ? 'Wait in Suggestions for you to confirm'
         : 'AI leaves this label alone',
 }));
+const LABEL_PAGE = 10;
 const TABS = ['promotions', 'social', 'updates', 'forums'];
 
 type Editing =
@@ -79,6 +81,7 @@ export function LabelsSection() {
   const [folderSearch, setFolderSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [labelPage, setLabelPage] = useState(1);
   const rules = useLabelRules();
   const ruleOf = (accountId: string, path: string) =>
     rules.data?.items.find((rule) => rule.accountId === accountId && rule.path === path);
@@ -305,7 +308,14 @@ export function LabelsSection() {
               itemSelectionLabel: (_, item) => `Select ${item.name}`,
               allItemsSelectionLabel: () => 'Select all labels',
             }}
-            items={visible}
+            items={visible.slice((labelPage - 1) * LABEL_PAGE, labelPage * LABEL_PAGE)}
+            pagination={
+              <Pagination
+                currentPageIndex={labelPage}
+                pagesCount={Math.max(1, Math.ceil(visible.length / LABEL_PAGE))}
+                onChange={({ detail }) => setLabelPage(detail.currentPageIndex)}
+              />
+            }
             trackBy={keyOf}
             wrapLines={false}
             selectionType="single"
@@ -319,12 +329,18 @@ export function LabelsSection() {
                   filteringText={search}
                   filteringPlaceholder="Find a label"
                   filteringAriaLabel="Find a label"
-                  onChange={({ detail }) => setSearch(detail.filteringText)}
+                  onChange={({ detail }) => {
+                    setSearch(detail.filteringText);
+                    setLabelPage(1);
+                  }}
                 />
                 <SegmentedControl
                   label="AI sorting"
                   selectedId={modeFilter}
-                  onChange={({ detail }) => setModeFilter(detail.selectedId as ModeFilter)}
+                  onChange={({ detail }) => {
+                    setModeFilter(detail.selectedId as ModeFilter);
+                    setLabelPage(1);
+                  }}
                   options={[
                     { id: 'all', text: `All (${tally('all')})` },
                     { id: 'auto', text: `AI applies (${tally('auto')})` },
