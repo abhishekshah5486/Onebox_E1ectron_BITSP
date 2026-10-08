@@ -1,88 +1,113 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import {
-  useAccountFolders,
-  useThread,
-  useThreadAction,
-  useUpdateThread,
-} from '../api/mail-queries';
+import { useAccountFolders, useThread, useUpdateThread } from '../api/mail-queries';
+import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
+import { Menu } from '../ui/Menu';
 import { folderActions, moveRequest, moveTargets, type ActionSpec } from './actions';
-import { viewFromPath } from './folders';
+import { FOLDER_LABEL, folderName, viewFromPath } from './folders';
 import { displayName } from './format';
+import { positionIn } from './listContext';
 import { MessageCard } from './MessageCard';
-import { MoveMenu } from './MoveMenu';
 import styles from './ThreadPage.module.css';
 import { UnsubscribeButton } from './UnsubscribeButton';
+import { useMailAction } from './useMailAction';
 
 export function ThreadPage({ basePath = '/inbox' }: { basePath?: string }) {
   const { threadId = '' } = useParams();
   const navigate = useNavigate();
   const query = useThread(threadId);
   const update = useUpdateThread();
-  const act = useThreadAction();
-  const markedRead = useRef(false);
+  const run = useMailAction();
+  const markedRead = useRef<string | null>(null);
   const view = viewFromPath(basePath);
+  const accounts = useAccounts();
 
   const thread = query.data?.thread;
   const folders = useAccountFolders(thread ? [thread.accountId] : [])[0]?.data?.items ?? null;
+  const me = accounts.data?.find((account) => account.id === thread?.accountId)?.emailAddress;
+  const place = positionIn(basePath, threadId);
+
   useEffect(() => {
-    if (thread && thread.unreadCount > 0 && !markedRead.current) {
-      markedRead.current = true;
+    if (thread && thread.unreadCount > 0 && markedRead.current !== thread.id) {
+      markedRead.current = thread.id;
       update.mutate({ id: thread.id, isRead: true });
     }
   }, [thread, update]);
 
   const back = () => void navigate(basePath);
+  const open = (id: string) => void navigate(`${basePath}/${id}`);
   // Every action here takes the conversation out of the list it was opened from.
-  const run = (request: ActionSpec) => {
+  const act = (request: ActionSpec, targetName?: string) => {
     if (!thread) return;
-    act.mutate({ threadIds: [thread.id], ...request });
+    run([thread.id], request, targetName);
     back();
   };
+  const targets = moveTargets(view, folders);
+  const labelName = (path: string) =>
+    folders?.find((folder) => folder.role === 'label' && folder.path === path)?.name ?? path;
 
   return (
     <section className={styles.panel} aria-label="Conversation">
       <div className={styles.toolbar} role="toolbar" aria-label="Conversation actions">
-        <button aria-label="Back to list" title="Back" onClick={back}>
-          <Icon name="back" size={20} />
-        </button>
+        <IconButton icon="back" label="Back to list" tooltip="Back" onClick={back} />
         {thread && (
           <>
+            <span className={styles.gap} />
             {folderActions(view).map((item) => (
-              <button
+              <IconButton
                 key={item.id}
-                aria-label={item.label}
-                title={item.label}
-                onClick={() => run(item.request)}
-              >
-                <Icon name={item.icon} size={20} />
-              </button>
+                icon={item.icon}
+                label={item.label}
+                onClick={() => act(item.request)}
+              />
             ))}
-            <MoveMenu
-              targets={moveTargets(view, folders)}
-              onMove={(target) => run(moveRequest(view, target.target))}
-            />
-            <button
-              aria-label="Mark as unread"
-              title="Mark as unread"
+            <span className={styles.divider} aria-hidden="true" />
+            <IconButton
+              icon="markUnread"
+              label="Mark as unread"
               onClick={() => {
                 update.mutate({ id: thread.id, isRead: false });
                 back();
               }}
-            >
-              <Icon name="mail" size={20} />
-            </button>
-            <button
-              className={thread.isStarred ? styles.starred : undefined}
-              aria-pressed={thread.isStarred}
-              aria-label={thread.isStarred ? 'Unstar' : 'Star'}
-              onClick={() => update.mutate({ id: thread.id, isStarred: !thread.isStarred })}
-            >
-              <Icon name="star" size={20} />
-            </button>
+            />
+            <Menu
+              label="Move to"
+              icon="move"
+              heading="Move to:"
+              items={targets.map((target) => ({
+                key: target.key,
+                label: target.label,
+                icon: 'label' in target.target ? 'labelFilled' : 'move',
+              }))}
+              onSelect={(key) => {
+                const target = targets.find((item) => item.key === key)!;
+                act(moveRequest(view, target.target), target.label);
+              }}
+            />
           </>
+        )}
+        {place && (
+          <div className={styles.position}>
+            <span>
+              {place.position.toLocaleString()} of{' '}
+              {(place.total ?? place.position).toLocaleString()}
+            </span>
+            <IconButton
+              icon="chevronLeft"
+              label="Newer"
+              disabled={!place.newer}
+              onClick={() => place.newer && open(place.newer)}
+            />
+            <IconButton
+              icon="chevron"
+              label="Older"
+              disabled={!place.older}
+              onClick={() => place.older && open(place.older)}
+            />
+          </div>
         )}
       </div>
 
@@ -93,25 +118,75 @@ export function ThreadPage({ basePath = '/inbox' }: { basePath?: string }) {
             {describeError(query.error)}
           </p>
         )}
-        {query.data && (
+        {query.data && thread && (
           <>
             <div className={styles.subjectRow}>
-              <h1 className={styles.subject}>{query.data.thread.subject || '(no subject)'}</h1>
-              {query.data.thread.canUnsubscribe && (
-                <UnsubscribeButton
-                  threadId={query.data.thread.id}
-                  sender={displayName(query.data.thread.lastFrom)}
-                  unsubscribed={!!query.data.thread.unsubscribedAt}
-                />
+              <h1 className={styles.subject}>{thread.subject || '(no subject)'}</h1>
+              {thread.folders.includes('inbox') && (
+                <span className={styles.chip}>
+                  {FOLDER_LABEL.inbox}
+                  <button
+                    type="button"
+                    aria-label="Remove label Inbox"
+                    data-tooltip="Remove this label"
+                    onClick={() => act({ action: 'archive' })}
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                </span>
               )}
+              {(['spam', 'trash'] as const)
+                .filter((role) => thread.folders.includes(role))
+                .map((role) => (
+                  <span key={role} className={styles.chip}>
+                    {folderName(role)}
+                  </span>
+                ))}
+              {thread.labels.map((path) => (
+                <span key={path} className={styles.chip}>
+                  {labelName(path)}
+                  <button
+                    type="button"
+                    aria-label={`Remove label ${labelName(path)}`}
+                    data-tooltip="Remove this label"
+                    onClick={() =>
+                      act(
+                        { action: 'move', from: { label: path }, to: { role: 'archive' } },
+                        folderName('archive', folders?.find((f) => f.role === 'archive')?.name),
+                      )
+                    }
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                </span>
+              ))}
             </div>
-            {query.data.messages.map((message, index, all) => (
-              <MessageCard
-                key={message.id}
-                message={message}
-                defaultExpanded={index === all.length - 1 || !message.isRead}
-              />
-            ))}
+            {query.data.messages.map((message, index, all) => {
+              const latest = index === all.length - 1;
+              return (
+                <MessageCard
+                  key={message.id}
+                  message={message}
+                  me={me ?? null}
+                  defaultExpanded={latest || !message.isRead}
+                  {...(latest && {
+                    starred: thread.isStarred,
+                    onToggleStar: () =>
+                      update.mutate({ id: thread.id, isStarred: !thread.isStarred }),
+                  })}
+                  unsubscribe={
+                    thread.canUnsubscribe && latest ? (
+                      <UnsubscribeButton
+                        threadId={thread.id}
+                        sender={displayName(thread.lastFrom)}
+                        unsubscribed={!!thread.unsubscribedAt}
+                        variant="header"
+                      />
+                    ) : undefined
+                  }
+                />
+              );
+            })}
           </>
         )}
       </div>

@@ -11,6 +11,7 @@ import { thread } from '../test/mail-fixtures';
 import { testQueryClient } from '../test/render';
 import { account } from '../test/settings-fixtures';
 import { ThemeProvider } from '../theme/ThemeProvider';
+import { SnackbarProvider } from '../ui/Snackbar';
 import { AccountMailbox, UnifiedMailbox } from './MailboxPage';
 
 const gmail = account({ id: '11111111-1111-4111-8111-111111111111', emailAddress: 'me@gmail.com' });
@@ -53,23 +54,25 @@ function renderAt(path: string, api: ApiClient) {
       <AuthProvider api={api}>
         <QueryProvider client={testQueryClient()}>
           <MemoryRouter initialEntries={[path]}>
-            <Gate>
-              <Routes>
-                <Route
-                  path="/inbox"
-                  element={<UnifiedMailbox filter="all" title="All inboxes" basePath="/inbox" />}
-                />
-                <Route
-                  path="/sent"
-                  element={
-                    <UnifiedMailbox filter="all" folder="sent" title="Sent" basePath="/sent" />
-                  }
-                />
-                <Route path="/accounts/:accountId" element={<AccountMailbox />} />
-                <Route path="/accounts/:accountId/:folder" element={<AccountMailbox />} />
-                <Route path="/accounts/:accountId/labels/:label" element={<AccountMailbox />} />
-              </Routes>
-            </Gate>
+            <SnackbarProvider>
+              <Gate>
+                <Routes>
+                  <Route
+                    path="/inbox"
+                    element={<UnifiedMailbox filter="all" title="All inboxes" basePath="/inbox" />}
+                  />
+                  <Route
+                    path="/sent"
+                    element={
+                      <UnifiedMailbox filter="all" folder="sent" title="Sent" basePath="/sent" />
+                    }
+                  />
+                  <Route path="/accounts/:accountId" element={<AccountMailbox />} />
+                  <Route path="/accounts/:accountId/:folder" element={<AccountMailbox />} />
+                  <Route path="/accounts/:accountId/labels/:label" element={<AccountMailbox />} />
+                </Routes>
+              </Gate>
+            </SnackbarProvider>
           </MemoryRouter>
         </QueryProvider>
       </AuthProvider>
@@ -316,6 +319,39 @@ describe('conversation actions', () => {
     expect(screen.getByText('Mail 1')).toBeInTheDocument();
   });
 
+  it('reports the action and undoes it from the snackbar', async () => {
+    const { api, post } = actionApi(threads(2));
+    post.mockImplementation(async (path: string) =>
+      path === '/mail/threads/undo' ? { items: [] } : { items: [], undoToken: 'tok-1' },
+    );
+    renderAt('/inbox', api);
+    await select('Mail 1');
+    await userEvent.click(
+      within(screen.getByRole('toolbar', { name: 'Mail actions' })).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+    expect(await screen.findByText('Conversation moved to Trash.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(post).toHaveBeenCalledWith('/mail/threads/undo', { undoToken: 'tok-1' });
+    expect(await screen.findByText('Action undone.')).toBeInTheDocument();
+  });
+
+  it('selects by read state from the select menu', async () => {
+    const [first, second] = threads(2);
+    const { api } = actionApi([{ ...first!, unreadCount: 0 }, second!]);
+    renderAt('/inbox', api);
+    await screen.findByText('Mail 1');
+    await userEvent.click(screen.getByRole('button', { name: 'Select by' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Unread' }));
+    expect(screen.getByRole('checkbox', { name: 'Select all' })).toHaveAttribute(
+      'aria-checked',
+      'mixed',
+    );
+    const rows = screen.getAllByRole('row');
+    expect(rows.map((row) => row.getAttribute('aria-selected'))).toEqual(['false', 'true']);
+  });
+
   it("moves to one of the account's labels from its folder", async () => {
     const { api, post } = actionApi(threads(1));
     renderAt(`/accounts/${gmail.id}/archive`, api);
@@ -354,20 +390,21 @@ describe('conversation actions', () => {
     );
   });
 
-  it('unsubscribes from a row after a confirming second click', async () => {
+  it('unsubscribes from a row after confirming in a dialog', async () => {
     const { api, post } = actionApi([thread({ ...threads(1)[0]!, canUnsubscribe: true })]);
     renderAt('/inbox', api);
-    // The pill only shows while the row is hovered, which jsdom cannot do.
-    const hidden = { hidden: true };
+    // The button only shows while the row is hovered, which jsdom cannot do.
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Unsubscribe from Priya', ...hidden }),
+      await screen.findByRole('button', { name: 'Unsubscribe from Priya', hidden: true }),
     );
+    const dialog = screen.getByRole('dialog', { name: 'Unsubscribe' });
+    expect(dialog).toHaveTextContent('this mailing list (Priya)');
     expect(post).not.toHaveBeenCalled();
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Confirm unsubscribe from Priya', ...hidden }),
-    );
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Unsubscribe' }));
 
-    expect(await screen.findByRole('status', hidden)).toHaveTextContent('Unsubscribed');
-    expect(post).toHaveBeenCalledWith(`/mail/threads/${threads(1)[0]!.id}/unsubscribe`);
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(`/mail/threads/${threads(1)[0]!.id}/unsubscribe`),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

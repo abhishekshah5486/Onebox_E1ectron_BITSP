@@ -1,4 +1,4 @@
-import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import styles from './MailboxPage.module.css';
 
 interface PageControlsProps {
@@ -16,18 +16,8 @@ export function PageControls({ label, canPrev, canNext, onPrev, onNext, busy }: 
       <span className={styles.count} aria-live="polite">
         {label}
       </span>
-      <button aria-label="Newer" title="Newer" disabled={!canPrev || busy} onClick={onPrev}>
-        <Icon name="back" size={18} />
-      </button>
-      <button
-        aria-label="Older"
-        title="Older"
-        disabled={!canNext || busy}
-        onClick={onNext}
-        className={styles.flip}
-      >
-        <Icon name="back" size={18} />
-      </button>
+      <IconButton icon="chevronLeft" label="Newer" disabled={!canPrev || busy} onClick={onPrev} />
+      <IconButton icon="chevron" label="Older" disabled={!canNext || busy} onClick={onNext} />
     </div>
   );
 }

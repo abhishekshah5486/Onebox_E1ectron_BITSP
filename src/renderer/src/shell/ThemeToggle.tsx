@@ -15,7 +15,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       className={className}
       aria-label={`Theme: ${LABEL[preference]}. Switch to ${LABEL[NEXT[preference]]}`}
-      title={`Theme: ${LABEL[preference]}`}
+      data-tooltip={`Theme: ${LABEL[preference]}`}
       onClick={() => setPreference(NEXT[preference])}
     >
       <Icon name={preference} size={22} />

@@ -208,7 +208,10 @@ describe('AppShell', () => {
 
     const nav = screen.getByRole('navigation', { name: 'Mailboxes' });
     expect(within(nav).queryByText('All inboxes')).not.toBeInTheDocument();
-    expect(within(nav).getByTitle('All inboxes')).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'All inboxes' })).toHaveAttribute(
+      'data-tooltip',
+      'All inboxes',
+    );
   });
 
   it('switches to the v2 interface from the top bar', async () => {

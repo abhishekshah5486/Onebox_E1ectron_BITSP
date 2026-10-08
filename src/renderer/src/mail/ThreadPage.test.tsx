@@ -10,6 +10,7 @@ import { message, thread } from '../test/mail-fixtures';
 import { testQueryClient } from '../test/render';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { buildSrcDoc } from './EmailFrame';
+import { rememberList } from './listContext';
 import { ThreadPage } from './ThreadPage';
 
 const id = 'a'.repeat(64);
@@ -120,9 +121,9 @@ describe('ThreadPage', () => {
     expect(screen.queryByRole('note')).not.toBeInTheDocument();
   });
 
-  it('stars from the toolbar and goes back to the list', async () => {
+  it('stars from the message header and goes back to the list', async () => {
     const patch = setup({ thread: thread({ unreadCount: 0 }), messages: [message()] });
-    await userEvent.click(await screen.findByRole('button', { name: 'Star' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Not starred' }));
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith(`/mail/threads/${id}`, { isStarred: true }),
     );
@@ -133,6 +134,28 @@ describe('ThreadPage', () => {
 });
 
 describe('ThreadPage actions', () => {
+  it('shows where the conversation sits in its list and steps to the next one', async () => {
+    rememberList({
+      basePath: '/inbox',
+      ids: ['b'.repeat(64), id, 'c'.repeat(64)],
+      offset: 50,
+      total: 120,
+    });
+    setup({ thread: thread({ unreadCount: 0 }), messages: [message()] });
+    expect(await screen.findByText('52 of 120')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Newer' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Older' })).toBeEnabled();
+  });
+
+  it('archives from the inbox label chip', async () => {
+    setup({ thread: thread({ unreadCount: 0 }), messages: [message()] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove label Inbox' }));
+    expect(post).toHaveBeenCalledWith('/mail/threads/actions', {
+      threadIds: [id],
+      action: 'archive',
+    });
+  });
+
   it('archives from the toolbar and goes back to the list', async () => {
     setup({ thread: thread({ unreadCount: 0 }), messages: [message()] });
     await userEvent.click(await screen.findByRole('button', { name: 'Archive' }));
@@ -147,13 +170,36 @@ describe('ThreadPage actions', () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
     setup({ thread: thread({ unreadCount: 0, canUnsubscribe: true }), messages: [message()] });
     await userEvent.click(await screen.findByRole('button', { name: 'Unsubscribe from Priya' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Confirm unsubscribe from Priya' }));
-
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Opened the sender’s unsubscribe page',
+    await userEvent.click(
+      within(screen.getByRole('dialog', { name: 'Unsubscribe' })).getByRole('button', {
+        name: 'Unsubscribe',
+      }),
     );
-    expect(open).toHaveBeenCalledWith('https://news.example/out', '_blank', 'noopener,noreferrer');
+
+    await waitFor(() =>
+      expect(open).toHaveBeenCalledWith(
+        'https://news.example/out',
+        '_blank',
+        'noopener,noreferrer',
+      ),
+    );
     open.mockRestore();
+  });
+
+  it('shows who sent and signed the message in the details', async () => {
+    setup({
+      thread: thread({ unreadCount: 0 }),
+      messages: [
+        message({
+          to: [{ name: '', address: 'me@gmail.com' }],
+          authentication: { mailedBy: 'acme.example', signedBy: 'acme.example', encrypted: true },
+        }),
+      ],
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Show details' }));
+    const details = screen.getByRole('dialog', { name: 'Message details' });
+    expect(details).toHaveTextContent('mailed-by:acme.example');
+    expect(details).toHaveTextContent('Standard encryption (TLS)');
   });
 });
 

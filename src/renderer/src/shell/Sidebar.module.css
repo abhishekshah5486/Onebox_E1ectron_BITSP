@@ -50,7 +50,25 @@
 }
 
 .item:hover {
-  background: var(--ob-surface-hover);
+  background: var(--ob-nav-hover);
+}
+
+button.item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.item:hover {
+  background: var(--ob-nav-hover);
+}
+
+/* Like Gmail, a folder with unread mail is bold. */
+.hasUnread {
+  font-weight: 700;
 }
 
 .active {
@@ -142,10 +160,8 @@
 }
 
 .labelsHeading {
-  margin: 8px 0 2px 32px;
-  font-size: 12px;
+  margin: 12px 0 4px 52px;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--ob-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--ob-text);
 }

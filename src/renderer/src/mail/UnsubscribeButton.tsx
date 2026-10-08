@@ -1,62 +1,67 @@
 import { useState, type MouseEvent } from 'react';
 import { useUnsubscribe } from '../api/mail-queries';
 import { describeError } from '../auth/errors';
+import { Dialog } from '../ui/Dialog';
+import { useSnackbar } from '../ui/Snackbar';
 import styles from './UnsubscribeButton.module.css';
 
-const DONE: Record<'one-click' | 'link' | 'mailto', string> = {
-  'one-click': 'Unsubscribed',
-  link: 'Opened the sender’s unsubscribe page',
-  mailto: 'Opened an unsubscribe email',
+const DONE = {
+  'one-click': (sender: string) => `Unsubscribed from ${sender}.`,
+  link: (sender: string) => `Opened ${sender}’s unsubscribe page.`,
+  mailto: (sender: string) => `Opened an unsubscribe email to ${sender}.`,
 };
 
-// Two clicks, like Gmail's confirm step, so a stray click never unsubscribes anyone.
+// Like Gmail: a bordered button, a confirm dialog, then a note in the snackbar.
 export function UnsubscribeButton({
   threadId,
   sender,
   unsubscribed,
-  size = 'normal',
+  variant = 'row',
 }: {
   threadId: string;
   sender: string;
   unsubscribed: boolean;
-  size?: 'normal' | 'small';
+  variant?: 'row' | 'header';
 }) {
   const unsubscribe = useUnsubscribe();
-  const [confirming, setConfirming] = useState(false);
-  const className = `${styles.button} ${size === 'small' ? styles.small : ''}`;
+  const notify = useSnackbar();
+  const [asking, setAsking] = useState(false);
   const stop = (event: MouseEvent) => event.stopPropagation();
 
-  if (unsubscribed || unsubscribe.data) {
-    return (
-      <span className={`${className} ${styles.done}`} role="status" onClick={stop}>
-        {DONE[unsubscribe.data?.method ?? 'one-click']}
-      </span>
-    );
-  }
-  if (unsubscribe.isError) {
-    return (
-      <span className={`${className} ${styles.error}`} role="alert" onClick={stop}>
-        {describeError(unsubscribe.error)}
-      </span>
-    );
+  if (unsubscribed || unsubscribe.data?.method === 'one-click') {
+    return variant === 'header' ? <span className={styles.done}>Unsubscribed</span> : null;
   }
   return (
-    <button
-      className={`${className} ${confirming ? styles.confirm : ''}`}
-      aria-label={confirming ? `Confirm unsubscribe from ${sender}` : `Unsubscribe from ${sender}`}
-      disabled={unsubscribe.isPending}
-      onBlur={() => setConfirming(false)}
-      onClick={(event) => {
-        stop(event);
-        if (confirming) unsubscribe.mutate(threadId);
-        else setConfirming(true);
-      }}
-    >
-      {unsubscribe.isPending
-        ? 'Unsubscribing…'
-        : confirming
-          ? 'Confirm unsubscribe'
-          : 'Unsubscribe'}
-    </button>
+    <>
+      <button
+        className={`${styles.button} ${styles[variant]}`}
+        aria-label={`Unsubscribe from ${sender}`}
+        disabled={unsubscribe.isPending}
+        onClick={(event) => {
+          stop(event);
+          setAsking(true);
+        }}
+      >
+        Unsubscribe
+      </button>
+      {asking && (
+        <Dialog
+          title="Unsubscribe"
+          confirmLabel="Unsubscribe"
+          onCancel={() => setAsking(false)}
+          onConfirm={() => {
+            setAsking(false);
+            unsubscribe.mutate(threadId, {
+              onSuccess: (result) => notify({ text: DONE[result.method](sender) }),
+              onError: (error) => notify({ text: describeError(error) }),
+            });
+          }}
+        >
+          Do you want to stop getting messages from this mailing list ({sender})? OneBox will
+          unsubscribe you in one click when the sender supports it; otherwise it opens their
+          unsubscribe page.
+        </Dialog>
+      )}
+    </>
   );
 }

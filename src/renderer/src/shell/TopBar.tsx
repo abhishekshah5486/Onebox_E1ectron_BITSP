@@ -18,7 +18,12 @@ export function TopBar({ onToggleMenu }: { onToggleMenu: () => void }) {
   return (
     <header className={styles.bar}>
       <div className={styles.brand}>
-        <button className={styles.iconButton} aria-label="Main menu" onClick={onToggleMenu}>
+        <button
+          className={styles.iconButton}
+          aria-label="Main menu"
+          data-tooltip="Main menu"
+          onClick={onToggleMenu}
+        >
           <Icon name="menu" size={24} />
         </button>
         <Link to="/inbox" className={styles.brand} aria-label="OneBox inbox">
@@ -27,11 +32,16 @@ export function TopBar({ onToggleMenu }: { onToggleMenu: () => void }) {
       </div>
 
       <form className={styles.search} role="search" onSubmit={(e) => e.preventDefault()}>
-        <button className={styles.iconButton} aria-label="Search">
+        <button className={styles.iconButton} aria-label="Search" data-tooltip="Search">
           <Icon name="search" size={24} />
         </button>
         <input className={styles.searchInput} placeholder="Search mail" aria-label="Search mail" />
-        <button type="button" className={styles.iconButton} aria-label="Search options">
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label="Search options"
+          data-tooltip="Show search options"
+        >
           <Icon name="tune" size={22} />
         </button>
       </form>
@@ -44,6 +54,7 @@ export function TopBar({ onToggleMenu }: { onToggleMenu: () => void }) {
         <button
           className={styles.iconButton}
           aria-label="Settings"
+          data-tooltip="Settings"
           onClick={() => void navigate('/settings')}
         >
           <Icon name="settings" size={22} />
@@ -52,6 +63,7 @@ export function TopBar({ onToggleMenu }: { onToggleMenu: () => void }) {
           <button
             className={styles.avatar}
             aria-label={`Account: ${user.name}`}
+            data-tooltip={`${user.name} · ${user.email}`}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
           >

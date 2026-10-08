@@ -3,8 +3,9 @@ import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { Thread } from '../api/mail';
 import { Icon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import type { ActionItem, ActionSpec } from './actions';
-import { displayName, formatListDate } from './format';
+import { displayName, formatFullDate, formatListDate } from './format';
 import styles from './ThreadRow.module.css';
 import { UnsubscribeButton } from './UnsubscribeButton';
 
@@ -19,6 +20,8 @@ interface ThreadRowProps {
   // Shown in place of the date while the row is hovered, like Gmail.
   hoverActions?: ActionItem[];
   onAction?: (thread: Thread, action: ActionSpec) => void;
+  // Label chips before the subject, like Gmail's "Inbox" in Starred.
+  chips?: string[];
 }
 
 export function ThreadRow({
@@ -30,21 +33,24 @@ export function ThreadRow({
   onToggleStar,
   hoverActions = [],
   onAction,
+  chips = [],
 }: ThreadRowProps) {
   const unread = thread.unreadCount > 0;
+  const subject = thread.subject || '(no subject)';
   const stop = (handler: () => void) => (event: MouseEvent) => {
     event.stopPropagation();
     handler();
   };
   const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Enter') onOpen(thread);
+    if (event.key === 'Enter' && event.target === event.currentTarget) onOpen(thread);
   };
 
   return (
     <div
       role="row"
       tabIndex={0}
-      aria-label={`${unread ? 'Unread, ' : ''}${displayName(thread.lastFrom)}, ${thread.subject || '(no subject)'}`}
+      aria-selected={selected}
+      aria-label={`${unread ? 'Unread, ' : ''}${displayName(thread.lastFrom)}, ${subject}`}
       className={[
         styles.row,
         unread ? styles.unread : styles.read,
@@ -54,73 +60,74 @@ export function ThreadRow({
       onKeyDown={onKeyDown}
     >
       <button
-        className={styles.iconButton}
+        type="button"
+        className={styles.check}
         role="checkbox"
         aria-checked={selected}
         aria-label="Select conversation"
+        data-tooltip="Select"
         onClick={stop(() => onToggleSelect(thread))}
       >
-        <Icon name="checkbox" size={18} />
+        <Icon name={selected ? 'checkboxChecked' : 'checkbox'} size={20} />
       </button>
       <button
-        className={`${styles.iconButton} ${thread.isStarred ? styles.starred : ''}`}
+        type="button"
+        className={`${styles.star} ${thread.isStarred ? styles.starred : ''}`}
         aria-pressed={thread.isStarred}
         aria-label={thread.isStarred ? 'Starred' : 'Not starred'}
+        data-tooltip={thread.isStarred ? 'Starred' : 'Not starred'}
         onClick={stop(() => onToggleStar(thread))}
       >
-        <Icon name="star" size={18} />
+        <Icon name={thread.isStarred ? 'starFilled' : 'star'} size={20} />
       </button>
       <span className={styles.sender}>
         {account && (
-          <span className={styles.chip} title={account.emailAddress}>
+          <span className={styles.chip} data-tooltip={account.emailAddress}>
             <ProviderLogo provider={account.provider} size={14} />
           </span>
         )}
-        {displayName(thread.lastFrom)}
+        <span className={styles.senderName}>{displayName(thread.lastFrom)}</span>
         {thread.messageCount > 1 && <span className={styles.count}>{thread.messageCount}</span>}
       </span>
       <span className={styles.summary}>
-        {thread.subject || '(no subject)'}
+        {chips.map((chip) => (
+          <span key={chip} className={styles.label}>
+            {chip}
+          </span>
+        ))}
+        <span className={styles.subject}>{subject}</span>
         {thread.snippet && <span className={styles.snippet}> - {thread.snippet}</span>}
       </span>
-      <span
-        className={styles.attachment}
-        aria-label={thread.hasAttachments ? 'Has attachments' : undefined}
-      >
-        {thread.canUnsubscribe && (
-          <span className={styles.unsubscribe}>
-            <UnsubscribeButton
-              threadId={thread.id}
-              sender={displayName(thread.lastFrom)}
-              unsubscribed={!!thread.unsubscribedAt}
-              size="small"
-            />
-          </span>
-        )}
-        {thread.hasAttachments && <Icon name="draft" size={16} />}
-      </span>
       <span className={styles.end}>
-        <span className={styles.date}>{formatListDate(thread.lastMessageAt)}</span>
+        <span className={styles.date} data-tooltip={formatFullDate(thread.lastMessageAt)}>
+          {formatListDate(thread.lastMessageAt)}
+        </span>
         {onAction && (
           <span className={styles.hoverActions}>
+            {thread.canUnsubscribe && (
+              <UnsubscribeButton
+                threadId={thread.id}
+                sender={displayName(thread.lastFrom)}
+                unsubscribed={!!thread.unsubscribedAt}
+              />
+            )}
             {[
               ...hoverActions,
               {
                 id: 'read',
                 label: unread ? 'Mark as read' : 'Mark as unread',
-                icon: unread ? ('markRead' as const) : ('mail' as const),
+                icon: unread ? ('markRead' as const) : ('markUnread' as const),
                 request: { action: unread ? ('read' as const) : ('unread' as const) },
               },
             ].map((item) => (
-              <button
+              <IconButton
                 key={item.id}
-                className={styles.iconButton}
-                aria-label={`${item.label}: ${thread.subject || '(no subject)'}`}
-                title={item.label}
+                size="small"
+                icon={item.icon}
+                label={`${item.label}: ${subject}`}
+                tooltip={item.label}
                 onClick={stop(() => onAction(thread, item.request))}
-              >
-                <Icon name={item.icon} size={18} />
-              </button>
+              />
             ))}
           </span>
         )}

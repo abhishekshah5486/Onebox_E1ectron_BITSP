@@ -21,7 +21,7 @@ export const FOLDER_ICON: Record<FolderRole, IconName> = {
   drafts: 'draft',
   spam: 'report',
   trash: 'delete',
-  archive: 'archive',
+  archive: 'allMail',
 };
 
 export const isFolderRole = (value: string | undefined): value is FolderRole =>
@@ -61,3 +61,38 @@ export function viewFromPath(basePath: string): MailboxView | null {
   const role = basePath.split('/').at(-1);
   return isFolderRole(role) ? { role } : null;
 }
+
+// Every Gmail category: the tabs plus Purchases and Travel, which can sit on top of a tab.
+export const MAIL_CATEGORIES = [
+  'purchases',
+  'travel',
+  'social',
+  'updates',
+  'forums',
+  'promotions',
+] as const;
+export type MailCategory = (typeof MAIL_CATEGORIES)[number];
+
+export const MAIL_CATEGORY_LABEL: Record<MailCategory, string> = {
+  purchases: 'Purchases',
+  travel: 'Travel',
+  social: 'Social',
+  updates: 'Updates',
+  forums: 'Forums',
+  promotions: 'Promotions',
+};
+
+export const isMailCategory = (value: string | undefined): value is MailCategory =>
+  (MAIL_CATEGORIES as readonly string[]).includes(value ?? '');
+
+// Keys for show/hide preferences.
+export const categoryKey = (category: MailCategory) => `category:${category}`;
+export const labelKey = (accountId: string, path: string) => `label:${accountId}:${path}`;
+
+// Until the user's preferences load, the server's defaults: the four tab categories hidden.
+export const DEFAULT_SIDEBAR_HIDDEN = [
+  'category:social',
+  'category:updates',
+  'category:forums',
+  'category:promotions',
+];

@@ -4,14 +4,19 @@ import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { FolderCounts } from '../api/mail';
 import { useAccountFolders } from '../api/mail-queries';
-import { useAccounts } from '../api/queries';
+import { useAccounts, usePreferences } from '../api/queries';
 import {
   FOLDER_ICON,
   FOLDER_LABEL,
   FOLDER_ORDER,
+  categoryKey,
+  DEFAULT_SIDEBAR_HIDDEN,
   folderBadge,
   folderName,
+  labelKey,
   labelPath,
+  MAIL_CATEGORIES,
+  MAIL_CATEGORY_LABEL,
   type FolderRole,
 } from '../mail/folders';
 import { Icon } from '../ui/Icon';
@@ -45,8 +50,13 @@ function AccountItem({
   const byRole = new Map(
     folders.flatMap((folder) => (folder.role === 'label' ? [] : [[folder.role, folder] as const])),
   );
-  const labels = folders.filter((folder) => folder.role === 'label');
-  const roles = FOLDER_ORDER.filter((role) => role === 'inbox' || byRole.has(role));
+  const hidden = new Set(usePreferences().data?.sidebarHidden ?? DEFAULT_SIDEBAR_HIDDEN);
+  const labels = folders.filter(
+    (folder) => folder.role === 'label' && !hidden.has(labelKey(account.id, folder.path)),
+  );
+  const roles = FOLDER_ORDER.filter(
+    (role) => role === 'inbox' || (byRole.has(role) && !hidden.has(role)),
+  );
   const countOf = (role: FolderRole) => {
     const counts = byRole.get(role);
     return counts ? folderBadge(role, counts) : 0;
@@ -68,12 +78,11 @@ function AccountItem({
         <NavLink
           to={`${base}/inbox`}
           end
-          title={
-            account.displayName
-              ? `${account.emailAddress} · ${account.displayName}`
-              : account.emailAddress
+          data-tooltip={account.emailAddress}
+          // Open, its folders carry the highlight; closed, the account row does.
+          className={() =>
+            `${styles.item} ${!expanded && pathname.startsWith(`${base}/`) ? styles.active : ''}`
           }
-          className={navClass}
         >
           <span className={styles.logo}>
             <ProviderLogo provider={account.provider} size={18} />
@@ -81,7 +90,11 @@ function AccountItem({
           {!collapsed && <span className={styles.label}>{account.emailAddress}</span>}
           {account.status !== 'CONNECTED'
             ? !collapsed && (
-                <span className={styles.warn} aria-label="Needs attention" title="Needs attention">
+                <span
+                  className={styles.warn}
+                  aria-label="Needs attention"
+                  data-tooltip="Needs attention"
+                >
                   !
                 </span>
               )
@@ -106,9 +119,9 @@ function AccountItem({
               key={label.path}
               to={labelPath(account.id, label.path)}
               className={navClass}
-              title={label.name}
+              data-tooltip={label.name}
             >
-              <Icon name="label" size={18} />
+              <Icon name="labelFilled" size={18} />
               <span className={styles.label}>{label.name}</span>
               {badge(label.unread, `${label.unread} unread in ${label.name}`)}
             </NavLink>
@@ -120,6 +133,8 @@ function AccountItem({
 }
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
+  const { pathname } = useLocation();
+  const [moreOpen, setMoreOpen] = useState(false);
   const accounts = useAccounts();
   const list = accounts.data ?? [];
   // Counts come from the mail servers themselves, not just what OneBox has fetched.
@@ -139,21 +154,61 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       </span>
     ) : null;
 
-  const unified: {
+  const preferences = usePreferences().data;
+  const hidden = new Set(preferences?.sidebarHidden ?? DEFAULT_SIDEBAR_HIDDEN);
+
+  interface Entry {
     to: string;
     label: string;
     icon: React.ComponentProps<typeof Icon>['name'];
     role?: FolderRole;
-  }[] = [
-    { to: '/inbox', label: 'All inboxes', icon: 'inbox', role: 'inbox' },
-    { to: '/starred', label: 'Starred', icon: 'star' },
-    ...(['sent', 'drafts', 'archive', 'spam', 'trash'] as const).map((role) => ({
-      to: `/${role}`,
-      label: FOLDER_LABEL[role],
-      icon: FOLDER_ICON[role],
-      role,
+    key: string;
+  }
+  const folderEntry = (role: FolderRole, label = FOLDER_LABEL[role]): Entry => ({
+    to: `/${role}`,
+    label,
+    icon: FOLDER_ICON[role],
+    role,
+    key: role,
+  });
+  const entries: Entry[] = [
+    { to: '/starred', label: 'Starred', icon: 'star', key: 'starred' },
+    folderEntry('sent'),
+    folderEntry('drafts'),
+    ...MAIL_CATEGORIES.map((category): Entry => ({
+      to: `/category/${category}`,
+      label: MAIL_CATEGORY_LABEL[category],
+      icon: category,
+      key: categoryKey(category),
     })),
+    folderEntry('archive'),
+    folderEntry('spam'),
+    folderEntry('trash'),
   ];
+  // Like Gmail, what the user hides in Manage labels waits behind "More".
+  const shown = entries.filter((entry) => !hidden.has(entry.key));
+  const more = entries.filter((entry) => hidden.has(entry.key));
+  const moreActive = more.some((entry) => pathname.startsWith(entry.to));
+  const showMore = moreOpen || moreActive;
+
+  const item = (entry: Entry) => {
+    const count = entry.role ? unifiedBadge(entry.role) : 0;
+    return (
+      <NavLink
+        key={entry.to}
+        to={entry.to}
+        data-tooltip={collapsed ? entry.label : undefined}
+        aria-label={collapsed ? entry.label : undefined}
+        className={({ isActive }) =>
+          `${styles.item} ${isActive ? styles.active : ''} ${count > 0 ? styles.hasUnread : ''}`
+        }
+      >
+        <Icon name={entry.icon} size={20} />
+        {!collapsed && entry.label}
+        {entry.role && badge(count, badgeLabel(entry.role, count, entry.label.toLowerCase()))}
+      </NavLink>
+    );
+  };
 
   return (
     <nav
@@ -165,17 +220,42 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
         {!collapsed && 'Compose'}
       </button>
       <div className={styles.nav}>
-        {unified.map((item) => (
-          <NavLink key={item.to} to={item.to} title={item.label} className={navClass}>
-            <Icon name={item.icon} size={20} />
-            {!collapsed && item.label}
-            {item.role &&
-              badge(
-                unifiedBadge(item.role),
-                badgeLabel(item.role, unifiedBadge(item.role), item.label.toLowerCase()),
-              )}
-          </NavLink>
-        ))}
+        {item({ to: '/inbox', label: 'All inboxes', icon: 'inbox', role: 'inbox', key: 'inbox' })}
+        {shown.map(item)}
+        {showMore && more.map(item)}
+        {showMore && (
+          <>
+            <NavLink
+              to="/settings/labels"
+              className={navClass}
+              aria-label={collapsed ? 'Manage labels' : undefined}
+              data-tooltip={collapsed ? 'Manage labels' : undefined}
+            >
+              <Icon name="settings" size={20} />
+              {!collapsed && 'Manage labels'}
+            </NavLink>
+            <NavLink
+              to="/settings/labels"
+              className={() => styles.item}
+              aria-label={collapsed ? 'Create new label' : undefined}
+              data-tooltip={collapsed ? 'Create new label' : undefined}
+            >
+              <Icon name="add" size={20} />
+              {!collapsed && 'Create new label'}
+            </NavLink>
+          </>
+        )}
+        <button
+          type="button"
+          className={styles.item}
+          aria-expanded={showMore}
+          data-tooltip={collapsed ? (showMore ? 'Less' : 'More') : undefined}
+          aria-label={collapsed ? (showMore ? 'Less' : 'More') : undefined}
+          onClick={() => setMoreOpen(!showMore)}
+        >
+          <Icon name={showMore ? 'expandLess' : 'expand'} size={20} />
+          {!collapsed && (showMore ? 'Less' : 'More')}
+        </button>
       </div>
 
       {list.length > 0 && !collapsed && <p className={styles.section}>Accounts</p>}

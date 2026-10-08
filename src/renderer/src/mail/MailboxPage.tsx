@@ -9,7 +9,7 @@ import {
   useThreadPage,
   type ThreadScope,
 } from '../api/mail-queries';
-import { useAccounts } from '../api/queries';
+import { useAccounts, usePreferences } from '../api/queries';
 import { describeError } from '../auth/errors';
 import { ButtonLink } from '../ui/Button';
 import { Icon } from '../ui/Icon';
@@ -22,6 +22,7 @@ import {
   type FolderRole,
   type GmailCategory,
   type MailboxView,
+  type MailCategory,
 } from './folders';
 import styles from './MailboxPage.module.css';
 import { PageControls, SkeletonRows } from './PageControls';
@@ -41,6 +42,12 @@ function EmptyState({ title, body, connect }: { title: string; body: string; con
 }
 
 // Gmail's inbox tabs; other providers' mail all counts as Primary.
+// Primary plus the tabs turned on in Manage labels.
+function useInboxTabs(): GmailCategory[] {
+  const enabled = usePreferences().data?.inboxTabs ?? ['promotions', 'social', 'updates', 'forums'];
+  return GMAIL_CATEGORIES.filter((tab) => tab === 'primary' || enabled.includes(tab));
+}
+
 function CategoryTabs({
   value,
   onChange,
@@ -48,9 +55,10 @@ function CategoryTabs({
   value: GmailCategory;
   onChange: (category: GmailCategory) => void;
 }) {
+  const tabs = useInboxTabs();
   return (
     <div className={styles.tabs} role="tablist" aria-label="Inbox categories">
-      {GMAIL_CATEGORIES.map((category) => (
+      {tabs.map((category) => (
         <button
           key={category}
           role="tab"
@@ -100,21 +108,28 @@ function unifiedEmpty(filter: ThreadFilter, folder: FolderRole | null, hasAccoun
 export function UnifiedMailbox({
   filter,
   folder = null,
+  tagged = null,
   title,
   basePath,
 }: {
   filter: ThreadFilter;
   folder?: FolderRole | null;
+  tagged?: MailCategory | null;
   title: string;
   basePath: string;
 }) {
   const accounts = useAccounts();
+  const tabs = useInboxTabs();
   const tabbed =
-    filter === 'all' && !folder && (accounts.data ?? []).some((a) => a.provider === 'GMAIL');
+    filter === 'all' &&
+    !folder &&
+    !tagged &&
+    tabs.length > 1 &&
+    (accounts.data ?? []).some((a) => a.provider === 'GMAIL');
   const [category, setCategory] = useState<GmailCategory>('primary');
   const scope = useMemo<ThreadScope>(
-    () => ({ kind: 'unified', filter, folder, category: tabbed ? category : null }),
-    [filter, folder, tabbed, category],
+    () => ({ kind: 'unified', filter, folder, tagged, category: tabbed ? category : null }),
+    [filter, folder, tagged, tabbed, category],
   );
   const [page, setPage] = useState(1);
   const query = useThreadPage(scope, page);
@@ -122,7 +137,9 @@ export function UnifiedMailbox({
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
   const hasAccounts = (accounts.data?.length ?? 0) > 0;
-  const empty = unifiedEmpty(filter, folder, hasAccounts);
+  const empty = tagged
+    ? { title: `Nothing in ${title}`, body: 'Gmail puts matching mail here as it arrives.' }
+    : unifiedEmpty(filter, folder, hasAccounts);
 
   return (
     <section className={styles.panel} aria-label={title}>
@@ -131,8 +148,9 @@ export function UnifiedMailbox({
         items={items}
         basePath={basePath}
         accounts={byId}
-        view={filter === 'starred' ? null : { role: folder ?? 'inbox' }}
+        view={filter === 'starred' || tagged ? null : { role: folder ?? 'inbox' }}
         folders={null}
+        position={{ offset: (page - 1) * PAGE_SIZE, total: total || null }}
         tabs={
           tabbed && (
             <CategoryTabs
@@ -230,7 +248,9 @@ function AccountMailboxView({ accountId, view }: { accountId: string; view: Mail
   const accounts = useAccounts();
   const account = accounts.data?.find((a) => a.id === accountId);
   const folders = useAccountFolders([accountId])[0]?.data?.items ?? null;
-  const tabbed = 'role' in view && view.role === 'inbox' && account?.provider === 'GMAIL';
+  const tabs = useInboxTabs();
+  const tabbed =
+    'role' in view && view.role === 'inbox' && account?.provider === 'GMAIL' && tabs.length > 1;
   const [category, setCategory] = useState<GmailCategory>('primary');
   const scope = useMemo<ThreadScope>(
     () => ({ kind: 'account', accountId, view, category: tabbed ? category : null }),
@@ -274,6 +294,10 @@ function AccountMailboxView({ accountId, view }: { accountId: string; view: Mail
         basePath={basePath}
         view={view}
         folders={folders}
+        position={{
+          offset: (page - 1) * PAGE_SIZE,
+          total: summary.data?.server?.total ?? (stored || null),
+        }}
         tabs={
           tabbed && (
             <CategoryTabs
