@@ -1,7 +1,7 @@
 import type { Address } from '../api/mail';
 
 // Gmail's style ("Oct 8", "2:03 PM") whatever the system locale; times stay in local time.
-const LOCALE = 'en-US';
+export const LOCALE = 'en-US';
 
 export function formatListDate(iso: string, now = new Date()): string {
   const date = new Date(iso);

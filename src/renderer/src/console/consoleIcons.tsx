@@ -1,3 +1,6 @@
+import Icon, { type IconProps } from '@cloudscape-design/components/icon';
+import type { ReactElement } from 'react';
+
 // Icons Cloudscape lacks, drawn its way: 16px grid, 2px strokes, no fills.
 const stroke = (paths: string[]) => (
   <svg
@@ -28,4 +31,30 @@ export const CONSOLE_ICONS = {
     'M9.5 7.5l-3 3',
   ]),
   label: stroke(['M1 4.5V13h10l4-4.25L11 4.5z']),
+  cart: stroke(['M1 2h2l2 8h8l2-6H4', 'M6 14h.01', 'M12 14h.01']),
 };
+
+// One icon per sidebar entry: Cloudscape's where it has one, else one of ours.
+export function navIcon(key: string) {
+  const name: Record<string, IconProps.Name> = {
+    suggestions: 'gen-ai',
+    starred: 'star',
+    sent: 'send',
+    drafts: 'file',
+    trash: 'remove',
+    'category:promotions': 'ticket',
+    'category:social': 'group',
+    'category:updates': 'notification',
+    'category:forums': 'contact',
+    'category:travel': 'globe',
+    settings: 'settings',
+  };
+  const svg: Record<string, ReactElement> = {
+    inbox: CONSOLE_ICONS.inbox,
+    archive: CONSOLE_ICONS.archive,
+    spam: CONSOLE_ICONS.spam,
+    'category:purchases': CONSOLE_ICONS.cart,
+    labels: CONSOLE_ICONS.label,
+  };
+  return name[key] ? <Icon name={name[key]} /> : <Icon svg={svg[key] ?? CONSOLE_ICONS.label} />;
+}

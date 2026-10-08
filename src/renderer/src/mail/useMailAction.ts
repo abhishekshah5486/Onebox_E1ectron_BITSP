@@ -1,6 +1,7 @@
 import { useThreadAction, useUndo } from '../api/mail-queries';
 import { describeError } from '../auth/errors';
-import { useSnackbar } from '../ui/Snackbar';
+import { useOptionalFlash } from '../settings/flash';
+import { useSnackbar, type SnackbarMessage } from '../ui/Snackbar';
 import type { ActionSpec } from './actions';
 import { FOLDER_LABEL } from './folders';
 
@@ -33,14 +34,35 @@ export function actionMessage(spec: ActionSpec, count: number, targetName?: stri
   }
 }
 
-// Runs an action and reports it in the snackbar, with Undo while the server change can be withdrawn.
+// The console also confirms what Gmail does silently.
+const STAR_MESSAGE: Partial<Record<ActionSpec['action'], string>> = {
+  star: 'starred',
+  unstar: 'unstarred',
+};
+
+// Runs an action and reports it, with Undo while the server change can be withdrawn: in the
+// snackbar (v1), or as a banner where the shell has a banner area (v2).
 export function useMailAction() {
   const act = useThreadAction();
   const undo = useUndo();
-  const notify = useSnackbar();
+  const snackbar = useSnackbar();
+  const flash = useOptionalFlash();
+  const notify = (message: SnackbarMessage & { error?: boolean }) =>
+    flash
+      ? flash({
+          type: message.error ? 'error' : 'success',
+          content: message.text,
+          ...(message.action && { action: message.action }),
+        })
+      : snackbar(message);
 
   return (threadIds: string[], spec: ActionSpec, targetName?: string) => {
-    const message = actionMessage(spec, threadIds.length, targetName);
+    const starred = STAR_MESSAGE[spec.action];
+    const message =
+      actionMessage(spec, threadIds.length, targetName) ??
+      (flash && starred
+        ? `${threadIds.length === 1 ? 'Conversation' : `${threadIds.length} conversations`} ${starred}.`
+        : null);
     act.mutate(
       { threadIds, ...spec },
       {
@@ -54,13 +76,13 @@ export function useMailAction() {
                 onClick: () =>
                   undo.mutate(undoToken, {
                     onSuccess: () => notify({ text: 'Action undone.' }),
-                    onError: (error) => notify({ text: describeError(error) }),
+                    onError: (error) => notify({ text: describeError(error), error: true }),
                   }),
               },
             }),
           });
         },
-        onError: (error) => notify({ text: describeError(error) }),
+        onError: (error) => notify({ text: describeError(error), error: true }),
       },
     );
   };

@@ -177,4 +177,6 @@ export const mailApi = {
   deleteLabel: (api: ApiClient, accountId: string, path: string) =>
     api.post<{ items: MailboxLabel[] }>(`/mail/accounts/${accountId}/labels/delete`, { path }),
   stats: (api: ApiClient) => api.get<MailStats>('/mail/stats'),
+  lookup: (api: ApiClient, threadIds: string[]) =>
+    api.post<{ items: Thread[] }>('/mail/threads/lookup', { threadIds }),
 };

@@ -16,12 +16,10 @@ import type { FolderCounts, Thread, ThreadFilter } from '../api/mail';
 import {
   useAccountFolders,
   useMailboxSummary,
-  useThreadAction,
   useThreadPage,
   type ThreadScope,
 } from '../api/mail-queries';
 import { useAccounts, usePreferences } from '../api/queries';
-import { describeError } from '../auth/errors';
 import { folderActions, type ActionSpec } from '../mail/actions';
 import {
   CATEGORY_LABEL,
@@ -38,9 +36,11 @@ import {
 import { displayName, formatUtc, middleTruncate } from '../mail/format';
 import { PAGE_SIZE } from '../mail/paging';
 import { useLoadPage } from '../mail/useLoadPage';
+import { useMailAction } from '../mail/useMailAction';
 import { actionIcon, ConsoleActions } from './ConsoleActions';
 import styles from './ConsoleMailbox.module.css';
 import { useUnsubscribeFlow } from './UnsubscribeFlow';
+import { LoadError } from '../ui/LoadError';
 
 const PROBLEM: Record<string, string> = {
   AUTH_FAILED: 'The mail server rejected this account’s password.',
@@ -248,7 +248,7 @@ function MailTable({
   const [tableRef, tableWidth] = useWidth<HTMLDivElement>();
   const compact = tableWidth < COMPACT_TABLE_WIDTH;
   const query = useThreadPage(scope, page);
-  const act = useThreadAction();
+  const act = useMailAction();
   const unsubscribe = useUnsubscribeFlow();
   // Selection belongs to the page it was made on, so paging clears it.
   const [selection, setSelection] = useState<{ page: number; items: Thread[] }>({
@@ -281,7 +281,10 @@ function MailTable({
   const soleFolders = useAccountFolders(soleAccount ? [soleAccount] : [])[0]?.data?.items ?? null;
 
   const run = (threads: Thread[], request: ActionSpec) => {
-    act.mutate({ threadIds: threads.map((thread) => thread.id), ...request });
+    act(
+      threads.map((thread) => thread.id),
+      request,
+    );
     const done = new Set(threads.map((thread) => thread.id));
     setSelected(selected.filter((thread) => !done.has(thread.id)));
   };
@@ -289,12 +292,6 @@ function MailTable({
   return (
     <SpaceBetween size="m">
       {alerts}
-      {unsubscribe.notice}
-      {act.isError && (
-        <Alert type="error" dismissible onDismiss={() => act.reset()}>
-          {describeError(act.error)}
-        </Alert>
-      )}
       {unsubscribe.modal}
       <div
         ref={tableRef}
@@ -328,9 +325,11 @@ function MailTable({
           onRowClick={({ detail }) => void navigate(`${basePath}/${detail.item.id}`)}
           empty={
             query.isError ? (
-              <Box textAlign="center" color="text-status-error">
-                {describeError(query.error)}
-              </Box>
+              <LoadError
+                error={query.error}
+                header="Conversations could not be loaded"
+                onRetry={() => void query.refetch()}
+              />
             ) : (
               empty
             )

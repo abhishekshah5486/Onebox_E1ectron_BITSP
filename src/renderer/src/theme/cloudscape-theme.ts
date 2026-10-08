@@ -27,3 +27,33 @@ export const oneboxCloudscapeTheme: Theme = {
 };
 
 export const applyCloudscapeTheme = () => applyTheme({ theme: oneboxCloudscapeTheme });
+
+// v2 keeps AWS's palette, but its top bar follows light mode instead of staying dark.
+const lightBar = (light: string) => ({ light });
+export const consoleTheme: Theme = {
+  tokens: {},
+  contexts: {
+    'top-navigation': {
+      tokens: {
+        colorBackgroundContainerContent: lightBar('#ffffff'),
+        colorBackgroundDropdownItemDefault: lightBar('#ffffff'),
+        colorBackgroundDropdownItemHover: lightBar('#f3f3f7'),
+        colorBorderDropdownContainer: lightBar('#b4b4bb'),
+        colorBorderDropdownItemHover: lightBar('#8c8c94'),
+        colorBorderDividerDefault: lightBar('#c6c6cd'),
+        colorTextTopNavigationTitle: lightBar('#0f141a'),
+        colorTextInteractiveDefault: lightBar('#424650'),
+        colorTextInteractiveHover: lightBar('#0f141a'),
+        colorTextInteractiveActive: lightBar('#0f141a'),
+        colorTextBodyDefault: lightBar('#0f141a'),
+        colorTextBodySecondary: lightBar('#424650'),
+        colorTextHeadingDefault: lightBar('#0f141a'),
+        colorTextDropdownItemDefault: lightBar('#0f141a'),
+        colorTextDropdownItemHighlighted: lightBar('#0f141a'),
+        colorTextDropdownItemSecondary: lightBar('#656871'),
+      },
+    },
+  },
+};
+
+export const applyConsoleTheme = () => applyTheme({ theme: consoleTheme });

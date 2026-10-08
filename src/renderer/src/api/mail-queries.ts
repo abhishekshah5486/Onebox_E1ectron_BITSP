@@ -64,6 +64,17 @@ export function useThread(id: string) {
   return useQuery({ queryKey: mailKeys.thread(id), queryFn: () => mailApi.getThread(api, id) });
 }
 
+// Several conversations at once, e.g. the mail behind AI suggestions.
+export function useThreadsById(ids: string[]) {
+  const { api } = useAuth();
+  const sorted = [...new Set(ids)].sort();
+  return useQuery({
+    queryKey: [...mailKeys.all, 'lookup', sorted],
+    queryFn: () => mailApi.lookup(api, sorted),
+    enabled: sorted.length > 0,
+  });
+}
+
 export function useMailStats() {
   const { api } = useAuth();
   return useQuery({

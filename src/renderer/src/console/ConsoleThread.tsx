@@ -7,16 +7,13 @@ import Spinner from '@cloudscape-design/components/spinner';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import type { Address, Message } from '../api/mail';
-import {
-  useAccountFolders,
-  useThread,
-  useThreadAction,
-  useUpdateThread,
-} from '../api/mail-queries';
+import { useAccountFolders, useThread, useUpdateThread } from '../api/mail-queries';
 import { describeError } from '../auth/errors';
 import { EmailFrame } from '../mail/EmailFrame';
 import type { ActionSpec } from '../mail/actions';
 import { viewFromPath } from '../mail/folders';
+import { useMailAction } from '../mail/useMailAction';
+import { useFlash } from '../settings/flash';
 import { displayName, formatBytes, formatMessageDate, formatUtc } from '../mail/format';
 import { ConsoleActions } from './ConsoleActions';
 import styles from './ConsoleThread.module.css';
@@ -156,7 +153,8 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
   const navigate = useNavigate();
   const query = useThread(threadId);
   const update = useUpdateThread();
-  const act = useThreadAction();
+  const act = useMailAction();
+  const flash = useFlash();
   const unsubscribe = useUnsubscribeFlow();
   const markedRead = useRef(false);
   const thread = query.data?.thread;
@@ -174,7 +172,7 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
   // Every action here takes the conversation out of the list it was opened from.
   const run = (request: ActionSpec) => {
     if (!thread) return;
-    act.mutate({ threadIds: [thread.id], ...request });
+    act([thread.id], request);
     back();
   };
 
@@ -198,7 +196,14 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
           {thread && (
             <Button
               onClick={() => {
-                update.mutate({ id: thread.id, isRead: false });
+                update.mutate(
+                  { id: thread.id, isRead: false },
+                  {
+                    onSuccess: () =>
+                      flash({ type: 'success', content: 'Conversation marked as unread.' }),
+                    onError: (error) => flash({ type: 'error', content: describeError(error) }),
+                  },
+                );
                 back();
               }}
             >
@@ -208,7 +213,19 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
           {thread && (
             <Button
               iconName={thread.isStarred ? 'star-filled' : 'star'}
-              onClick={() => update.mutate({ id: thread.id, isStarred: !thread.isStarred })}
+              onClick={() =>
+                update.mutate(
+                  { id: thread.id, isStarred: !thread.isStarred },
+                  {
+                    onSuccess: () =>
+                      flash({
+                        type: 'success',
+                        content: `Conversation ${thread.isStarred ? 'unstarred' : 'starred'}.`,
+                      }),
+                    onError: (error) => flash({ type: 'error', content: describeError(error) }),
+                  },
+                )
+              }
             >
               {thread.isStarred ? 'Unstar' : 'Star'}
             </Button>
@@ -222,7 +239,6 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
       </div>
 
       {unsubscribe.modal}
-      {unsubscribe.notice && <div className={styles.flash}>{unsubscribe.notice}</div>}
       <div className={styles.pane}>
         {query.isPending && <Spinner size="large" />}
         {query.isError && <Alert type="error">{describeError(query.error)}</Alert>}

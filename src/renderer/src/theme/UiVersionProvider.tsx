@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { applyCloudscapeTheme } from './cloudscape-theme';
+import { applyCloudscapeTheme, applyConsoleTheme } from './cloudscape-theme';
 
 // v1 is the Gmail-style interface; v2 is the AWS console-style one built on stock Cloudscape.
 export type UiVersion = 'v1' | 'v2';
@@ -27,7 +27,7 @@ export function UiVersionProvider({ children }: { children: ReactNode }) {
   // v1 retints Cloudscape to match the Gmail look; v2 keeps the stock AWS palette.
   useEffect(() => {
     document.documentElement.dataset.ui = version;
-    if (version === 'v1') return applyCloudscapeTheme().reset;
+    return (version === 'v1' ? applyCloudscapeTheme() : applyConsoleTheme()).reset;
   }, [version]);
 
   const value = useMemo<UiVersionContextValue>(

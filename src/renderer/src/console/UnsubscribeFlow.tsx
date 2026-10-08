@@ -1,4 +1,3 @@
-import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import Modal from '@cloudscape-design/components/modal';
@@ -8,6 +7,7 @@ import type { Thread } from '../api/mail';
 import { useUnsubscribe } from '../api/mail-queries';
 import { describeError } from '../auth/errors';
 import { displayName } from '../mail/format';
+import { useFlash } from '../settings/flash';
 
 const RESULT = {
   'one-click': (sender: string) => `Unsubscribed from ${sender}.`,
@@ -15,11 +15,11 @@ const RESULT = {
   mailto: (sender: string) => `Opened an unsubscribe email to ${sender} in your mail app.`,
 };
 
-// Confirm first, like Gmail; then report what happened above the list or conversation.
+// Confirm first, like Gmail; then report what happened in a banner.
 export function useUnsubscribeFlow() {
   const unsubscribe = useUnsubscribe();
   const [asking, setAsking] = useState<{ id: string; sender: string } | null>(null);
-  const [sender, setSender] = useState('');
+  const flash = useFlash();
 
   const modal = (
     <Modal
@@ -36,8 +36,12 @@ export function useUnsubscribeFlow() {
               variant="primary"
               onClick={() => {
                 if (!asking) return;
-                setSender(asking.sender);
-                unsubscribe.mutate(asking.id);
+                const sender = asking.sender;
+                unsubscribe.mutate(asking.id, {
+                  onSuccess: ({ method }) =>
+                    flash({ type: 'success', content: RESULT[method](sender) }),
+                  onError: (error) => flash({ type: 'error', content: describeError(error) }),
+                });
                 setAsking(null);
               }}
             >
@@ -52,20 +56,9 @@ export function useUnsubscribeFlow() {
     </Modal>
   );
 
-  const notice = unsubscribe.isError ? (
-    <Alert type="error" dismissible onDismiss={() => unsubscribe.reset()}>
-      {describeError(unsubscribe.error)}
-    </Alert>
-  ) : unsubscribe.data ? (
-    <Alert type="success" dismissible onDismiss={() => unsubscribe.reset()}>
-      {RESULT[unsubscribe.data.method](sender)}
-    </Alert>
-  ) : null;
-
   return {
     ask: (thread: Thread) => setAsking({ id: thread.id, sender: displayName(thread.lastFrom) }),
     pending: unsubscribe.isPending,
     modal,
-    notice,
   };
 }
