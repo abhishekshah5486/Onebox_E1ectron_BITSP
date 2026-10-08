@@ -52,3 +52,54 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Bold blue icons, like the inbox's row actions. */
+.mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--link);
+  cursor: pointer;
+}
+
+.mark svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mark:hover {
+  background: var(--pill-hover);
+}
+
+.mark:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+/* v1: Gmail's in-list search, at the right of the toolbar. */
+.gmailSearch {
+  width: 260px;
+  height: 32px;
+  margin-left: auto;
+  padding: 0 14px;
+  border: none;
+  border-radius: 16px;
+  background: var(--ob-search-bg);
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.gmailSearch:focus-visible {
+  outline: 2px solid var(--ob-accent);
+}

@@ -18,3 +18,21 @@
 .filters > :last-child {
   max-width: 480px;
 }
+
+/* The period's totals, in a burgundy banner across the table. */
+.totals {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid #c4325f;
+  border-radius: 12px;
+  background: #fdf0f4;
+  color: #6b0f2b;
+}
+
+:root[data-theme='dark'] .totals {
+  border-color: #b0284f;
+  background: #2e0a17;
+  color: #f6d4df;
+}

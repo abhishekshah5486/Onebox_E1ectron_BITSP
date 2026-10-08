@@ -1,4 +1,3 @@
-import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
@@ -6,6 +5,7 @@ import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Container from '@cloudscape-design/components/container';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
+import Icon from '@cloudscape-design/components/icon';
 import Pagination from '@cloudscape-design/components/pagination';
 import Select, { type SelectProps } from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
@@ -244,7 +244,7 @@ function groupCalls(calls: UsageCall[], by: Exclude<GroupBy, 'none'>): Group[] {
   return [...groups.values()];
 }
 
-const PAGE = 25;
+const PAGE = 10;
 
 const PERIODS = [
   { id: '1', text: 'Today' },
@@ -304,8 +304,8 @@ const CALL_COLUMNS: TableProps.ColumnDefinition<UsageCall>[] = [
   {
     id: 'fallbacks',
     header: 'Fallback',
-    sortingField: 'fallbacks',
-    cell: (row) => (row.fallbacks ? `Yes (${row.fallbacks})` : 'No'),
+    sortingField: 'fellBack',
+    cell: (row) => String(row.fellBack),
   },
   ...tokenColumns<UsageCall>(),
   {
@@ -414,59 +414,67 @@ function UsageTable() {
           })
         }
         header={
-          <Header
-            variant="h2"
-            counter={totals ? `(${num(totals.calls)})` : undefined}
-            description="Every AI call OneBox made for you, what it used and what it cost."
-            actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button
-                  iconName="refresh"
-                  ariaLabel="Reload usage"
-                  onClick={() => void usage.refetch()}
-                />
-                <ButtonDropdown
-                  items={(Object.keys(GROUP_LABEL) as GroupBy[]).map((id) => ({
-                    id,
-                    text: id === 'none' ? 'No grouping' : `By ${GROUP_LABEL[id].toLowerCase()}`,
-                  }))}
-                  onItemClick={({ detail }) => {
-                    const next = detail.id as GroupBy;
-                    setGroupBy(next);
-                    setPage(1);
-                    setSorting(
-                      next === 'none'
-                        ? { field: 'createdAt', descending: true }
-                        : { field: 'calls', descending: true },
-                    );
-                  }}
-                >
-                  {groupBy === 'none'
-                    ? 'Group by'
-                    : `Grouped by ${GROUP_LABEL[groupBy].toLowerCase()}`}
-                </ButtonDropdown>
-                <ButtonDropdown
-                  items={PERIODS.map((period) => ({ id: period.id, text: period.text }))}
-                  onItemClick={({ detail }) => {
-                    setDays(detail.id);
-                    setPage(1);
-                  }}
-                >
-                  {PERIODS.find((period) => period.id === days)?.text}
-                </ButtonDropdown>
-              </SpaceBetween>
-            }
-          >
-            AI usage
-          </Header>
+          <SpaceBetween size="m">
+            <Header
+              variant="h2"
+              counter={totals ? `(${num(totals.calls)})` : undefined}
+              description="Every AI call OneBox made for you, what it used and what it cost."
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    iconName="refresh"
+                    ariaLabel="Reload usage"
+                    onClick={() => void usage.refetch()}
+                  />
+                  <ButtonDropdown
+                    items={(Object.keys(GROUP_LABEL) as GroupBy[]).map((id) => ({
+                      id,
+                      text: id === 'none' ? 'No grouping' : `By ${GROUP_LABEL[id].toLowerCase()}`,
+                    }))}
+                    onItemClick={({ detail }) => {
+                      const next = detail.id as GroupBy;
+                      setGroupBy(next);
+                      setPage(1);
+                      setSorting(
+                        next === 'none'
+                          ? { field: 'createdAt', descending: true }
+                          : { field: 'calls', descending: true },
+                      );
+                    }}
+                  >
+                    {groupBy === 'none'
+                      ? 'Group by'
+                      : `Grouped by ${GROUP_LABEL[groupBy].toLowerCase()}`}
+                  </ButtonDropdown>
+                  <ButtonDropdown
+                    items={PERIODS.map((period) => ({ id: period.id, text: period.text }))}
+                    onItemClick={({ detail }) => {
+                      setDays(detail.id);
+                      setPage(1);
+                    }}
+                  >
+                    {PERIODS.find((period) => period.id === days)?.text}
+                  </ButtonDropdown>
+                </SpaceBetween>
+              }
+            >
+              AI usage
+            </Header>
+            {totals && (
+              <div className={styles.totals} role="status">
+                <Icon name="status-info" />
+                <span>
+                  <b>{usd(totals.costUsd)}</b> · {num(totals.inputTokens)} input tokens (
+                  {num(totals.cacheReadTokens)} from the provider's cache) ·{' '}
+                  {num(totals.outputTokens)} output · {num(totals.cacheHits)} answered from OneBox's
+                  cache · {num(totals.failures)} failed
+                </span>
+              </div>
+            )}
+          </SpaceBetween>
         }
         filter={
           <div className={styles.filters}>
-            {totals && (
-              <Alert type="info">
-                {`${usd(totals.costUsd)} · ${num(totals.inputTokens)} input tokens (${num(totals.cacheReadTokens)} from the provider's cache) · ${num(totals.outputTokens)} output · ${num(totals.cacheHits)} answered from OneBox's cache · ${num(totals.failures)} failed`}
-              </Alert>
-            )}
             <TextFilter
               filteringText={filter}
               filteringPlaceholder="Search by task, model or result"

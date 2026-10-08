@@ -3,7 +3,6 @@ import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import ContentLayout from '@cloudscape-design/components/content-layout';
 import Header from '@cloudscape-design/components/header';
-import Icon from '@cloudscape-design/components/icon';
 import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
 import Pagination from '@cloudscape-design/components/pagination';
@@ -16,9 +15,11 @@ import Table, { type TableProps } from '@cloudscape-design/components/table';
 import Tabs from '@cloudscape-design/components/tabs';
 import TextFilter from '@cloudscape-design/components/text-filter';
 import * as tokens from '@cloudscape-design/design-tokens';
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { ProviderLogo } from '../accounts/ProviderLogo';
+import type { Account } from '../api/accounts';
+import type { FolderCounts } from '../api/mail';
 import {
   useResolveSuggestion,
   useSuggestions,
@@ -31,7 +32,12 @@ import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
 import mailStyles from '../mail/MailboxPage.module.css';
 import { INBOX_FIXED_COLUMNS, useWidth } from '../console/ConsoleMailbox';
-import { formatFullDate, formatUtc } from '../mail/format';
+import { formatFullDate, formatListDate, formatUtc } from '../mail/format';
+import rowStyles from '../mail/ThreadRow.module.css';
+import { Dialog } from '../ui/Dialog';
+import { Icon as GmailIcon } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
+import { Menu } from '../ui/Menu';
 import { FlashProvider, useFlash } from '../settings/flash';
 import { useUiVersion } from '../theme/UiVersionProvider';
 import tableStyles from '../ui/DataTable.module.css';
@@ -279,30 +285,6 @@ function SuggestionsTable() {
       ),
     },
     {
-      id: 'why',
-      header: 'Why',
-      width: 70,
-      cell: ({ result }) => (
-        <Popover
-          size="medium"
-          renderWithPortal
-          dismissButton={false}
-          triggerType="custom"
-          header={`Why “${result.name}”?`}
-          content={result.reason}
-        >
-          <span
-            className={styles.info}
-            role="button"
-            tabIndex={0}
-            aria-label={`Why ${result.name}`}
-          >
-            <Icon name="status-info" variant="link" />
-          </span>
-        </Popover>
-      ),
-    },
-    {
       id: 'confidence',
       header: 'Confidence',
       width: 120,
@@ -336,27 +318,43 @@ function SuggestionsTable() {
     columns.push({
       id: 'actions',
       header: 'Actions',
-      width: 280,
+      width: 180,
       cell: (row) => {
         const others = labelsOf(row.suggestion.accountId).filter(
           (label) => label.path !== row.result.path,
         );
         return (
           <span className={styles.actions}>
-            <Button
-              wrapText={false}
-              ariaLabel={`Accept ${row.result.name} for ${subjectOf(row)}`}
+            <WhyPopover result={row.result}>
+              <button type="button" className={styles.mark} aria-label={`Why ${row.result.name}`}>
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <circle cx="8" cy="8" r="6.5" />
+                  <path d="M8 7.5v4M8 4.75v.01" />
+                </svg>
+              </button>
+            </WhyPopover>
+            <button
+              type="button"
+              className={styles.mark}
+              title="Accept"
+              aria-label={`Accept ${row.result.name} for ${subjectOf(row)}`}
               onClick={() => setConfirming({ kind: 'accept', rows: [row] })}
             >
-              Accept
-            </Button>
-            <Button
-              wrapText={false}
-              ariaLabel={`Decline ${row.result.name} for ${subjectOf(row)}`}
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2.5 8.5l3.5 3.5 7.5-8" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={styles.mark}
+              title="Decline"
+              aria-label={`Decline ${row.result.name} for ${subjectOf(row)}`}
               onClick={() => setConfirming({ kind: 'decline', rows: [row] })}
             >
-              Decline
-            </Button>
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+              </svg>
+            </button>
             <ButtonDropdown
               variant="icon"
               expandToViewport
@@ -420,6 +418,40 @@ function SuggestionsTable() {
   );
 
   const none = selected.length === 0;
+  if (!full) {
+    return (
+      <>
+        <GmailSuggestions
+          rows={shown}
+          waiting={waiting}
+          view={view}
+          onView={switchTo}
+          search={search}
+          onSearch={setSearch}
+          selected={selected}
+          onSelect={setSelected}
+          loading={query.isPending}
+          error={query.isError ? query.error : null}
+          onRefresh={() => void query.refetch()}
+          snippetOf={snippetOf}
+          accountOf={accountOf}
+          moveOptions={moveOptions}
+          onOpen={(row) => void navigate(open(row))}
+          onConfirm={setConfirming}
+        />
+        {confirming && (
+          <Dialog
+            title={TITLE[confirming.kind][0]}
+            confirmLabel={TITLE[confirming.kind][1]}
+            onConfirm={() => run(confirming)}
+            onCancel={() => setConfirming(null)}
+          >
+            {confirmText(confirming)}
+          </Dialog>
+        )}
+      </>
+    );
+  }
   return (
     <div ref={tableRef} className={`${tableStyles.table} ${tableStyles.fixed}`} style={PILL_VARS}>
       <Table
@@ -572,12 +604,260 @@ export function SuggestionsPage() {
       <SuggestionsTable />
     </FlashProvider>
   );
-  // The console (v2) lays the page out itself; the classic look puts it on a panel.
-  return version === 'v2' ? (
-    <ContentLayout>{page}</ContentLayout>
-  ) : (
-    <div className={styles.panel}>{page}</div>
-  );
+  // The console (v2) lays the page out itself; the classic look is Gmail's list panel.
+  return version === 'v2' ? <ContentLayout>{page}</ContentLayout> : page;
 }
 
 export default SuggestionsPage;
+
+// v1: Gmail's list, the same rows as the inbox. Actions show while a row is hovered.
+function GmailSuggestions({
+  rows,
+  waiting,
+  view,
+  onView,
+  search,
+  onSearch,
+  selected,
+  onSelect,
+  loading,
+  error,
+  onRefresh,
+  snippetOf,
+  accountOf,
+  moveOptions,
+  onOpen,
+  onConfirm,
+}: {
+  rows: Row[];
+  waiting: boolean;
+  view: SuggestionView;
+  onView: (view: SuggestionView) => void;
+  search: string;
+  onSearch: (text: string) => void;
+  selected: Row[];
+  onSelect: (rows: Row[]) => void;
+  loading: boolean;
+  error: unknown;
+  onRefresh: () => void;
+  snippetOf: (threadId: string) => string;
+  accountOf: (id: string) => Account | undefined;
+  moveOptions: FolderCounts[];
+  onOpen: (row: Row) => void;
+  onConfirm: (action: Confirming) => void;
+}) {
+  const keys = new Set(selected.map((row) => row.key));
+  const all = rows.length > 0 && rows.every((row) => keys.has(row.key));
+  const toggle = (row: Row) =>
+    onSelect(
+      keys.has(row.key) ? selected.filter((item) => item.key !== row.key) : [...selected, row],
+    );
+  const stop = (handler: () => void) => (event: React.MouseEvent) => {
+    event.stopPropagation();
+    handler();
+  };
+
+  return (
+    <section className={mailStyles.panel} aria-label="Suggestions">
+      <div className={mailStyles.toolbar} role="toolbar" aria-label="Suggestion actions">
+        {waiting && (
+          <div className={mailStyles.selectAll}>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={all ? true : selected.length > 0 ? 'mixed' : false}
+              aria-label="Select all"
+              data-tooltip="Select"
+              className={mailStyles.selectBox}
+              onClick={() => onSelect(selected.length > 0 ? [] : rows)}
+            >
+              <GmailIcon
+                name={all ? 'checkboxChecked' : selected.length > 0 ? 'checkboxSome' : 'checkbox'}
+                size={20}
+              />
+            </button>
+          </div>
+        )}
+        {selected.length > 0 ? (
+          <>
+            <IconButton
+              icon="check"
+              label="Accept"
+              onClick={() => onConfirm({ kind: 'accept', rows: selected })}
+            />
+            <IconButton
+              icon="close"
+              label="Decline"
+              onClick={() => onConfirm({ kind: 'decline', rows: selected })}
+            />
+            {moveOptions.length > 0 && (
+              <Menu
+                label="Move to label"
+                icon="move"
+                heading="Move to:"
+                items={moveOptions.map((label) => ({
+                  key: label.path,
+                  label: label.name,
+                  icon: 'labelFilled' as const,
+                }))}
+                onSelect={(key) => {
+                  const label = moveOptions.find((item) => item.path === key)!;
+                  onConfirm({ kind: 'move', rows: selected, path: label.path, name: label.name });
+                }}
+              />
+            )}
+            <IconButton
+              icon="delete"
+              label="Delete"
+              onClick={() => onConfirm({ kind: 'discard', rows: selected })}
+            />
+          </>
+        ) : (
+          <IconButton icon="refresh" label="Refresh" onClick={onRefresh} />
+        )}
+        <input
+          className={styles.gmailSearch}
+          type="search"
+          value={search}
+          placeholder="Search suggestions"
+          aria-label="Search suggestions"
+          onChange={(event) => onSearch(event.target.value)}
+        />
+      </div>
+      <div className={mailStyles.tabs} role="tablist" aria-label="Suggestions">
+        {(['waiting', 'past'] as const).map((id) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={view === id}
+            className={mailStyles.tab}
+            onClick={() => onView(id)}
+          >
+            {TAB_LABEL[id]}
+          </button>
+        ))}
+      </div>
+      <div className={mailStyles.list} role="grid" aria-label="Suggestions">
+        {loading && <p className={mailStyles.status}>Loading…</p>}
+        {error !== null && <p className={mailStyles.status}>{describeError(error)}</p>}
+        {!loading && error === null && rows.length === 0 && (
+          <p className={mailStyles.status}>
+            {waiting
+              ? 'Nothing waiting. New suggestions appear here as mail arrives.'
+              : 'No past suggestions yet.'}
+          </p>
+        )}
+        {rows.map((row) => {
+          const account = accountOf(row.suggestion.accountId);
+          const isSelected = keys.has(row.key);
+          const snippet = snippetOf(row.suggestion.threadId);
+          const outcome = OUTCOME[row.result.status as keyof typeof OUTCOME];
+          return (
+            <div
+              key={row.key}
+              role="row"
+              tabIndex={0}
+              aria-selected={isSelected}
+              aria-label={`${senderName(row.suggestion.from)}, ${subjectOf(row)}, ${row.result.name}`}
+              className={`${rowStyles.row} ${rowStyles.read} ${isSelected ? rowStyles.selected : ''}`}
+              onClick={() => onOpen(row)}
+              onKeyDown={(event) =>
+                event.key === 'Enter' && event.target === event.currentTarget && onOpen(row)
+              }
+            >
+              {waiting ? (
+                <button
+                  type="button"
+                  className={rowStyles.check}
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  aria-label="Select suggestion"
+                  data-tooltip="Select"
+                  onClick={stop(() => toggle(row))}
+                >
+                  <GmailIcon name={isSelected ? 'checkboxChecked' : 'checkbox'} size={20} />
+                </button>
+              ) : (
+                <span />
+              )}
+              <span className={rowStyles.star}>
+                <GmailIcon name="sparkle" size={18} />
+              </span>
+              <span className={rowStyles.sender}>
+                {account && (
+                  <span className={rowStyles.chip} data-tooltip={account.emailAddress}>
+                    <ProviderLogo provider={account.provider} size={14} />
+                  </span>
+                )}
+                <span className={rowStyles.senderName}>{senderName(row.suggestion.from)}</span>
+              </span>
+              <span className={rowStyles.summary}>
+                <span className={rowStyles.label}>
+                  {row.result.name} · {row.result.confidence.toFixed(2)}
+                </span>
+                <span className={rowStyles.subject}>{subjectOf(row)}</span>
+                {snippet && <span className={rowStyles.snippet}> - {snippet}</span>}
+              </span>
+              <span className={rowStyles.end}>
+                {outcome && <span className={rowStyles.label}>{outcome.text}</span>}
+                <span
+                  className={rowStyles.date}
+                  data-tooltip={formatFullDate(row.suggestion.receivedAt)}
+                >
+                  {formatListDate(row.suggestion.receivedAt)}
+                </span>
+                {waiting && (
+                  <span className={rowStyles.hoverActions}>
+                    <span onClick={stop(() => {})}>
+                      <WhyPopover result={row.result}>
+                        <IconButton size="small" icon="info" label={`Why ${row.result.name}`} />
+                      </WhyPopover>
+                    </span>
+                    <IconButton
+                      size="small"
+                      icon="check"
+                      label={`Accept ${row.result.name}`}
+                      tooltip="Accept"
+                      onClick={stop(() => onConfirm({ kind: 'accept', rows: [row] }))}
+                    />
+                    <IconButton
+                      size="small"
+                      icon="close"
+                      label={`Decline ${row.result.name}`}
+                      tooltip="Decline"
+                      onClick={stop(() => onConfirm({ kind: 'decline', rows: [row] }))}
+                    />
+                    <IconButton
+                      size="small"
+                      icon="delete"
+                      label={`Delete suggestion for ${subjectOf(row)}`}
+                      tooltip="Delete"
+                      onClick={stop(() => onConfirm({ kind: 'discard', rows: [row] }))}
+                    />
+                  </span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// The model's reasoning in an overlay, the same in both interfaces.
+function WhyPopover({ result, children }: { result: LabelResult; children: ReactNode }) {
+  return (
+    <Popover
+      size="medium"
+      position="left"
+      renderWithPortal
+      dismissButton={false}
+      triggerType="custom"
+      header={`Why “${result.name}”? · ${result.confidence.toFixed(2)}`}
+      content={result.reason}
+    >
+      {children}
+    </Popover>
+  );
+}

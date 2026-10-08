@@ -42,6 +42,8 @@ export interface UsageCall {
   costUsd: number;
   latencyMs: number;
   fallbacks: number;
+  // Answered by a later model than the first one tried.
+  fellBack: boolean;
   createdAt: string;
 }
 

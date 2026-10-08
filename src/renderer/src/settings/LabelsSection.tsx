@@ -6,10 +6,8 @@ import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
 import Input from '@cloudscape-design/components/input';
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
-import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
 import Pagination from '@cloudscape-design/components/pagination';
-import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import Select from '@cloudscape-design/components/select';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Textarea from '@cloudscape-design/components/textarea';
@@ -64,8 +62,6 @@ type Editing =
   | { mode: 'create' }
   | { mode: 'edit' | 'delete' | 'details'; account: Account; path: string; name: string };
 
-type ModeFilter = 'all' | AiMode | 'none';
-
 // Folders, categories and labels: what shows in the sidebar and message list, and the labels
 // themselves, which are created, renamed and deleted on the mail server.
 export function LabelsSection() {
@@ -76,7 +72,6 @@ export function LabelsSection() {
   const flash = useFlash();
   const navigate = useNavigate();
   const [editing, setEditing] = useState<Editing | null>(null);
-  const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
   const [search, setSearch] = useState('');
   const [folderSearch, setFolderSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
@@ -124,19 +119,11 @@ export function LabelsSection() {
   const needle = search.trim().toLowerCase();
   const visible = labels.filter(
     (row) =>
-      (modeFilter === 'all' ||
-        modeOf(row) === modeFilter ||
-        (modeFilter === 'off' && modeOf(row) === 'none')) &&
-      (!needle ||
-        `${row.name} ${row.rule?.description ?? ''} ${row.account.emailAddress}`
-          .toLowerCase()
-          .includes(needle)),
+      !needle ||
+      `${row.name} ${row.rule?.description ?? ''} ${row.account.emailAddress}`
+        .toLowerCase()
+        .includes(needle),
   );
-  const tally = (mode: ModeFilter) =>
-    mode === 'all'
-      ? labels.length
-      : labels.filter((row) => modeOf(row) === mode || (mode === 'off' && modeOf(row) === 'none'))
-          .length;
   const keyOf = (row: LabelRow) => `${row.account.id}:${row.path}`;
   const selected = labels.find((row) => keyOf(row) === selectedKey) ?? null;
   const edit = (row: LabelRow, mode: 'edit' | 'delete' | 'details') =>
@@ -178,6 +165,167 @@ export function LabelsSection() {
             Your label settings could not be loaded. {describeError(preferences.error)}
           </Alert>
         )}
+        <Container
+          header={
+            <Header
+              variant="h2"
+              counter={`(${labels.length})`}
+              description="Your own labels, kept on the mail server. On providers other than Gmail they are folders."
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  {refresh('labels', reloadLabels)}
+                  <Button
+                    disabled={!selected}
+                    onClick={() => selected && edit(selected, 'details')}
+                  >
+                    View details
+                  </Button>
+                  <Button disabled={!selected} onClick={() => selected && view(selected)}>
+                    View conversations
+                  </Button>
+                  <Button disabled={!selected} onClick={() => selected && edit(selected, 'edit')}>
+                    Edit
+                  </Button>
+                  <Button disabled={!selected} onClick={() => selected && edit(selected, 'delete')}>
+                    Delete
+                  </Button>
+                  <Button
+                    iconName="add-plus"
+                    variant="primary"
+                    disabled={accounts.length === 0}
+                    onClick={() => setEditing({ mode: 'create' })}
+                  >
+                    Create label
+                  </Button>
+                </SpaceBetween>
+              }
+            >
+              Labels
+            </Header>
+          }
+        >
+          <Table
+            variant="embedded"
+            ariaLabels={{
+              tableLabel: 'Labels',
+              selectionGroupLabel: 'Label selection',
+              itemSelectionLabel: (_, item) => `Select ${item.name}`,
+              allItemsSelectionLabel: () => 'Select all labels',
+            }}
+            items={visible.slice((labelPage - 1) * LABEL_PAGE, labelPage * LABEL_PAGE)}
+            pagination={
+              <Pagination
+                currentPageIndex={labelPage}
+                pagesCount={Math.max(1, Math.ceil(visible.length / LABEL_PAGE))}
+                onChange={({ detail }) => setLabelPage(detail.currentPageIndex)}
+              />
+            }
+            trackBy={keyOf}
+            wrapLines={false}
+            selectionType="single"
+            selectedItems={selected ? [selected] : []}
+            onSelectionChange={({ detail }) =>
+              setSelectedKey(detail.selectedItems[0] ? keyOf(detail.selectedItems[0]) : null)
+            }
+            filter={
+              <div className={styles.toolbar}>
+                <TextFilter
+                  filteringText={search}
+                  filteringPlaceholder="Find a label"
+                  filteringAriaLabel="Find a label"
+                  onChange={({ detail }) => {
+                    setSearch(detail.filteringText);
+                    setLabelPage(1);
+                  }}
+                />
+              </div>
+            }
+            empty={
+              <Box textAlign="center" color="inherit">
+                <b>{labels.length ? 'No matching labels' : 'No labels yet'}</b>
+                <Box variant="p" color="inherit">
+                  {labels.length
+                    ? 'Try another filter.'
+                    : 'Create one to file conversations your way.'}
+                </Box>
+              </Box>
+            }
+            columnDefinitions={[
+              {
+                id: 'name',
+                header: 'Label',
+                cell: (item) => item.name,
+              },
+              {
+                id: 'mode',
+                header: 'AI sorting',
+                cell: (item) => {
+                  const mode = modeOf(item);
+                  return mode === 'auto' ? (
+                    <StatusIndicator type="success">AI applies it</StatusIndicator>
+                  ) : mode === 'suggest' ? (
+                    <StatusIndicator type="info">AI suggests it</StatusIndicator>
+                  ) : (
+                    <StatusIndicator type="stopped">Manual only</StatusIndicator>
+                  );
+                },
+              },
+              {
+                id: 'description',
+                header: 'Description',
+                maxWidth: 240,
+                cell: (item) =>
+                  item.rule?.description ? (
+                    <span className={styles.description} title={item.rule.description}>
+                      {item.rule.description}
+                    </span>
+                  ) : (
+                    <Button variant="inline-link" onClick={() => edit(item, 'edit')}>
+                      Add a description
+                    </Button>
+                  ),
+              },
+              {
+                id: 'account',
+                header: 'Account',
+                cell: (item) => (
+                  <span className={styles.account} title={item.account.emailAddress}>
+                    <ProviderLogo provider={item.account.provider} size={16} />
+                    <span>{item.account.emailAddress}</span>
+                  </span>
+                ),
+              },
+              {
+                id: 'count',
+                header: 'Conversations',
+                cell: (item) => item.total.toLocaleString(),
+              },
+              {
+                id: 'sidebar',
+                header: 'In sidebar',
+                cell: (item) => sidebarToggle(labelKey(item.account.id, item.path), item.name),
+              },
+              {
+                id: 'chips',
+                header: 'On mail',
+                cell: (item) => {
+                  const key = labelKey(item.account.id, item.path);
+                  return (
+                    <Toggle
+                      checked={!chipsHidden.has(key)}
+                      disabled={!ready}
+                      ariaLabel={`Show ${item.name} on conversations in the list`}
+                      onChange={({ detail }) =>
+                        save({ chipsHidden: toggleIn(chipsHidden, key, !detail.checked) })
+                      }
+                    />
+                  );
+                },
+              },
+            ]}
+          />
+        </Container>
+
         <Container
           header={
             <Header
@@ -256,185 +404,6 @@ export function LabelsSection() {
                   ) : (
                     <Box color="text-status-inactive">—</Box>
                   ),
-              },
-            ]}
-          />
-        </Container>
-
-        <Container
-          header={
-            <Header
-              variant="h2"
-              counter={`(${labels.length})`}
-              description="Your own labels, kept on the mail server. On providers other than Gmail they are folders."
-              actions={
-                <SpaceBetween direction="horizontal" size="xs">
-                  {refresh('labels', reloadLabels)}
-                  <Button
-                    disabled={!selected}
-                    onClick={() => selected && edit(selected, 'details')}
-                  >
-                    View details
-                  </Button>
-                  <Button disabled={!selected} onClick={() => selected && view(selected)}>
-                    View conversations
-                  </Button>
-                  <Button disabled={!selected} onClick={() => selected && edit(selected, 'edit')}>
-                    Edit
-                  </Button>
-                  <Button disabled={!selected} onClick={() => selected && edit(selected, 'delete')}>
-                    Delete
-                  </Button>
-                  <Button
-                    iconName="add-plus"
-                    variant="primary"
-                    disabled={accounts.length === 0}
-                    onClick={() => setEditing({ mode: 'create' })}
-                  >
-                    Create label
-                  </Button>
-                </SpaceBetween>
-              }
-            >
-              Labels
-            </Header>
-          }
-        >
-          <Table
-            variant="embedded"
-            ariaLabels={{
-              tableLabel: 'Labels',
-              selectionGroupLabel: 'Label selection',
-              itemSelectionLabel: (_, item) => `Select ${item.name}`,
-              allItemsSelectionLabel: () => 'Select all labels',
-            }}
-            items={visible.slice((labelPage - 1) * LABEL_PAGE, labelPage * LABEL_PAGE)}
-            pagination={
-              <Pagination
-                currentPageIndex={labelPage}
-                pagesCount={Math.max(1, Math.ceil(visible.length / LABEL_PAGE))}
-                onChange={({ detail }) => setLabelPage(detail.currentPageIndex)}
-              />
-            }
-            trackBy={keyOf}
-            wrapLines={false}
-            selectionType="single"
-            selectedItems={selected ? [selected] : []}
-            onSelectionChange={({ detail }) =>
-              setSelectedKey(detail.selectedItems[0] ? keyOf(detail.selectedItems[0]) : null)
-            }
-            filter={
-              <div className={styles.toolbar}>
-                <TextFilter
-                  filteringText={search}
-                  filteringPlaceholder="Find a label"
-                  filteringAriaLabel="Find a label"
-                  onChange={({ detail }) => {
-                    setSearch(detail.filteringText);
-                    setLabelPage(1);
-                  }}
-                />
-                <SegmentedControl
-                  label="AI sorting"
-                  selectedId={modeFilter}
-                  onChange={({ detail }) => {
-                    setModeFilter(detail.selectedId as ModeFilter);
-                    setLabelPage(1);
-                  }}
-                  options={[
-                    { id: 'all', text: `All (${tally('all')})` },
-                    { id: 'auto', text: `AI applies (${tally('auto')})` },
-                    { id: 'suggest', text: `AI suggests (${tally('suggest')})` },
-                    { id: 'off', text: `Manual (${tally('off')})` },
-                  ]}
-                />
-              </div>
-            }
-            empty={
-              <Box textAlign="center" color="inherit">
-                <b>{labels.length ? 'No matching labels' : 'No labels yet'}</b>
-                <Box variant="p" color="inherit">
-                  {labels.length
-                    ? 'Try another filter.'
-                    : 'Create one to file conversations your way.'}
-                </Box>
-              </Box>
-            }
-            columnDefinitions={[
-              {
-                id: 'name',
-                header: 'Label',
-                cell: (item) => (
-                  <Link onFollow={() => view(item)} ariaLabel={`Open ${item.name}`}>
-                    {item.name}
-                  </Link>
-                ),
-              },
-              {
-                id: 'mode',
-                header: 'AI sorting',
-                cell: (item) => {
-                  const mode = modeOf(item);
-                  return mode === 'auto' ? (
-                    <StatusIndicator type="success">AI applies it</StatusIndicator>
-                  ) : mode === 'suggest' ? (
-                    <StatusIndicator type="info">AI suggests it</StatusIndicator>
-                  ) : (
-                    <StatusIndicator type="stopped">Manual only</StatusIndicator>
-                  );
-                },
-              },
-              {
-                id: 'description',
-                header: 'Description',
-                maxWidth: 240,
-                cell: (item) =>
-                  item.rule?.description ? (
-                    <span className={styles.description} title={item.rule.description}>
-                      {item.rule.description}
-                    </span>
-                  ) : (
-                    <Button variant="inline-link" onClick={() => edit(item, 'edit')}>
-                      Add a description
-                    </Button>
-                  ),
-              },
-              {
-                id: 'account',
-                header: 'Account',
-                cell: (item) => (
-                  <span className={styles.account} title={item.account.emailAddress}>
-                    <ProviderLogo provider={item.account.provider} size={16} />
-                    <span>{item.account.emailAddress}</span>
-                  </span>
-                ),
-              },
-              {
-                id: 'count',
-                header: 'Conversations',
-                cell: (item) => item.total.toLocaleString(),
-              },
-              {
-                id: 'sidebar',
-                header: 'In sidebar',
-                cell: (item) => sidebarToggle(labelKey(item.account.id, item.path), item.name),
-              },
-              {
-                id: 'chips',
-                header: 'On mail',
-                cell: (item) => {
-                  const key = labelKey(item.account.id, item.path);
-                  return (
-                    <Toggle
-                      checked={!chipsHidden.has(key)}
-                      disabled={!ready}
-                      ariaLabel={`Show ${item.name} on conversations in the list`}
-                      onChange={({ detail }) =>
-                        save({ chipsHidden: toggleIn(chipsHidden, key, !detail.checked) })
-                      }
-                    />
-                  );
-                },
               },
             ]}
           />
