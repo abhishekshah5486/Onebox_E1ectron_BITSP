@@ -9,6 +9,7 @@ import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { FolderCounts } from '../api/mail';
 import { useAccountFolders } from '../api/mail-queries';
+import { useSuggestionCount } from '../api/ai';
 import { useAccounts, usePreferences } from '../api/queries';
 import { CONSOLE_ICONS } from './consoleIcons';
 import {
@@ -184,6 +185,7 @@ export function ConsoleNavigation() {
     <Count value={unifiedCount(role)} label={`in ${FOLDER_LABEL[role]}`} />
   );
   const hidden = new Set(usePreferences().data?.sidebarHidden ?? DEFAULT_SIDEBAR_HIDDEN);
+  const suggestionCount = useSuggestionCount().data?.count ?? 0;
   const shown = <T extends { key: string }>(items: T[]) =>
     items.filter((item) => !hidden.has(item.key));
 
@@ -199,6 +201,12 @@ export function ConsoleNavigation() {
             title: 'All accounts',
             items: [
               { type: 'link', text: 'Inbox', href: '/inbox', info: count('inbox') },
+              {
+                type: 'link',
+                text: 'Suggestions',
+                href: '/suggestions',
+                info: <Count value={suggestionCount} label="suggestions waiting" />,
+              },
               ...shown([
                 { key: 'starred', type: 'link' as const, text: 'Starred', href: '/starred' },
                 ...UNIFIED.filter((role) => role === 'sent' || role === 'drafts').map((role) => ({

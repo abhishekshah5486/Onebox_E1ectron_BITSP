@@ -4,6 +4,7 @@ import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import type { FolderCounts } from '../api/mail';
 import { useAccountFolders } from '../api/mail-queries';
+import { useSuggestionCount } from '../api/ai';
 import { useAccounts, usePreferences } from '../api/queries';
 import {
   FOLDER_ICON,
@@ -155,6 +156,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     ) : null;
 
   const preferences = usePreferences().data;
+  const suggestionCount = useSuggestionCount().data?.count ?? 0;
   const hidden = new Set(preferences?.sidebarHidden ?? DEFAULT_SIDEBAR_HIDDEN);
 
   interface Entry {
@@ -221,6 +223,18 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       </button>
       <div className={styles.nav}>
         {item({ to: '/inbox', label: 'All inboxes', icon: 'inbox', role: 'inbox', key: 'inbox' })}
+        <NavLink
+          to="/suggestions"
+          data-tooltip={collapsed ? 'Suggestions' : undefined}
+          aria-label={collapsed ? 'Suggestions' : undefined}
+          className={({ isActive }) =>
+            `${styles.item} ${isActive ? styles.active : ''} ${suggestionCount > 0 ? styles.hasUnread : ''}`
+          }
+        >
+          <Icon name="sparkle" size={20} />
+          {!collapsed && 'Suggestions'}
+          {badge(suggestionCount, `${suggestionCount} suggestions waiting`)}
+        </NavLink>
         {shown.map(item)}
         {showMore && more.map(item)}
         {showMore && (
