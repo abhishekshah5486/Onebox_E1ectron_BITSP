@@ -16,11 +16,11 @@
   --table-scroll-thumb: #5f6b7a;
 }
 
-.table tbody tr:not(:has(input:checked)) > td {
+.table tbody tr:not(:has(> td:first-child input:checked)) > td {
   background: var(--table-row-bg) !important;
 }
 
-.table tbody tr:not(:has(input:checked)):hover > td {
+.table tbody tr:not(:has(> td:first-child input:checked)):hover > td {
   background: var(--table-row-hover) !important;
 }
 
@@ -28,7 +28,7 @@
   background: var(--table-header-bg) !important;
 }
 
-:root[data-theme='dark'] .table tbody tr:not(:has(input:checked)) > td {
+:root[data-theme='dark'] .table tbody tr:not(:has(> td:first-child input:checked)) > td {
   border-block-end: 1px solid var(--table-line) !important;
 }
 
@@ -43,7 +43,7 @@
   background: var(--ob-surface) !important;
 }
 
-:root[data-ui='v1'] .table tbody tr:not(:has(input:checked)) > td {
+:root[data-ui='v1'] .table tbody tr:not(:has(> td:first-child input:checked)) > td {
   border-block-end: 1px solid var(--ob-row-border) !important;
   color: var(--ob-text);
 }

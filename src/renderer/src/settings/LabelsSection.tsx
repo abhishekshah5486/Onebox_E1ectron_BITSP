@@ -16,7 +16,9 @@ import Table from '@cloudscape-design/components/table';
 import TextFilter from '@cloudscape-design/components/text-filter';
 import Toggle from '@cloudscape-design/components/toggle';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
+import { mailApi } from '../api/mail';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
 import { aiApi, useLabelRules, useSaveLabelRule, type AiMode, type LabelRule } from '../api/ai';
@@ -75,7 +77,11 @@ export function LabelsSection() {
   const [search, setSearch] = useState('');
   const [folderSearch, setFolderSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [deletingMany, setDeletingMany] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { api } = useAuth();
+  const queryClient = useQueryClient();
   const [labelPage, setLabelPage] = useState(1);
   const rules = useLabelRules();
   const ruleOf = (accountId: string, path: string) =>
@@ -125,7 +131,29 @@ export function LabelsSection() {
         .includes(needle),
   );
   const keyOf = (row: LabelRow) => `${row.account.id}:${row.path}`;
-  const selected = labels.find((row) => keyOf(row) === selectedKey) ?? null;
+  const picked = labels.filter((row) => selectedKeys.includes(keyOf(row)));
+  // View and Edit work on one label; Delete on any number.
+  const selected = picked.length === 1 ? picked[0]! : null;
+  const deleteMany = async () => {
+    setDeleting(true);
+    const results = await Promise.allSettled(
+      picked.map(async (row) => {
+        await mailApi.deleteLabel(api, row.account.id, row.path);
+        await aiApi.removeRule(api, row.account.id, row.path).catch(() => {});
+      }),
+    );
+    const failed = results.filter((result) => result.status === 'rejected').length;
+    void queryClient.invalidateQueries({ queryKey: ['mail'] });
+    void rules.refetch();
+    setDeleting(false);
+    setDeletingMany(false);
+    setSelectedKeys([]);
+    flash(
+      failed
+        ? { type: 'error', content: `${failed} of ${picked.length} labels could not be deleted.` }
+        : { type: 'success', content: `${picked.length} labels deleted.` },
+    );
+  };
   const edit = (row: LabelRow, mode: 'edit' | 'delete' | 'details') =>
     setEditing({ mode, account: row.account, path: row.path, name: row.name });
   const view = (row: LabelRow) => void navigate(labelPath(row.account.id, row.path));
@@ -186,7 +214,10 @@ export function LabelsSection() {
                   <Button disabled={!selected} onClick={() => selected && edit(selected, 'edit')}>
                     Edit
                   </Button>
-                  <Button disabled={!selected} onClick={() => selected && edit(selected, 'delete')}>
+                  <Button
+                    disabled={picked.length === 0}
+                    onClick={() => (selected ? edit(selected, 'delete') : setDeletingMany(true))}
+                  >
                     Delete
                   </Button>
                   <Button
@@ -222,11 +253,9 @@ export function LabelsSection() {
             }
             trackBy={keyOf}
             wrapLines={false}
-            selectionType="single"
-            selectedItems={selected ? [selected] : []}
-            onSelectionChange={({ detail }) =>
-              setSelectedKey(detail.selectedItems[0] ? keyOf(detail.selectedItems[0]) : null)
-            }
+            selectionType="multi"
+            selectedItems={picked}
+            onSelectionChange={({ detail }) => setSelectedKeys(detail.selectedItems.map(keyOf))}
             filter={
               <div className={styles.toolbar}>
                 <TextFilter
@@ -409,6 +438,27 @@ export function LabelsSection() {
           />
         </Container>
 
+        <Modal
+          visible={deletingMany}
+          onDismiss={() => setDeletingMany(false)}
+          header="Delete labels"
+          footer={
+            <Box float="right">
+              <SpaceBetween direction="horizontal" size="xs">
+                <Button variant="link" onClick={() => setDeletingMany(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" loading={deleting} onClick={() => void deleteMany()}>
+                  Delete
+                </Button>
+              </SpaceBetween>
+            </Box>
+          }
+        >
+          Delete <b>{picked.length} labels</b> ({picked.map((row) => row.name).join(', ')})? On
+          Gmail the conversations in them stay in your mailbox; other providers only delete empty
+          folders.
+        </Modal>
         {editing?.mode === 'details' && selected && (
           <Modal
             visible
