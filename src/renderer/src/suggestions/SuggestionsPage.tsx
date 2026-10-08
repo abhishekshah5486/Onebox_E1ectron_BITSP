@@ -715,14 +715,24 @@ function GmailSuggestions({
         ) : (
           <IconButton icon="refresh" label="Refresh" onClick={onRefresh} />
         )}
-        <input
-          className={styles.gmailSearch}
-          type="search"
-          value={search}
-          placeholder="Search suggestions"
-          aria-label="Search suggestions"
-          onChange={(event) => onSearch(event.target.value)}
-        />
+        <label className={styles.gmailSearch}>
+          <GmailIcon name="search" size={20} />
+          <input
+            type="search"
+            value={search}
+            placeholder="Search by sender, subject or label"
+            aria-label="Search suggestions"
+            onChange={(event) => onSearch(event.target.value)}
+          />
+          {search && (
+            <IconButton
+              size="small"
+              icon="close"
+              label="Clear search"
+              onClick={() => onSearch('')}
+            />
+          )}
+        </label>
       </div>
       <div className={mailStyles.tabs} role="tablist" aria-label="Suggestions">
         {(['waiting', 'past'] as const).map((id) => (

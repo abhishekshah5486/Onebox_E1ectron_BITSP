@@ -88,20 +88,52 @@
 
 /* v1: Gmail's in-list search, at the right of the toolbar. */
 .gmailSearch {
-  width: 260px;
-  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, 45%);
+  height: 40px;
   margin-left: auto;
-  padding: 0 14px;
-  border: none;
-  border-radius: 16px;
+  padding: 0 8px 0 14px;
+  border: 1px solid var(--ob-border);
+  border-radius: 999px;
   background: var(--ob-search-bg);
-  color: var(--ob-text);
-  font: inherit;
-  font-size: 14px;
+  color: var(--ob-text-muted);
+  transition:
+    border-color 150ms,
+    background 150ms;
 }
 
-.gmailSearch:focus-visible {
-  outline: 2px solid var(--ob-accent);
+.gmailSearch:hover {
+  border-color: var(--ob-outline);
+}
+
+/* Gemini-like: the field brightens and gets an accent ring while typing. */
+.gmailSearch:focus-within {
+  border-color: var(--ob-accent);
+  box-shadow: 0 0 0 1px var(--ob-accent);
+  color: var(--ob-text);
+}
+
+.gmailSearch input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.gmailSearch input::placeholder {
+  color: var(--ob-text-muted);
+}
+
+.gmailSearch input::-webkit-search-cancel-button {
+  display: none;
 }
 
 /* v1: Gmail's rows under console-style column headers, every row on one grid. */
