@@ -78,6 +78,16 @@ export function useUpdatePreferences() {
   return useMutation({
     mutationFn: (changes: Partial<Omit<Preferences, 'updatedAt'>>) =>
       settingsApi.updatePreferences(api, changes),
+    // Applied at once so quick successive toggles build on each other; undone if saving fails.
+    onMutate: async (changes) => {
+      await queryClient.cancelQueries({ queryKey: keys.preferences });
+      const previous = queryClient.getQueryData<Preferences>(keys.preferences);
+      if (previous) queryClient.setQueryData(keys.preferences, { ...previous, ...changes });
+      return { previous };
+    },
+    onError: (_error, _changes, context) => {
+      if (context?.previous) queryClient.setQueryData(keys.preferences, context.previous);
+    },
     onSuccess: (preferences) => queryClient.setQueryData(keys.preferences, preferences),
   });
 }

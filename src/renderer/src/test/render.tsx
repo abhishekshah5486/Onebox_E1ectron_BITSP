@@ -15,6 +15,8 @@ export const testQueryClient = () =>
 
 interface RenderPageOptions {
   path?: string;
+  // Route pattern when it differs from the path, e.g. '/settings/:tab'.
+  route?: string;
   api?: ApiClient;
   extraRoutes?: string[];
 }
@@ -23,6 +25,7 @@ export function renderPage(
   ui: ReactNode,
   {
     path = '/',
+    route,
     api = fakeApi(),
     extraRoutes = ['/inbox', '/signin', '/signup'],
   }: RenderPageOptions = {},
@@ -34,7 +37,7 @@ export function renderPage(
           <QueryProvider client={testQueryClient()}>
             <MemoryRouter initialEntries={[path]}>
               <Routes>
-                <Route path={path} element={ui} />
+                <Route path={route ?? path} element={ui} />
                 {extraRoutes
                   .filter((route) => route !== path)
                   .map((route) => (

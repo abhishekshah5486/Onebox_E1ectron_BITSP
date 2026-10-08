@@ -126,7 +126,7 @@ export function AppRoutes() {
             element={<AccountThread Thread={Thread} />}
           />
           <Route path="/settings" element={loading('Loading settings', <SettingsPage />)} />
-          <Route path="/settings/labels" element={loading('Loading settings', <SettingsPage />)} />
+          <Route path="/settings/:tab" element={loading('Loading settings', <SettingsPage />)} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/inbox" replace />} />

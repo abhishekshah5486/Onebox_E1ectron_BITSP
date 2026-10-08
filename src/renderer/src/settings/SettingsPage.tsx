@@ -5,7 +5,7 @@ import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Tabs from '@cloudscape-design/components/tabs';
 import Tiles from '@cloudscape-design/components/tiles';
-import { useLocation, useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useCurrentUser } from '../auth/AuthProvider';
 import { useTheme, type ThemePreference } from '../theme/ThemeProvider';
 import { useUiVersion, type UiVersion } from '../theme/UiVersionProvider';
@@ -16,42 +16,53 @@ import { LabelsSection } from './LabelsSection';
 import { PreferencesSection } from './PreferencesSection';
 import styles from './SettingsPage.module.css';
 
-export function SettingsPage() {
-  const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const tab = pathname === '/settings/labels' ? 'labels' : 'general';
+const TABS = [
+  { id: 'accounts', label: 'Accounts', content: <AccountsSection /> },
+  { id: 'mail', label: 'Mail', content: <PreferencesSection /> },
+  { id: 'labels', label: 'Labels', content: <LabelsSection /> },
+  { id: 'integrations', label: 'Integrations', content: <IntegrationsSection /> },
+  { id: 'appearance', label: 'Appearance', content: <Appearance /> },
+];
 
-  return (
-    <div className={styles.panel}>
-      <ContentLayout header={<Header variant="h1">Settings</Header>}>
+export function SettingsPage() {
+  const { tab = 'accounts' } = useParams();
+  const navigate = useNavigate();
+  const { version } = useUiVersion();
+  const active = TABS.some((item) => item.id === tab) ? tab : 'accounts';
+
+  const page = (
+    <div className={styles.content}>
+      <ContentLayout
+        header={
+          <Header
+            variant="h1"
+            description="Your mailboxes, how OneBox handles mail, labels and the tools it talks to."
+          >
+            Settings
+          </Header>
+        }
+      >
         <FlashProvider>
           <Tabs
-            activeTabId={tab}
-            onChange={({ detail }) =>
-              void navigate(detail.activeTabId === 'labels' ? '/settings/labels' : '/settings')
-            }
-            tabs={[
-              { id: 'general', label: 'General', content: <General /> },
-              { id: 'labels', label: 'Labels', content: <LabelsSection /> },
-            ]}
+            activeTabId={active}
+            onChange={({ detail }) => void navigate(`/settings/${detail.activeTabId}`)}
+            tabs={TABS}
           />
         </FlashProvider>
       </ContentLayout>
     </div>
   );
+  // The console (v2) already gives the page its layout; the classic look sits it on a panel.
+  return version === 'v2' ? page : <div className={styles.panel}>{page}</div>;
 }
 
-function General() {
+function Appearance() {
   const user = useCurrentUser();
   const { preference, setPreference } = useTheme();
   const { version, setVersion } = useUiVersion();
   return (
     <SpaceBetween size="l">
-      <AccountsSection />
-      <PreferencesSection />
-      <IntegrationsSection />
-
-      <Container header={<Header variant="h2">Appearance</Header>}>
+      <Container header={<Header variant="h2">Theme</Header>}>
         <Tiles
           ariaLabel="Theme"
           value={preference}
@@ -63,7 +74,6 @@ function General() {
           ]}
         />
       </Container>
-
       <Container
         header={
           <Header variant="h2" description="Both versions show the same mail and settings.">
@@ -81,7 +91,6 @@ function General() {
           ]}
         />
       </Container>
-
       <Container header={<Header variant="h2">Profile</Header>}>
         <KeyValuePairs
           columns={3}

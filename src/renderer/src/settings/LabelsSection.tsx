@@ -1,3 +1,4 @@
+import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
@@ -45,6 +46,8 @@ export function LabelsSection() {
   const flash = useFlash();
   const [editing, setEditing] = useState<Editing | null>(null);
 
+  // Nothing can be toggled until the saved choices are known, so a toggle never works from a guess.
+  const ready = preferences.isSuccess;
   const hidden = new Set(preferences.data?.sidebarHidden ?? []);
   const chipsHidden = new Set(preferences.data?.chipsHidden ?? []);
   const tabs = new Set(preferences.data?.inboxTabs ?? TABS);
@@ -61,6 +64,7 @@ export function LabelsSection() {
   const sidebarToggle = (key: string, label: string) => (
     <Toggle
       checked={!hidden.has(key)}
+      disabled={!ready}
       ariaLabel={`Show ${label} in the sidebar`}
       onChange={({ detail }) => save({ sidebarHidden: toggleIn(hidden, key, !detail.checked) })}
     />
@@ -77,6 +81,14 @@ export function LabelsSection() {
 
   return (
     <SpaceBetween size="l">
+      {preferences.isError && (
+        <Alert
+          type="error"
+          action={<Button onClick={() => void preferences.refetch()}>Try again</Button>}
+        >
+          Your label settings could not be loaded. {describeError(preferences.error)}
+        </Alert>
+      )}
       <Container
         header={
           <Header variant="h2" description="Inbox is always shown.">
@@ -144,6 +156,7 @@ export function LabelsSection() {
                 TABS.includes(category) ? (
                   <Toggle
                     checked={tabs.has(category)}
+                    disabled={!ready}
                     ariaLabel={`Show ${MAIL_CATEGORY_LABEL[category]} as an inbox tab`}
                     onChange={({ detail }) =>
                       save({ inboxTabs: toggleIn(tabs, category, detail.checked) })
@@ -221,6 +234,7 @@ export function LabelsSection() {
                 return (
                   <Toggle
                     checked={!chipsHidden.has(key)}
+                    disabled={!ready}
                     ariaLabel={`Show ${item.name} on conversations in the list`}
                     onChange={({ detail }) =>
                       save({ chipsHidden: toggleIn(chipsHidden, key, !detail.checked) })
