@@ -7,94 +7,100 @@
   box-sizing: border-box;
 }
 
-.account {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.filters {
+  display: grid;
+  gap: 12px;
 }
 
-/* Like a mail row: the subject, then the start of the email, muted. */
-.subject {
+.filters > :first-child {
+  max-width: 480px;
+}
+
+.clip {
   display: block;
-  max-width: 320px;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.subjectLink {
-  color: inherit;
-  font-weight: 600;
-  text-decoration: none;
+.account,
+.label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
-.subjectLink:hover,
-.subjectLink:focus-visible {
-  text-decoration: underline;
+.account > :first-child {
+  flex: none;
 }
 
 .snippet {
   color: var(--muted);
 }
 
-/* Short enough to keep the row at the mail list's height. */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 22px;
-  padding: 0 4px 0 10px;
-  border: 1px solid var(--pill-border);
-  border-radius: 999px;
-  background: var(--pill-bg);
-  color: var(--pill-text);
-  font-size: 13px;
-  line-height: 20px;
-  white-space: nowrap;
+.label > span:first-child {
+  text-decoration: underline dashed;
+  text-underline-offset: 4px;
 }
 
-.pillName {
-  margin-right: 4px;
-  font-weight: 600;
-  white-space: nowrap;
+.info {
+  display: inline-flex;
+  flex: none;
+  color: var(--muted);
   cursor: help;
 }
 
-.pillButton {
-  display: grid;
-  place-items: center;
-  width: 20px;
+.received {
+  display: flex;
+  align-items: center;
+}
+
+/* Revealed while the row is hovered or a control in it has focus, like the inbox's actions. */
+.quick {
+  display: none;
+  gap: 6px;
+}
+
+tr:hover .quick,
+tr:has(:focus-visible) .quick {
+  display: inline-flex;
+}
+
+tr:hover .time,
+tr:has(:focus-visible) .time {
+  display: none;
+}
+
+/* Compact versions of the header's buttons, short enough not to stretch the row. */
+.pill {
   height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
+  padding: 0 12px;
+  border: 2px solid var(--pill-color);
+  border-radius: 16px;
   background: transparent;
+  color: var(--pill-color);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.pillButton svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.pill:hover {
+  background: var(--pill-hover);
 }
 
-.pillButton:hover {
-  background: color-mix(in srgb, currentColor 18%, transparent);
+.pill:focus-visible {
+  outline: 2px solid var(--pill-color);
+  outline-offset: 2px;
 }
 
-.pillButton:focus-visible {
-  outline: 2px solid var(--pill-border);
-  outline-offset: 1px;
-}
-
-.accept {
-  color: var(--accept);
-}
-
-.decline {
-  color: var(--decline);
+.primary,
+.primary:hover {
+  border-color: var(--pill-primary-bg);
+  background: var(--pill-primary-bg);
+  color: var(--pill-primary-text);
 }

@@ -3,15 +3,18 @@ import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import ContentLayout from '@cloudscape-design/components/content-layout';
 import Header from '@cloudscape-design/components/header';
+import Icon from '@cloudscape-design/components/icon';
+import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
 import Pagination from '@cloudscape-design/components/pagination';
 import Popover from '@cloudscape-design/components/popover';
-import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator, {
   type StatusIndicatorProps,
 } from '@cloudscape-design/components/status-indicator';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
+import Tabs from '@cloudscape-design/components/tabs';
+import TextFilter from '@cloudscape-design/components/text-filter';
 import * as tokens from '@cloudscape-design/design-tokens';
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router';
@@ -26,6 +29,7 @@ import {
 import { useAccountFolders, useThreadsById } from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
+import mailStyles from '../mail/MailboxPage.module.css';
 import { formatFullDate, formatUtc } from '../mail/format';
 import { FlashProvider, useFlash } from '../settings/flash';
 import { useUiVersion } from '../theme/UiVersionProvider';
@@ -35,13 +39,14 @@ import styles from './SuggestionsPage.module.css';
 
 // Cloudscape tokens resolve to CSS variables, so the pills follow light and dark mode.
 const PILL_VARS = {
-  '--pill-bg': tokens.colorBackgroundItemSelected,
-  '--pill-border': tokens.colorBorderItemSelected,
-  '--pill-text': tokens.colorTextBodyDefault,
+  '--pill-color': tokens.colorTextButtonNormalDefault,
+  '--pill-hover': tokens.colorBackgroundButtonNormalHover,
+  '--pill-primary-bg': tokens.colorBackgroundButtonPrimaryDefault,
+  '--pill-primary-text': tokens.colorTextButtonPrimaryDefault,
   '--muted': tokens.colorTextBodySecondary,
-  '--accept': tokens.colorTextStatusSuccess,
-  '--decline': tokens.colorTextStatusError,
 } as CSSProperties;
+
+const TAB_LABEL: Record<SuggestionView, string> = { waiting: 'Active', past: 'History' };
 
 const OUTCOME: Record<
   Exclude<LabelResult['status'], 'pending'>,
@@ -110,6 +115,7 @@ function SuggestionsTable() {
   const resolve = useResolveSuggestion();
   const [selected, setSelected] = useState<Row[]>([]);
   const [confirming, setConfirming] = useState<Confirming | null>(null);
+  const [search, setSearch] = useState('');
   const accounts = useAccounts().data ?? [];
   const folderQueries = useAccountFolders(accounts.map((account) => account.id));
   const accountOf = (id: string) => accounts.find((account) => account.id === id);
@@ -118,6 +124,12 @@ function SuggestionsTable() {
       (folder) => folder.role === 'label',
     );
   const waiting = view === 'waiting';
+  const full = version === 'v2';
+  const switchTo = (next: SuggestionView) => {
+    setView(next);
+    setPage(1);
+    setSelected([]);
+  };
 
   const rows = useMemo<Row[]>(
     () =>
@@ -128,6 +140,20 @@ function SuggestionsTable() {
       ),
     [query.data, view],
   );
+  const needle = search.trim().toLowerCase();
+  const shown = needle
+    ? rows.filter((row) =>
+        [
+          row.suggestion.subject,
+          row.suggestion.from,
+          row.result.name,
+          accountOf(row.suggestion.accountId)?.emailAddress ?? '',
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(needle),
+      )
+    : rows;
   // The mail itself, for the snippet after each subject; AI keeps none of it.
   const threads = useThreadsById(rows.map((row) => row.suggestion.threadId));
   const snippetOf = (threadId: string) =>
@@ -179,16 +205,18 @@ function SuggestionsTable() {
   const open = (row: Row) =>
     `/accounts/${row.suggestion.accountId}/inbox/${row.suggestion.threadId}`;
 
+  // Sized like the inbox's columns; a narrow window scrolls the table sideways.
   const columns: TableProps.ColumnDefinition<Row>[] = [
     {
       id: 'account',
       header: 'Account',
+      width: 220,
       cell: ({ suggestion }) => {
         const account = accountOf(suggestion.accountId);
         return account ? (
-          <span className={styles.account}>
+          <span className={styles.account} title={account.emailAddress}>
             <ProviderLogo provider={account.provider} size={16} />
-            {account.emailAddress}
+            <span className={styles.clip}>{account.emailAddress}</span>
           </span>
         ) : (
           '—'
@@ -196,93 +224,69 @@ function SuggestionsTable() {
       },
     },
     {
+      id: 'from',
+      header: 'From',
+      width: 200,
+      cell: ({ suggestion }) => (
+        <span className={styles.clip} title={suggestion.from}>
+          {senderName(suggestion.from)}
+        </span>
+      ),
+    },
+    {
       id: 'subject',
       header: 'Subject',
+      width: 440,
       cell: (row) => {
         const snippet = snippetOf(row.suggestion.threadId);
         return (
-          <span className={styles.subject} title={row.suggestion.subject}>
-            <a
+          <span className={styles.clip} title={row.suggestion.subject}>
+            <Link
               href={open(row)}
-              className={styles.subjectLink}
-              onClick={(event) => {
+              onFollow={(event) => {
                 event.preventDefault();
                 void navigate(open(row));
               }}
             >
               {subjectOf(row)}
-            </a>
+            </Link>
             {snippet && <span className={styles.snippet}> – {snippet}</span>}
           </span>
         );
       },
     },
     {
-      id: 'from',
-      header: 'From',
-      cell: ({ suggestion }) => <span title={suggestion.from}>{senderName(suggestion.from)}</span>,
-    },
-    {
-      id: 'received',
-      header: 'Received (UTC)',
-      cell: ({ suggestion }) => (
-        <span title={formatFullDate(suggestion.receivedAt)}>
-          {formatUtc(suggestion.receivedAt).replace(' UTC', '')}
-        </span>
-      ),
-    },
-    {
       id: 'label',
       header: waiting ? 'Suggested label' : 'Label',
-      cell: (row) => (
-        <span className={styles.pill}>
+      width: 200,
+      cell: ({ result }) => (
+        <span className={styles.label}>
+          <span className={styles.clip}>{result.name}</span>
           <Popover
             size="medium"
             renderWithPortal
-            header={`Why “${row.result.name}”?`}
-            content={row.result.reason}
+            header={`Why “${result.name}”?`}
+            content={result.reason}
           >
-            <span className={styles.pillName}>{row.result.name}</span>
+            <span className={styles.info} aria-label={`Why ${result.name}`}>
+              <Icon name="status-info" size="small" />
+            </span>
           </Popover>
-          {waiting && (
-            <>
-              <button
-                type="button"
-                className={`${styles.pillButton} ${styles.accept}`}
-                aria-label={`Accept ${row.result.name} for ${subjectOf(row)}`}
-                title="Accept"
-                onClick={() => setConfirming({ kind: 'accept', rows: [row] })}
-              >
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M2.5 8.5l3.5 3.5 7.5-8" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                className={`${styles.pillButton} ${styles.decline}`}
-                aria-label={`Decline ${row.result.name} for ${subjectOf(row)}`}
-                title="Decline"
-                onClick={() => setConfirming({ kind: 'decline', rows: [row] })}
-              >
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
-                </svg>
-              </button>
-            </>
-          )}
         </span>
       ),
     },
     {
       id: 'confidence',
       header: 'Confidence',
-      cell: ({ result }) => `${Math.round(result.confidence * 100)}%`,
+      width: 120,
+      cell: ({ result }) => result.confidence.toFixed(2),
     },
   ];
   if (!waiting) {
     columns.push({
       id: 'outcome',
       header: 'Outcome',
+      width: 150,
       cell: ({ result }) => {
         const outcome = OUTCOME[result.status as keyof typeof OUTCOME];
         return outcome ? (
@@ -291,17 +295,82 @@ function SuggestionsTable() {
       },
     });
   }
+  columns.push({
+    id: 'received',
+    header: 'Received (UTC)',
+    width: 190,
+    // Like the inbox, the row's actions take the date's place while it is hovered.
+    cell: (row) => (
+      <span className={styles.received}>
+        <span className={styles.time} title={formatFullDate(row.suggestion.receivedAt)}>
+          {formatUtc(row.suggestion.receivedAt).replace(' UTC', '')}
+        </span>
+        {waiting && (
+          <span className={styles.quick}>
+            <button
+              type="button"
+              className={styles.pill}
+              aria-label={`Decline ${row.result.name} for ${subjectOf(row)}`}
+              onClick={() => setConfirming({ kind: 'decline', rows: [row] })}
+            >
+              Decline
+            </button>
+            <button
+              type="button"
+              className={`${styles.pill} ${styles.primary}`}
+              aria-label={`Accept ${row.result.name} for ${subjectOf(row)}`}
+              onClick={() => setConfirming({ kind: 'accept', rows: [row] })}
+            >
+              Accept
+            </button>
+          </span>
+        )}
+      </span>
+    ),
+  });
 
-  const full = version === 'v2';
+  const tabs = (
+    <div className={styles.filters}>
+      <TextFilter
+        filteringText={search}
+        filteringPlaceholder="Search by subject, sender, label or account"
+        filteringAriaLabel="Search suggestions"
+        onChange={({ detail }) => setSearch(detail.filteringText)}
+      />
+      {full ? (
+        <Tabs
+          activeTabId={view}
+          onChange={({ detail }) => switchTo(detail.activeTabId as SuggestionView)}
+          tabs={(['waiting', 'past'] as const).map((id) => ({ id, label: TAB_LABEL[id] }))}
+        />
+      ) : (
+        <div className={mailStyles.tabs} role="tablist" aria-label="Suggestions">
+          {(['waiting', 'past'] as const).map((id) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={view === id}
+              className={mailStyles.tab}
+              onClick={() => switchTo(id)}
+            >
+              {TAB_LABEL[id]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const none = selected.length === 0;
   return (
-    <div className={tableStyles.table} style={PILL_VARS}>
+    <div className={`${tableStyles.table} ${tableStyles.fixed}`} style={PILL_VARS}>
       <Table
         variant={full ? 'full-page' : 'container'}
         stickyHeader={full}
         trackBy="key"
-        items={rows}
+        items={shown}
         wrapLines={false}
+        filter={tabs}
         loading={query.isPending}
         loadingText="Loading suggestions"
         selectionType={waiting ? 'multi' : undefined}
@@ -324,19 +393,6 @@ function SuggestionsTable() {
             }
             actions={
               <SpaceBetween direction="horizontal" size="xs">
-                <SegmentedControl
-                  label="Show"
-                  selectedId={view}
-                  onChange={({ detail }) => {
-                    setView(detail.selectedId as SuggestionView);
-                    setPage(1);
-                    setSelected([]);
-                  }}
-                  options={[
-                    { id: 'waiting', text: 'Waiting' },
-                    { id: 'past', text: 'Past' },
-                  ]}
-                />
                 <Button
                   iconName="refresh"
                   ariaLabel="Refresh"

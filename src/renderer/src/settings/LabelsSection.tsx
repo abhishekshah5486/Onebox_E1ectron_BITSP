@@ -1,11 +1,11 @@
 import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
-import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import Container from '@cloudscape-design/components/container';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
 import Input from '@cloudscape-design/components/input';
+import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
 import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
 import SegmentedControl from '@cloudscape-design/components/segmented-control';
@@ -59,7 +59,8 @@ const MODE_OPTIONS = (['auto', 'suggest', 'off'] as const).map((value) => ({
 const TABS = ['promotions', 'social', 'updates', 'forums'];
 
 type Editing =
-  { mode: 'create' } | { mode: 'edit' | 'delete'; account: Account; path: string; name: string };
+  | { mode: 'create' }
+  | { mode: 'edit' | 'delete' | 'details'; account: Account; path: string; name: string };
 
 type ModeFilter = 'all' | AiMode | 'none';
 
@@ -75,6 +76,9 @@ export function LabelsSection() {
   const [editing, setEditing] = useState<Editing | null>(null);
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
   const [search, setSearch] = useState('');
+  const [folderSearch, setFolderSearch] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const rules = useLabelRules();
   const ruleOf = (accountId: string, path: string) =>
     rules.data?.items.find((rule) => rule.accountId === accountId && rule.path === path);
@@ -130,9 +134,35 @@ export function LabelsSection() {
       ? labels.length
       : labels.filter((row) => modeOf(row) === mode || (mode === 'off' && modeOf(row) === 'none'))
           .length;
-  const edit = (row: LabelRow, mode: 'edit' | 'delete') =>
+  const keyOf = (row: LabelRow) => `${row.account.id}:${row.path}`;
+  const selected = labels.find((row) => keyOf(row) === selectedKey) ?? null;
+  const edit = (row: LabelRow, mode: 'edit' | 'delete' | 'details') =>
     setEditing({ mode, account: row.account, path: row.path, name: row.name });
   const view = (row: LabelRow) => void navigate(labelPath(row.account.id, row.path));
+  const reloadLabels = () => {
+    folderQueries.forEach((q) => void q.refetch());
+    void rules.refetch();
+  };
+  const refresh = (label: string, onClick: () => void) => (
+    <Button iconName="refresh" ariaLabel={`Reload ${label}`} onClick={onClick} />
+  );
+  const matches = (text: string, query: string) =>
+    text.toLowerCase().includes(query.trim().toLowerCase());
+  const folderRows = FOLDERS.map((role) => ({
+    role,
+    name: role === 'archive' ? folderName(role, archiveName) : FOLDER_LABEL[role],
+  })).filter((row) => matches(row.name, folderSearch));
+  const categoryRows = MAIL_CATEGORIES.filter((category) =>
+    matches(MAIL_CATEGORY_LABEL[category], categorySearch),
+  ).map((category) => ({ category }));
+  const searchBox = (value: string, onChange: (value: string) => void, placeholder: string) => (
+    <TextFilter
+      filteringText={value}
+      filteringPlaceholder={placeholder}
+      filteringAriaLabel={placeholder}
+      onChange={({ detail }) => onChange(detail.filteringText)}
+    />
+  );
 
   return (
     <div className={tableStyles.table}>
@@ -147,7 +177,11 @@ export function LabelsSection() {
         )}
         <Container
           header={
-            <Header variant="h2" description="Inbox is always shown.">
+            <Header
+              variant="h2"
+              description="Inbox is always shown."
+              actions={refresh('folders', () => void preferences.refetch())}
+            >
               Folders
             </Header>
           }
@@ -157,14 +191,10 @@ export function LabelsSection() {
             ariaLabels={{ tableLabel: 'Folders' }}
             loading={preferences.isPending}
             loadingText="Loading"
-            items={FOLDERS.map((role) => ({ role }))}
+            items={folderRows}
+            filter={searchBox(folderSearch, setFolderSearch, 'Find a folder')}
             columnDefinitions={[
-              {
-                id: 'name',
-                header: 'Folder',
-                cell: ({ role }) =>
-                  role === 'archive' ? folderName(role, archiveName) : FOLDER_LABEL[role],
-              },
+              { id: 'name', header: 'Folder', cell: ({ name }) => name },
               {
                 id: 'sidebar',
                 header: 'Show in sidebar',
@@ -180,6 +210,7 @@ export function LabelsSection() {
             <Header
               variant="h2"
               description="Gmail sorts mail into these. Tabs split the inbox; Purchases and Travel gather receipts and bookings from every folder."
+              actions={refresh('categories', () => void preferences.refetch())}
             >
               Categories
             </Header>
@@ -190,7 +221,8 @@ export function LabelsSection() {
             ariaLabels={{ tableLabel: 'Categories' }}
             loading={preferences.isPending}
             loadingText="Loading"
-            items={MAIL_CATEGORIES.map((category) => ({ category }))}
+            items={categoryRows}
+            filter={searchBox(categorySearch, setCategorySearch, 'Find a category')}
             columnDefinitions={[
               {
                 id: 'name',
@@ -233,167 +265,218 @@ export function LabelsSection() {
               counter={`(${labels.length})`}
               description="Your own labels, kept on the mail server. On providers other than Gmail they are folders."
               actions={
-                <Button
-                  iconName="add-plus"
-                  disabled={accounts.length === 0}
-                  onClick={() => setEditing({ mode: 'create' })}
-                >
-                  Create label
-                </Button>
+                <SpaceBetween direction="horizontal" size="xs">
+                  {refresh('labels', reloadLabels)}
+                  <Button
+                    disabled={!selected}
+                    onClick={() => selected && edit(selected, 'details')}
+                  >
+                    View details
+                  </Button>
+                  <Button disabled={!selected} onClick={() => selected && view(selected)}>
+                    View conversations
+                  </Button>
+                  <Button disabled={!selected} onClick={() => selected && edit(selected, 'edit')}>
+                    Edit
+                  </Button>
+                  <Button disabled={!selected} onClick={() => selected && edit(selected, 'delete')}>
+                    Delete
+                  </Button>
+                  <Button
+                    iconName="add-plus"
+                    variant="primary"
+                    disabled={accounts.length === 0}
+                    onClick={() => setEditing({ mode: 'create' })}
+                  >
+                    Create label
+                  </Button>
+                </SpaceBetween>
               }
             >
               Labels
             </Header>
           }
         >
-          <SpaceBetween size="m">
-            <div className={styles.toolbar}>
-              <TextFilter
-                filteringText={search}
-                filteringPlaceholder="Find a label"
-                filteringAriaLabel="Find a label"
-                onChange={({ detail }) => setSearch(detail.filteringText)}
-              />
-              <SegmentedControl
-                label="AI sorting"
-                selectedId={modeFilter}
-                onChange={({ detail }) => setModeFilter(detail.selectedId as ModeFilter)}
-                options={[
-                  { id: 'all', text: `All (${tally('all')})` },
-                  { id: 'auto', text: `AI applies (${tally('auto')})` },
-                  { id: 'suggest', text: `AI suggests (${tally('suggest')})` },
-                  { id: 'off', text: `Manual (${tally('off')})` },
-                ]}
-              />
-            </div>
-            <Table
-              variant="embedded"
-              ariaLabels={{ tableLabel: 'Labels' }}
-              items={visible}
-              trackBy={(item) => `${item.account.id}:${item.path}`}
-              wrapLines={false}
-              stickyColumns={{ first: 0, last: 1 }}
-              empty={
-                <Box textAlign="center" color="inherit">
-                  <b>{labels.length ? 'No matching labels' : 'No labels yet'}</b>
-                  <Box variant="p" color="inherit">
-                    {labels.length
-                      ? 'Try another filter.'
-                      : 'Create one to file conversations your way.'}
-                  </Box>
+          <Table
+            variant="embedded"
+            ariaLabels={{
+              tableLabel: 'Labels',
+              selectionGroupLabel: 'Label selection',
+              itemSelectionLabel: (_, item) => `Select ${item.name}`,
+              allItemsSelectionLabel: () => 'Select all labels',
+            }}
+            items={visible}
+            trackBy={keyOf}
+            wrapLines={false}
+            selectionType="single"
+            selectedItems={selected ? [selected] : []}
+            onSelectionChange={({ detail }) =>
+              setSelectedKey(detail.selectedItems[0] ? keyOf(detail.selectedItems[0]) : null)
+            }
+            filter={
+              <div className={styles.toolbar}>
+                <TextFilter
+                  filteringText={search}
+                  filteringPlaceholder="Find a label"
+                  filteringAriaLabel="Find a label"
+                  onChange={({ detail }) => setSearch(detail.filteringText)}
+                />
+                <SegmentedControl
+                  label="AI sorting"
+                  selectedId={modeFilter}
+                  onChange={({ detail }) => setModeFilter(detail.selectedId as ModeFilter)}
+                  options={[
+                    { id: 'all', text: `All (${tally('all')})` },
+                    { id: 'auto', text: `AI applies (${tally('auto')})` },
+                    { id: 'suggest', text: `AI suggests (${tally('suggest')})` },
+                    { id: 'off', text: `Manual (${tally('off')})` },
+                  ]}
+                />
+              </div>
+            }
+            empty={
+              <Box textAlign="center" color="inherit">
+                <b>{labels.length ? 'No matching labels' : 'No labels yet'}</b>
+                <Box variant="p" color="inherit">
+                  {labels.length
+                    ? 'Try another filter.'
+                    : 'Create one to file conversations your way.'}
                 </Box>
-              }
-              columnDefinitions={[
-                {
-                  id: 'name',
-                  header: 'Label',
-                  cell: (item) => (
-                    <Link onFollow={() => view(item)} ariaLabel={`Open ${item.name}`}>
-                      {item.name}
-                    </Link>
-                  ),
+              </Box>
+            }
+            columnDefinitions={[
+              {
+                id: 'name',
+                header: 'Label',
+                cell: (item) => (
+                  <Link onFollow={() => view(item)} ariaLabel={`Open ${item.name}`}>
+                    {item.name}
+                  </Link>
+                ),
+              },
+              {
+                id: 'mode',
+                header: 'AI sorting',
+                cell: (item) => {
+                  const mode = modeOf(item);
+                  return mode === 'auto' ? (
+                    <StatusIndicator type="success">AI applies it</StatusIndicator>
+                  ) : mode === 'suggest' ? (
+                    <StatusIndicator type="info">AI suggests it</StatusIndicator>
+                  ) : (
+                    <StatusIndicator type="stopped">Manual only</StatusIndicator>
+                  );
                 },
-                {
-                  id: 'mode',
-                  header: 'AI sorting',
-                  cell: (item) => {
-                    const mode = modeOf(item);
-                    return mode === 'auto' ? (
-                      <StatusIndicator type="success">AI applies it</StatusIndicator>
-                    ) : mode === 'suggest' ? (
-                      <StatusIndicator type="info">AI suggests it</StatusIndicator>
-                    ) : (
-                      <StatusIndicator type="stopped">Manual only</StatusIndicator>
-                    );
-                  },
-                },
-                {
-                  id: 'description',
-                  header: 'Description',
-                  maxWidth: 240,
-                  cell: (item) =>
-                    item.rule?.description ? (
-                      <span className={styles.description} title={item.rule.description}>
-                        {item.rule.description}
-                      </span>
-                    ) : (
-                      <Button variant="inline-link" onClick={() => edit(item, 'edit')}>
-                        Add a description
-                      </Button>
-                    ),
-                },
-                {
-                  id: 'account',
-                  header: 'Account',
-                  cell: (item) => (
-                    <span className={styles.account} title={item.account.emailAddress}>
-                      <ProviderLogo provider={item.account.provider} size={16} />
-                      <span>{item.account.emailAddress}</span>
+              },
+              {
+                id: 'description',
+                header: 'Description',
+                maxWidth: 240,
+                cell: (item) =>
+                  item.rule?.description ? (
+                    <span className={styles.description} title={item.rule.description}>
+                      {item.rule.description}
                     </span>
+                  ) : (
+                    <Button variant="inline-link" onClick={() => edit(item, 'edit')}>
+                      Add a description
+                    </Button>
                   ),
-                },
-                {
-                  id: 'count',
-                  header: 'Conversations',
-                  cell: (item) =>
-                    item.total > 0 ? (
-                      <Link onFollow={() => view(item)}>
-                        {item.total.toLocaleString()}
-                        {item.unread ? ` (${item.unread.toLocaleString()} unread)` : ''}
-                      </Link>
-                    ) : (
-                      <Box color="text-status-inactive">0</Box>
-                    ),
-                },
-                {
-                  id: 'sidebar',
-                  header: 'In sidebar',
-                  cell: (item) => sidebarToggle(labelKey(item.account.id, item.path), item.name),
-                },
-                {
-                  id: 'chips',
-                  header: 'On mail',
-                  cell: (item) => {
-                    const key = labelKey(item.account.id, item.path);
-                    return (
-                      <Toggle
-                        checked={!chipsHidden.has(key)}
-                        disabled={!ready}
-                        ariaLabel={`Show ${item.name} on conversations in the list`}
-                        onChange={({ detail }) =>
-                          save({ chipsHidden: toggleIn(chipsHidden, key, !detail.checked) })
-                        }
-                      />
-                    );
-                  },
-                },
-                {
-                  id: 'actions',
-                  header: 'Actions',
-                  cell: (item) => (
-                    <ButtonDropdown
-                      variant="inline-icon"
-                      expandToViewport
-                      ariaLabel={`Actions for ${item.name}`}
-                      items={[
-                        { id: 'view', text: 'View conversations', iconName: 'search' },
-                        { id: 'edit', text: 'Edit', iconName: 'edit' },
-                        { id: 'delete', text: 'Delete', iconName: 'remove' },
-                      ]}
-                      onItemClick={({ detail }) =>
-                        detail.id === 'view'
-                          ? view(item)
-                          : edit(item, detail.id as 'edit' | 'delete')
+              },
+              {
+                id: 'account',
+                header: 'Account',
+                cell: (item) => (
+                  <span className={styles.account} title={item.account.emailAddress}>
+                    <ProviderLogo provider={item.account.provider} size={16} />
+                    <span>{item.account.emailAddress}</span>
+                  </span>
+                ),
+              },
+              {
+                id: 'count',
+                header: 'Conversations',
+                cell: (item) => item.total.toLocaleString(),
+              },
+              {
+                id: 'sidebar',
+                header: 'In sidebar',
+                cell: (item) => sidebarToggle(labelKey(item.account.id, item.path), item.name),
+              },
+              {
+                id: 'chips',
+                header: 'On mail',
+                cell: (item) => {
+                  const key = labelKey(item.account.id, item.path);
+                  return (
+                    <Toggle
+                      checked={!chipsHidden.has(key)}
+                      disabled={!ready}
+                      ariaLabel={`Show ${item.name} on conversations in the list`}
+                      onChange={({ detail }) =>
+                        save({ chipsHidden: toggleIn(chipsHidden, key, !detail.checked) })
                       }
                     />
-                  ),
+                  );
+                },
+              },
+            ]}
+          />
+        </Container>
+
+        {editing?.mode === 'details' && selected && (
+          <Modal
+            visible
+            size="medium"
+            onDismiss={() => setEditing(null)}
+            header={selected.name}
+            footer={
+              <Box float="right">
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button onClick={() => edit(selected, 'edit')}>Edit</Button>
+                  <Button variant="primary" onClick={() => view(selected)}>
+                    View conversations
+                  </Button>
+                </SpaceBetween>
+              </Box>
+            }
+          >
+            <KeyValuePairs
+              columns={2}
+              items={[
+                { label: 'Name', value: selected.name },
+                { label: 'Path on the server', value: selected.path },
+                { label: 'Account', value: selected.account.emailAddress },
+                { label: 'AI sorting', value: MODE_LABEL[selected.rule?.mode ?? 'off'] },
+                {
+                  label: 'Conversations',
+                  value: `${selected.total.toLocaleString()} (${selected.unread.toLocaleString()} unread)`,
+                },
+                {
+                  label: 'Shown',
+                  value:
+                    [
+                      !hidden.has(labelKey(selected.account.id, selected.path)) && 'In the sidebar',
+                      !chipsHidden.has(labelKey(selected.account.id, selected.path)) && 'On mail',
+                    ]
+                      .filter(Boolean)
+                      .join(', ') || 'Nowhere',
                 },
               ]}
             />
-          </SpaceBetween>
-        </Container>
-
-        {editing && (
+            <Box margin={{ top: 'l' }}>
+              <KeyValuePairs
+                items={[
+                  {
+                    label: 'Description for AI',
+                    value: selected.rule?.description || '—',
+                  },
+                ]}
+              />
+            </Box>
+          </Modal>
+        )}
+        {editing && editing.mode !== 'details' && (
           <LabelModal
             editing={editing}
             accounts={accounts}

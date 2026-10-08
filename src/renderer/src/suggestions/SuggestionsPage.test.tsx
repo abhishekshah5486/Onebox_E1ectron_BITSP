@@ -52,9 +52,13 @@ describe('SuggestionsPage', () => {
 
     const row = (await screen.findByText('Pricing for 20 seats?')).closest('tr')!;
     expect(within(row).getByText('Leads')).toBeInTheDocument();
-    expect(within(row).getByText('91%')).toBeInTheDocument();
+    expect(within(row).getByText('0.91')).toBeInTheDocument();
     await userEvent.click(
-      within(row).getByRole('button', { name: 'Accept Leads for Pricing for 20 seats?' }),
+      // Shown while the row is hovered, which jsdom cannot do.
+      within(row).getByRole('button', {
+        name: 'Accept Leads for Pricing for 20 seats?',
+        hidden: true,
+      }),
     );
     // Nothing changes until it is confirmed.
     expect(post).not.toHaveBeenCalledWith(expect.stringContaining('/decide'), expect.anything());

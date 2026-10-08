@@ -70,3 +70,14 @@
 .table *::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Space under each table, so stacked tables and the page end do not crowd it. */
+.table {
+  margin-bottom: 24px;
+}
+
+/* Fixed layout fits the table to the window like the mail list: unsized columns share the rest. */
+.fixed :global(table) {
+  table-layout: fixed;
+  width: 100%;
+}

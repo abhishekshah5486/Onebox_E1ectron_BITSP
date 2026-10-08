@@ -1,4 +1,5 @@
 import Box from '@cloudscape-design/components/box';
+import Button from '@cloudscape-design/components/button';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Container from '@cloudscape-design/components/container';
 import FormField from '@cloudscape-design/components/form-field';
@@ -404,20 +405,27 @@ function UsageTable() {
                 : 'Every AI call OneBox made for you.'
             }
             actions={
-              <SegmentedControl
-                label="Period"
-                selectedId={days}
-                onChange={({ detail }) => {
-                  setDays(detail.selectedId);
-                  setPage(1);
-                }}
-                options={[
-                  { id: '1', text: 'Today' },
-                  { id: '7', text: '7 days' },
-                  { id: '30', text: '30 days' },
-                  { id: '90', text: '90 days' },
-                ]}
-              />
+              <SpaceBetween direction="horizontal" size="xs">
+                <Button
+                  iconName="refresh"
+                  ariaLabel="Reload usage"
+                  onClick={() => void usage.refetch()}
+                />
+                <SegmentedControl
+                  label="Period"
+                  selectedId={days}
+                  onChange={({ detail }) => {
+                    setDays(detail.selectedId);
+                    setPage(1);
+                  }}
+                  options={[
+                    { id: '1', text: 'Today' },
+                    { id: '7', text: '7 days' },
+                    { id: '30', text: '30 days' },
+                    { id: '90', text: '90 days' },
+                  ]}
+                />
+              </SpaceBetween>
             }
           >
             AI usage

@@ -8,6 +8,7 @@ import StatusIndicator, {
   type StatusIndicatorProps,
 } from '@cloudscape-design/components/status-indicator';
 import Table from '@cloudscape-design/components/table';
+import TextFilter from '@cloudscape-design/components/text-filter';
 import { useState } from 'react';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account, AccountStatus } from '../api/accounts';
@@ -55,10 +56,19 @@ export function AccountsSection() {
   const [selected, setSelected] = useState<Account[]>([]);
   const [adding, setAdding] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [search, setSearch] = useState('');
 
-  const items = accounts.data ?? [];
+  const all = accounts.data ?? [];
+  const needle = search.trim().toLowerCase();
+  const items = needle
+    ? all.filter((item) =>
+        `${item.emailAddress} ${item.displayName ?? ''} ${item.provider} ${item.imap.host}`
+          .toLowerCase()
+          .includes(needle),
+      )
+    : all;
   // Fresh copies of what is ticked, so statuses stay current after an action.
-  const current = items.filter((item) => selected.some((picked) => picked.id === item.id));
+  const current = all.filter((item) => selected.some((picked) => picked.id === item.id));
   const many = () =>
     current.length === 1 ? current[0]!.emailAddress : `${current.length} accounts`;
   const allPaused = current.length > 0 && current.every((item) => item.status === 'DISABLED');
@@ -120,6 +130,14 @@ export function AccountsSection() {
         onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
         trackBy="id"
         items={items}
+        filter={
+          <TextFilter
+            filteringText={search}
+            filteringPlaceholder="Find an account"
+            filteringAriaLabel="Find an account"
+            onChange={({ detail }) => setSearch(detail.filteringText)}
+          />
+        }
         ariaLabels={{
           selectionGroupLabel: 'Accounts',
           itemSelectionLabel: (_, item) => item.emailAddress,
@@ -128,10 +146,15 @@ export function AccountsSection() {
         header={
           <Header
             variant="h2"
-            counter={items.length ? `(${items.length})` : undefined}
+            counter={all.length ? `(${all.length})` : undefined}
             description="Mailboxes OneBox syncs into your unified inbox"
             actions={
               <SpaceBetween direction="horizontal" size="xs">
+                <Button
+                  iconName="refresh"
+                  ariaLabel="Reload accounts"
+                  onClick={() => void accounts.refetch()}
+                />
                 <Button
                   disabled={current.length === 0}
                   loading={testAccount.isPending}
