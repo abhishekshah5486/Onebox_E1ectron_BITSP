@@ -1,6 +1,8 @@
-import { fileIconUrl } from './fileIcons';
+import { DriveIcon, driveKindOf, fileColorOf } from './DriveIcons';
+import { fileIconName, fileIconUrl } from './fileIcons';
 
-// The file's own icon (PDF, image, the Python or Go logo, Word, Excel, .env…), as code editors show.
+// Documents, sheets, slides, PDFs, images, audio, video and archives get drive-style icons;
+// code and config get their language's icon (Python, Go, JSON, .env…).
 export function FileBadge({
   file,
   size = 20,
@@ -8,6 +10,8 @@ export function FileBadge({
   file: { filename: string; contentType: string };
   size?: number;
 }) {
+  const drive = driveKindOf(file.filename, fileIconName(file.filename, file.contentType));
+  if (drive) return <DriveIcon kind={drive} size={size} />;
   return (
     <img
       src={fileIconUrl(file.filename, file.contentType)}
@@ -20,3 +24,7 @@ export function FileBadge({
     />
   );
 }
+
+// The colour that goes with the file's icon.
+export const fileColor = (file: { filename: string; contentType: string }) =>
+  fileColorOf(file.filename, fileIconName(file.filename, file.contentType));

@@ -76,7 +76,6 @@
   position: relative;
   width: 180px;
   height: 120px;
-  overflow: hidden;
   border: 1px solid var(--ob-border);
   border-radius: 4px;
   background: var(--ob-surface-hover);
@@ -102,6 +101,7 @@
   place-items: center;
   min-height: 0;
   overflow: hidden;
+  border-radius: 4px 4px 0 0;
   background: var(--ob-surface-raised);
 }
 
@@ -117,12 +117,29 @@
 }
 
 .cardFooter {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 36px;
-  padding: 0 10px;
+  height: 40px;
+  padding: 0 52px 0 10px;
   border-top: 1px solid var(--ob-border);
+}
+
+/* Gmail's dog-ear: the tip of the card is cut away (the page shows through), its flap turned
+   back in the file's colour, with the grey underside of the fold beside it. */
+.fold {
+  position: absolute;
+  z-index: 1;
+  right: -1px;
+  bottom: -1px;
+  pointer-events: none;
+  width: 48px;
+  height: 24px;
+  background:
+    linear-gradient(to bottom right, transparent 50%, #c4c4c4 50%) left / 24px 24px no-repeat,
+    linear-gradient(to bottom right, var(--fold) 50%, var(--ob-surface-raised) 50%) right / 24px
+      24px no-repeat;
 }
 
 .cardFooter svg,
@@ -132,8 +149,9 @@
 
 .cardName {
   overflow: hidden;
+  color: var(--ob-text-muted);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -142,11 +160,12 @@
 .cardHover {
   position: absolute;
   inset: 0;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  background: color-mix(in srgb, var(--ob-surface-hover) 94%, transparent);
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--ob-surface-hover);
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms;
@@ -161,24 +180,27 @@
 .cardHoverName {
   display: -webkit-box;
   overflow: hidden;
-  color: var(--ob-text);
+  color: var(--ob-text-muted);
   font-size: 13px;
   font-weight: 600;
+  line-height: 18px;
   word-break: break-all;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 
 .cardSize {
-  margin-left: 26px;
+  margin-left: 30px;
   color: var(--ob-text-muted);
   font-size: 12px;
 }
 
 .cardActions {
   position: absolute;
-  bottom: 8px;
-  left: 34px;
+  bottom: 10px;
+  left: 42px;
+  display: flex;
+  gap: 10px;
   opacity: 0;
   transition: opacity 120ms;
 }
@@ -280,4 +302,27 @@
   font: inherit;
   font-weight: 500;
   cursor: pointer;
+}
+
+/* Gmail's solid grey square buttons on the hover sheet. */
+.cardButton {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: #80868b;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.cardButton:hover {
+  background: #5f6368;
+}
+
+.cardButton:focus-visible {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: 2px;
 }

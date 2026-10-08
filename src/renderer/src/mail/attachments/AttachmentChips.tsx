@@ -22,7 +22,7 @@ export function AttachmentChips({ files }: { files: AttachmentFile[] }) {
           aria-label={`Preview ${file.filename}`}
           onClick={() => setOpen(file)}
         >
-          <FileBadge file={file} size={16} />
+          <FileBadge file={file} size={18} />
           <span className={styles.chipName}>{file.filename}</span>
         </button>
       ))}

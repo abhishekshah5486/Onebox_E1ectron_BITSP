@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import { formatBytes } from '../format';
 import { AttachmentViewer } from './AttachmentViewer';
 import styles from './Attachments.module.css';
-import { FileBadge } from './FileBadge';
+import { FileBadge, fileColor } from './FileBadge';
 import { useAttachmentDownload, useAttachmentUrl, type AttachmentFile } from './useAttachment';
 
 const THUMBNAIL = /^image\/(png|jpeg|gif|webp|bmp|avif)$/;
@@ -12,7 +13,7 @@ function Card({ file, onOpen }: { file: AttachmentFile; onOpen: () => void }) {
   const download = useAttachmentDownload();
   const { url } = useAttachmentUrl(THUMBNAIL.test(file.contentType.toLowerCase()) ? file : null);
   return (
-    <div className={styles.card}>
+    <div className={styles.card} style={{ '--fold': fileColor(file) } as CSSProperties}>
       <button
         type="button"
         className={styles.cardOpen}
@@ -24,31 +25,36 @@ function Card({ file, onOpen }: { file: AttachmentFile; onOpen: () => void }) {
             <img className={styles.thumbnail} src={url} alt="" />
           ) : (
             <span className={styles.cardBadge}>
-              <FileBadge file={file} size={48} />
+              <FileBadge file={file} size={56} />
             </span>
           )}
         </span>
         <span className={styles.cardFooter}>
-          <FileBadge file={file} size={18} />
+          <FileBadge file={file} size={22} />
           <span className={styles.cardName}>{file.filename}</span>
         </span>
       </button>
       {/* Gmail's hover sheet: the full name, its size and a download. */}
       <span className={styles.cardHover} aria-hidden="true">
         <span className={styles.cardHoverHead}>
-          <FileBadge file={file} size={18} />
+          <FileBadge file={file} size={22} />
           <span className={styles.cardHoverName}>{file.filename}</span>
         </span>
         <span className={styles.cardSize}>{formatBytes(file.sizeBytes)}</span>
       </span>
       <span className={styles.cardActions}>
-        <IconButton
-          size="small"
-          icon="download"
-          label={`Download ${file.filename}`}
+        <button
+          type="button"
+          className={styles.cardButton}
+          aria-label={`Download ${file.filename}`}
+          data-tooltip="Download"
           onClick={() => void download(file)}
-        />
+        >
+          <Icon name="download" size={20} />
+        </button>
       </span>
+      {/* The dog-ear stays on top, hovered or not. */}
+      <span className={styles.fold} aria-hidden="true" />
     </div>
   );
 }
