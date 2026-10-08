@@ -86,6 +86,10 @@ function optionsFor(models: ModelOption[]): SelectProps.Options {
   ];
 }
 
+// The field shows just the logo and name; descriptions stay in the list.
+const inField = (option: SelectProps.Option | undefined): SelectProps.Option | null =>
+  option ? { ...option, description: undefined, labelTag: undefined } : null;
+
 const flat = (options: SelectProps.Options) =>
   options.flatMap((option) => ('options' in option ? option.options : [option]));
 
@@ -127,7 +131,9 @@ export function AiSection() {
                   description={PURPOSE[purpose].description}
                 >
                   <Select
-                    selectedOption={flat(options).find((option) => option.value === chosen) ?? null}
+                    selectedOption={inField(
+                      flat(options).find((option) => option.value === chosen),
+                    )}
                     options={options}
                     // Shows the chosen model with its maker's logo, not just its name.
                     triggerVariant="option"
