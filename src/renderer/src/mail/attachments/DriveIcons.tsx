@@ -107,7 +107,7 @@ export const DRIVE_KINDS: Record<string, DriveKind> = {
 export const DRIVE_COLORS: Record<DriveKind, string> = {
   image: '#d93025',
   doc: '#4285f4',
-  sheet: '#0f9d58',
+  sheet: '#23a566',
   slides: '#f4b400',
   pdf: '#ea4335',
   video: '#d93025',
