@@ -160,3 +160,12 @@
   min-width: 0;
   padding-left: 0;
 }
+
+/* On a selected row the actions sit on its blue, as in the inbox. */
+.gridRow[aria-selected='true'] .overlay {
+  background: linear-gradient(to right, transparent, var(--ob-row-selected) 24px);
+}
+
+.gridRow[aria-selected='true'] .cell {
+  color: var(--ob-text);
+}
