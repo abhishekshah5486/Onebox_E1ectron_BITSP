@@ -29,7 +29,6 @@ describe('SuggestionsPage', () => {
                 accountId: 'acc-1',
                 from: 'Priya <priya@acme.example>',
                 subject: 'Pricing for 20 seats?',
-                snippet: 'Could you send pricing',
                 receivedAt: '2026-10-08T10:00:00.000Z',
                 model: 'gemini-3.8-flash',
                 results: [
@@ -53,8 +52,15 @@ describe('SuggestionsPage', () => {
 
     const row = (await screen.findByText('Pricing for 20 seats?')).closest('tr')!;
     expect(within(row).getByText('Leads')).toBeInTheDocument();
-    expect(within(row).getByText('91% · why?')).toBeInTheDocument();
-    await userEvent.click(within(row).getByRole('button', { name: 'Accept' }));
+    expect(within(row).getByText('91%')).toBeInTheDocument();
+    await userEvent.click(
+      within(row).getByRole('button', { name: 'Accept Leads for Pricing for 20 seats?' }),
+    );
+    // Nothing changes until it is confirmed.
+    expect(post).not.toHaveBeenCalledWith(expect.stringContaining('/decide'), expect.anything());
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Accept' }),
+    );
     expect(post).toHaveBeenCalledWith(`/ai/suggestions/${messageId}/decide`, {
       path: 'Leads',
       accept: true,

@@ -7,14 +7,94 @@
   box-sizing: border-box;
 }
 
-.email {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.email > * {
+/* Like a mail row: the subject, then the start of the email, muted. */
+.subject {
+  display: block;
+  max-width: 320px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.subjectLink {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.subjectLink:hover,
+.subjectLink:focus-visible {
+  text-decoration: underline;
+}
+
+.snippet {
+  color: var(--muted);
+}
+
+/* Short enough to keep the row at the mail list's height. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--pill-border);
+  border-radius: 999px;
+  background: var(--pill-bg);
+  color: var(--pill-text);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.pillName {
+  margin-right: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.pillButton {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pillButton svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pillButton:hover {
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.pillButton:focus-visible {
+  outline: 2px solid var(--pill-border);
+  outline-offset: 1px;
+}
+
+.accept {
+  color: var(--accept);
+}
+
+.decline {
+  color: var(--decline);
 }
