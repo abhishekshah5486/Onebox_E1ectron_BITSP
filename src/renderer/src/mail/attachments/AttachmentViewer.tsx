@@ -7,6 +7,7 @@ import styles from './Attachments.module.css';
 import { FileBadge } from './FileBadge';
 import { canPreview, FILE_KINDS, fileKind, readsAsText } from './fileTypes';
 import { useAttachmentDownload, useAttachmentUrl, type AttachmentFile } from './useAttachment';
+import { useSaveToDrive } from './useSaveToDrive';
 
 const MAX_TEXT_PREVIEW_BYTES = 2 * 1024 * 1024;
 
@@ -14,6 +15,7 @@ const MAX_TEXT_PREVIEW_BYTES = 2 * 1024 * 1024;
 // offers a download.
 export function AttachmentViewer({ file, onClose }: { file: AttachmentFile; onClose: () => void }) {
   const download = useAttachmentDownload();
+  const drive = useSaveToDrive();
   // Code and text of any declared type are shown as plain text, never rendered.
   const asText =
     readsAsText(file.filename, file.contentType) && file.sizeBytes <= MAX_TEXT_PREVIEW_BYTES;
@@ -77,6 +79,12 @@ export function AttachmentViewer({ file, onClose }: { file: AttachmentFile; onCl
         <span className={styles.viewerName}>{file.filename}</span>
         <span className={styles.viewerSize}>{formatBytes(file.sizeBytes)}</span>
         <IconButton icon="download" label="Download" onClick={() => void download(file)} />
+        <IconButton
+          icon="cloudUpload"
+          label="Save to Drive"
+          disabled={drive.saving}
+          onClick={() => void drive.save([file])}
+        />
       </header>
       <div
         className={styles.viewerBody}

@@ -6,10 +6,19 @@ import { AttachmentViewer } from './AttachmentViewer';
 import styles from './Attachments.module.css';
 import { FileBadge, fileColor } from './FileBadge';
 import { useAttachmentDownload, useAttachmentUrl, type AttachmentFile } from './useAttachment';
+import { useSaveToDrive } from './useSaveToDrive';
 
 const THUMBNAIL = /^image\/(png|jpeg|gif|webp|bmp|avif)$/;
 
-function Card({ file, onOpen }: { file: AttachmentFile; onOpen: () => void }) {
+function Card({
+  file,
+  onOpen,
+  onSaveToDrive,
+}: {
+  file: AttachmentFile;
+  onOpen: () => void;
+  onSaveToDrive: () => void;
+}) {
   const download = useAttachmentDownload();
   const { url } = useAttachmentUrl(THUMBNAIL.test(file.contentType.toLowerCase()) ? file : null);
   return (
@@ -52,6 +61,15 @@ function Card({ file, onOpen }: { file: AttachmentFile; onOpen: () => void }) {
         >
           <Icon name="download" size={20} />
         </button>
+        <button
+          type="button"
+          className={styles.cardButton}
+          aria-label={`Save ${file.filename} to Drive`}
+          data-tooltip="Save to Drive"
+          onClick={onSaveToDrive}
+        >
+          <Icon name="cloudUpload" size={20} />
+        </button>
       </span>
       {/* The dog-ear stays on top, hovered or not. */}
       <span className={styles.fold} aria-hidden="true" />
@@ -59,9 +77,10 @@ function Card({ file, onOpen }: { file: AttachmentFile; onOpen: () => void }) {
   );
 }
 
-// A message's files as cards, with Download all, like Gmail's reading pane.
+// A message's files as cards, with Download all and Save all to Drive, like Gmail's reading pane.
 export function AttachmentCards({ files }: { files: AttachmentFile[] }) {
   const download = useAttachmentDownload();
+  const drive = useSaveToDrive();
   const [open, setOpen] = useState<AttachmentFile | null>(null);
   if (files.length === 0) return null;
   return (
@@ -80,10 +99,22 @@ export function AttachmentCards({ files }: { files: AttachmentFile[] }) {
             })();
           }}
         />
+        <IconButton
+          size="small"
+          icon="cloudUpload"
+          label="Save all to Drive"
+          disabled={drive.saving}
+          onClick={() => void drive.save(files)}
+        />
       </div>
       <div className={styles.cardGrid}>
         {files.map((file) => (
-          <Card key={`${file.messageId}:${file.index}`} file={file} onOpen={() => setOpen(file)} />
+          <Card
+            key={`${file.messageId}:${file.index}`}
+            file={file}
+            onOpen={() => setOpen(file)}
+            onSaveToDrive={() => void drive.save([file])}
+          />
         ))}
       </div>
       {open && <AttachmentViewer file={open} onClose={() => setOpen(null)} />}
