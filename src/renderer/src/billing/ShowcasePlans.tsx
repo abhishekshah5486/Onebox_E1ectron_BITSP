@@ -9,7 +9,7 @@ import {
   ANNUAL_SAVING,
   formatCredits,
   formatRupees,
-  PLANS,
+  plansFor,
   type BillingInterval,
   type Plan,
 } from './plans';
@@ -144,7 +144,7 @@ export function ShowcasePlans() {
       </header>
 
       <div className={styles.grid}>
-        {PLANS.map((plan) => (
+        {plansFor(interval).map((plan) => (
           <PlanCard
             key={plan.id}
             plan={plan}

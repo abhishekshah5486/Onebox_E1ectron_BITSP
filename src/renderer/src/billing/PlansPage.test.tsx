@@ -30,6 +30,8 @@ describe('PlansPage in v1 (showcase)', () => {
     await userEvent.click(screen.getByRole('radio', { name: /Annually/ }));
     expect(within(standard).getByText('₹415')).toBeInTheDocument();
     expect(within(standard).getByText('Save ₹1,008')).toBeInTheDocument();
+    // Free has no yearly price, so it is not listed.
+    expect(screen.queryByRole('heading', { name: /^Free/ })).toBeNull();
   });
 
   it('marks the current plan and says payments are coming when upgrading', async () => {
@@ -51,7 +53,7 @@ describe('PlansPage in v2 (console)', () => {
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Pay annually' }));
     expect(screen.getByText('₹415', { exact: false })).toHaveTextContent('₹415/month');
-    expect(screen.getByRole('button', { name: 'Current plan' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Current plan' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Choose Pro' })).toBeEnabled();
   });
 });

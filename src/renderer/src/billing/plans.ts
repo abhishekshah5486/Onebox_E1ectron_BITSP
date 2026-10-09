@@ -84,6 +84,10 @@ export const PLANS: Plan[] = [
 
 export const ANNUAL_SAVING = '17%';
 
+// Free has no yearly price, so yearly billing only lists the paid plans.
+export const plansFor = (interval: BillingInterval) =>
+  interval === 'annual' ? PLANS.filter((plan) => plan.monthlyPrice > 0) : PLANS;
+
 export const planById = (id: PlanId) => PLANS.find((plan) => plan.id === id)!;
 
 export const formatRupees = (paise: number) =>

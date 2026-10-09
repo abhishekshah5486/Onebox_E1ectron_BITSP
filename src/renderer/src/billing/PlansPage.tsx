@@ -21,7 +21,7 @@ import {
   ANNUAL_SAVING,
   formatCredits,
   formatRupees,
-  PLANS,
+  plansFor,
   type BillingInterval,
   type Plan,
 } from './plans';
@@ -109,7 +109,7 @@ export function GmailPlans() {
       </header>
 
       <div className={styles.grid}>
-        {PLANS.map((plan) => {
+        {plansFor(interval).map((plan) => {
           const isCurrent = plan.id === current;
           const recommended = plan.id === RECOMMENDED;
           const badge = BADGE[plan.id];
@@ -215,8 +215,8 @@ function ConsolePlans() {
       }
     >
       <SpaceBetween size="l">
-        <ColumnLayout columns={3}>
-          {PLANS.map((plan) => {
+        <ColumnLayout columns={plansFor(interval).length}>
+          {plansFor(interval).map((plan) => {
             const isCurrent = plan.id === current;
             const badge = BADGE[plan.id];
             return (
