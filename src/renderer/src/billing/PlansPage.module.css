@@ -94,7 +94,7 @@
 .grid {
   display: grid;
   /* Fixed-width cards, centred, so two plans (yearly) are not stretched across the page. */
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 360px));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 360px));
   justify-content: center;
   align-items: stretch;
   gap: 24px;
