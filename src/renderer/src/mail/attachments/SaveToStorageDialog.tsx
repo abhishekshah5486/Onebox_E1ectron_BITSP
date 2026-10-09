@@ -13,6 +13,7 @@ import { useUiVersion } from '../../theme/UiVersionProvider';
 import { Dialog } from '../../ui/Dialog';
 import { TextField } from '../../ui/TextField';
 import styles from './Attachments.module.css';
+import { StorageAccountPicker } from './StorageAccountPicker';
 
 export interface StorageTarget {
   account: StorageAccount;
@@ -104,26 +105,7 @@ export function SaveToStorageDialog({
     <Dialog title={title} confirmLabel="Save" onConfirm={confirm} onCancel={onCancel}>
       <div className={styles.storageForm}>
         <span>Save {what} to your cloud storage.</span>
-        <div role="radiogroup" aria-label="Storage account" className={styles.storageAccounts}>
-          {accounts.map((a) => (
-            <label
-              key={a.id}
-              className={`${styles.storageAccount} ${a.id === account.id ? styles.storageChosen : ''}`}
-            >
-              <input
-                type="radio"
-                name="storage-account"
-                checked={a.id === account.id}
-                onChange={() => choose(a.id)}
-              />
-              <ProviderLogo provider={a.provider} size={22} />
-              <span className={styles.storageWho}>
-                <span>{a.email}</span>
-                <small>{STORAGE_PROVIDERS[a.provider].name}</small>
-              </span>
-            </label>
-          ))}
-        </div>
+        <StorageAccountPicker accounts={accounts} value={account} onChange={choose} />
         <TextField
           label="Folder"
           value={path}

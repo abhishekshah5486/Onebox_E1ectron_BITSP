@@ -409,32 +409,88 @@
   gap: 16px;
 }
 
-.storageAccounts {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* An outlined Material dropdown, light like the dialog it sits in. */
+.picker {
+  position: relative;
 }
 
-.storageAccount {
+.pickerField {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
-  border: 1px solid var(--ob-dialog-line, rgb(128 128 128 / 30%));
-  border-radius: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 14px 10px 6px 14px;
+  border: 1px solid var(--ob-dialog-muted);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ob-dialog-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pickerField > svg:last-child {
+  margin-left: auto;
+  color: var(--ob-dialog-muted);
+}
+
+.pickerOpen,
+.pickerField:focus-visible {
+  border: 2px solid var(--ob-dialog-accent);
+  padding: 13px 9px 5px 13px;
+  outline: none;
+}
+
+.pickerLabel {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  padding: 0 4px;
+  background: var(--ob-dialog-bg);
+  color: var(--ob-dialog-muted);
+  font-size: 12px;
+}
+
+.pickerOpen .pickerLabel {
+  color: var(--ob-dialog-accent);
+}
+
+.pickerList {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  z-index: 10;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 8px 0;
+  border-radius: 8px;
+  background: var(--ob-dialog-bg);
+  box-shadow:
+    0 2px 6px 2px rgb(60 64 67 / 15%),
+    0 1px 2px rgb(60 64 67 / 30%);
+  list-style: none;
+}
+
+.pickerList li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
   color: var(--ob-dialog-text);
   cursor: pointer;
 }
 
-.storageChosen {
-  border-color: var(--ob-dialog-accent);
+.pickerList li > svg:last-child {
+  margin-left: auto;
+  color: var(--ob-dialog-accent);
 }
 
-.storageAccount input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: var(--ob-dialog-accent);
+.pickerActive {
+  background: var(--ob-dialog-hover);
 }
 
 .storageWho {

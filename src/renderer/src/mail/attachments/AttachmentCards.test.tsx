@@ -71,7 +71,8 @@ describe('Save to cloud storage', () => {
     const folder = dialog.getByRole('textbox', { name: 'Folder' });
     expect(folder).toHaveValue('OneBox');
 
-    await userEvent.click(dialog.getByRole('radio', { name: /work@gmail\.com/ }));
+    await userEvent.click(dialog.getByRole('button', { name: /^Storage account:/ }));
+    await userEvent.click(dialog.getByRole('option', { name: /work@gmail\.com/ }));
     expect(folder).toHaveValue('Work');
     await userEvent.type(folder, '/2026');
     await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
