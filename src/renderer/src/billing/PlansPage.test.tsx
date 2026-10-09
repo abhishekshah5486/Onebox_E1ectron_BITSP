@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ApiClient } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { fakeApi, testUser } from '../test/fake-api';
 import { renderPage } from '../test/render';
@@ -14,10 +15,10 @@ function Signed({ children }: { children: React.ReactNode }) {
   ) : null;
 }
 
-const render = (ui: React.ReactNode) =>
+const render = (ui: React.ReactNode, overrides: Partial<ApiClient> = {}) =>
   renderPage(<Signed>{ui}</Signed>, {
     path: '/plans',
-    api: fakeApi({ restoreSession: vi.fn(async () => testUser) }),
+    api: fakeApi({ restoreSession: vi.fn(async () => testUser), ...overrides }),
   });
 
 describe('PlansPage in v1 (showcase)', () => {
@@ -34,11 +35,66 @@ describe('PlansPage in v1 (showcase)', () => {
     expect(screen.queryByRole('heading', { name: /^Free/ })).toBeNull();
   });
 
-  it('marks the current plan and says payments are coming when upgrading', async () => {
-    render(<PlansPage />);
+  // Stands in for Razorpay's checkout: pays, or is closed, as the test asks.
+  function fakeRazorpay(outcome: 'paid' | 'dismissed') {
+    window.Razorpay = class {
+      constructor(private options: Record<string, unknown>) {}
+      on() {}
+      open() {
+        if (outcome === 'paid') {
+          (this.options.handler as (r: Record<string, string>) => void)({
+            razorpay_payment_id: 'pay_1',
+            razorpay_subscription_id: 'sub_1',
+            razorpay_signature: 'sig',
+          });
+        } else {
+          (this.options.modal as { ondismiss: () => void }).ondismiss();
+        }
+      }
+    };
+  }
+
+  const checkoutApi = () =>
+    vi.fn(async (path: string) =>
+      path === '/payments/checkout'
+        ? {
+            provider: 'RAZORPAY',
+            keyId: 'rzp_test_key',
+            subscriptionId: 'sub_1',
+            plan: 'PRO',
+            interval: 'monthly',
+            amount: 149_900,
+            currency: 'INR',
+            email: 'a@onebox.dev',
+          }
+        : { id: 's1', plan: 'PRO', status: 'active' },
+    );
+
+  it('upgrades through checkout and confirms the payment', async () => {
+    fakeRazorpay('paid');
+    const post = checkoutApi();
+    render(<PlansPage />, { post: post as ApiClient['post'] });
     expect(await screen.findByRole('button', { name: 'Current plan' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Upgrade to Pro' }));
-    expect(await screen.findByText(/Payments are coming soon/)).toBeInTheDocument();
+
+    expect(await screen.findByText(/You're on Pro/)).toBeInTheDocument();
+    expect(post).toHaveBeenCalledWith('/payments/checkout', { plan: 'PRO', interval: 'monthly' });
+    expect(post).toHaveBeenCalledWith('/payments/checkout/confirm', {
+      paymentId: 'pay_1',
+      subscriptionId: 'sub_1',
+      signature: 'sig',
+    });
+    delete window.Razorpay;
+  });
+
+  it('says nothing was charged when checkout is closed', async () => {
+    fakeRazorpay('dismissed');
+    const post = checkoutApi();
+    render(<PlansPage />, { post: post as ApiClient['post'] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Upgrade to Pro' }));
+    expect(await screen.findByText(/You weren't charged/)).toBeInTheDocument();
+    expect(post).not.toHaveBeenCalledWith('/payments/checkout/confirm', expect.anything());
+    delete window.Razorpay;
   });
 });
 
