@@ -1,10 +1,8 @@
-import { useState, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router';
-import { useOptionalFlash } from '../settings/flash';
 import { Icon, type IconName } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
-import { useSnackbar } from '../ui/Snackbar';
-import { useBilling } from './billing';
+import { usePlanChoice } from './usePlanChoice';
 import {
   ANNUAL_SAVING,
   formatCredits,
@@ -24,11 +22,13 @@ function PlanCard({
   plan,
   interval,
   current,
+  busy,
   onChoose,
 }: {
   plan: Plan;
   interval: BillingInterval;
   current: boolean;
+  busy: Plan['id'] | null;
   onChoose: () => void;
 }) {
   const free = plan.monthlyPrice === 0;
@@ -72,10 +72,16 @@ function PlanCard({
         <button
           type="button"
           className={`${styles.choose} ${button}`}
-          disabled={current}
+          disabled={current || busy !== null}
           onClick={onChoose}
         >
-          {current ? 'Current plan' : free ? 'Switch to Free' : `Upgrade to ${plan.name}`}
+          {current
+            ? 'Current plan'
+            : busy === plan.id
+              ? 'Opening checkout…'
+              : free
+                ? 'Switch to Free'
+                : `Upgrade to ${plan.name}`}
         </button>
       </div>
 
@@ -101,17 +107,14 @@ function PlanCard({
 // with Gmail's type, Material buttons and segmented control. Used by the v1 interface.
 export function ShowcasePlans() {
   const navigate = useNavigate();
-  const billing = useBilling();
-  const flash = useOptionalFlash();
-  const snackbar = useSnackbar();
-  const [interval, setBillingInterval] = useState<BillingInterval>('monthly');
-  const currentPlan = billing.data?.subscription.plan;
-
-  const choose = (plan: Plan) => {
-    const text = `Payments are coming soon. You'll be able to move to ${plan.name} here.`;
-    if (flash) flash({ type: 'info', content: text });
-    else snackbar({ text });
-  };
+  const {
+    interval,
+    setBillingInterval,
+    current: currentPlan,
+    choose,
+    busy,
+    overlay,
+  } = usePlanChoice();
 
   return (
     <div className={styles.page}>
@@ -153,11 +156,13 @@ export function ShowcasePlans() {
             plan={plan}
             interval={interval}
             current={plan.id === currentPlan}
+            busy={busy}
             onChoose={() => choose(plan)}
           />
         ))}
       </div>
 
+      {overlay}
       <p className={styles.note}>
         Credits pay for AI features such as sorting, summaries and drafts. Each action uses credits
         based on the AI model's cost; mail, labels and cloud storage are always free.

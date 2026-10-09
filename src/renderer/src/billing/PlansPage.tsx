@@ -13,14 +13,11 @@ import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Table from '@cloudscape-design/components/table';
 import Toggle from '@cloudscape-design/components/toggle';
 import CloudscapeIcon from '@cloudscape-design/components/icon';
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useOptionalFlash } from '../settings/flash';
 import { useUiVersion } from '../theme/UiVersionProvider';
 import { Icon, type IconName } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
-import { useSnackbar } from '../ui/Snackbar';
-import { useBilling } from './billing';
+import { usePlanChoice } from './usePlanChoice';
 import {
   ANNUAL_SAVING,
   formatCredits,
@@ -42,18 +39,7 @@ const RECOMMENDED: Plan['id'] = 'STANDARD';
 const NOTE =
   "Credits pay for AI features such as sorting, summaries and drafts. Each action uses credits based on the AI model's cost; mail, labels and cloud storage are always free.";
 
-function usePlansState() {
-  const billing = useBilling();
-  const flash = useOptionalFlash();
-  const snackbar = useSnackbar();
-  const [interval, setBillingInterval] = useState<BillingInterval>('monthly');
-  const choose = (plan: Plan) => {
-    const text = `Payments are coming soon. You'll be able to move to ${plan.name} here.`;
-    if (flash) flash({ type: 'info', content: text });
-    else snackbar({ text });
-  };
-  return { interval, setBillingInterval, current: billing.data?.subscription.plan, choose };
-}
+const usePlansState = usePlanChoice;
 
 const priceOf = (plan: Plan, interval: BillingInterval) =>
   interval === 'annual' ? plan.annualMonthlyPrice : plan.monthlyPrice;
@@ -99,7 +85,7 @@ function PeriodToggle({
 // showcase design; kept so it can come back.
 export function GmailPlans() {
   const navigate = useNavigate();
-  const { interval, setBillingInterval, current, choose } = usePlansState();
+  const { interval, setBillingInterval, current, choose, busy, overlay } = usePlansState();
 
   return (
     <div className={styles.page}>
@@ -148,10 +134,16 @@ export function GmailPlans() {
                 <button
                   type="button"
                   className={`${styles.cta} ${isCurrent ? styles.ctaCurrent : recommended ? styles.ctaPrimary : styles.ctaTonal}`}
-                  disabled={isCurrent}
+                  disabled={isCurrent || busy !== null}
                   onClick={() => choose(plan)}
                 >
-                  {isCurrent ? 'Current plan' : plan.monthlyPrice ? 'Subscribe' : 'Switch to Free'}
+                  {isCurrent
+                    ? 'Current plan'
+                    : busy === plan.id
+                      ? 'Opening checkout…'
+                      : plan.monthlyPrice
+                        ? 'Subscribe'
+                        : 'Switch to Free'}
                 </button>
               </div>
 
@@ -173,6 +165,7 @@ export function GmailPlans() {
           );
         })}
       </div>
+      {overlay}
       <p className={styles.note}>{NOTE}</p>
     </div>
   );
@@ -182,7 +175,7 @@ export function GmailPlans() {
 // per plan whose short coloured band carries its name and price.
 function ConsolePlans() {
   const navigate = useNavigate();
-  const { interval, setBillingInterval, current, choose } = usePlansState();
+  const { interval, setBillingInterval, current, choose, busy, overlay } = usePlansState();
   const follow = (event: CustomEvent<{ href: string }>) => {
     event.preventDefault();
     void navigate(event.detail.href);
@@ -220,6 +213,7 @@ function ConsolePlans() {
       }
     >
       <SpaceBetween size="l">
+        {overlay}
         <Alert type="info">{NOTE}</Alert>
         <div className={interval === 'annual' ? styles.consoleNarrow : undefined}>
           <ColumnLayout columns={plansFor(interval).length}>
@@ -271,7 +265,8 @@ function ConsolePlans() {
                         <Button
                           fullWidth
                           variant={!isCurrent && plan.id === RECOMMENDED ? 'primary' : 'normal'}
-                          disabled={isCurrent}
+                          disabled={isCurrent || (busy !== null && busy !== plan.id)}
+                          loading={busy === plan.id}
                           onClick={() => choose(plan)}
                         >
                           {isCurrent ? 'Current plan' : `Choose ${plan.name}`}

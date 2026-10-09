@@ -1,0 +1,42 @@
+.tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 28%;
+}
+
+.stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ring {
+  display: inline-flex;
+  border-radius: 28%;
+}
+
+/* A white logo tile, outlined so it still reads on white dialogs. */
+.light {
+  overflow: hidden;
+  outline: 1px solid rgb(0 0 0 / 12%);
+  outline-offset: -1px;
+}
+
+.light img {
+  display: block;
+}
+
+.ring + .ring {
+  margin-left: var(--overlap);
+  transition: margin-left 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.stack:hover .ring + .ring {
+  margin-left: var(--apart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring + .ring {
+    transition: none;
+  }
+}
