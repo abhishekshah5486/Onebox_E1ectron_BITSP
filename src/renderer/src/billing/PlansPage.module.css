@@ -415,39 +415,36 @@
 .consoleFeatures {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   margin: 0;
-  padding: 20px 24px 24px;
+  padding: 20px 28px 28px;
   list-style: none;
   color: var(--ob-text);
+  font-size: 15px;
 }
 
 .consoleFeatures li {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* Quiet grey checks, as on the first version of these cards. */
 .consoleFeatures li svg {
   flex: none;
-  margin-top: 2px;
-  color: #037f0c;
+  margin-top: 1px;
+  color: var(--ob-text-muted);
 }
 
-:root[data-theme='dark'] .consoleFeatures li svg {
-  color: #2bb534;
-}
-
-.consoleFeatures .consoleBonus {
+/* The bonus line and its coin in gold. */
+.consoleFeatures li.consoleBonus,
+.consoleFeatures li.consoleBonus svg {
   color: #b06000;
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.consoleFeatures .consoleBonus svg {
-  color: inherit;
-}
-
-:root[data-theme='dark'] .consoleFeatures .consoleBonus {
+:root[data-theme='dark'] .consoleFeatures li.consoleBonus,
+:root[data-theme='dark'] .consoleFeatures li.consoleBonus svg {
   color: #fdd663;
 }
 
