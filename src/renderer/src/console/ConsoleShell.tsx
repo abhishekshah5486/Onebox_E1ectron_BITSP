@@ -4,6 +4,8 @@ import TopNavigation from '@cloudscape-design/components/top-navigation';
 import { Suspense, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 import { useAuth, useCurrentUser } from '../auth/AuthProvider';
+import { useBilling } from '../billing/billing';
+import { formatCredits } from '../billing/plans';
 import { FlashArea } from '../settings/flash';
 import { useTheme, type ThemePreference } from '../theme/ThemeProvider';
 import { Icon } from '../ui/Icon';
@@ -28,6 +30,7 @@ export function ConsoleShell() {
   const user = useCurrentUser();
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const billing = useBilling();
   const { preference, setPreference } = useTheme();
   const [navigationOpen, setNavigationOpen] = useState(true);
   const [navigationWidth, setNavigationWidth] = useSidebarWidth();
@@ -53,6 +56,18 @@ export function ConsoleShell() {
                 </div>
               }
               utilities={[
+                ...(billing.data
+                  ? [
+                      {
+                        type: 'button' as const,
+                        iconSvg: <Icon name="credit" size={16} />,
+                        text: `${formatCredits(billing.data.balance)} credits`,
+                        ariaLabel: `${formatCredits(billing.data.balance)} credits left. See plans`,
+                        title: 'Credits left. See plans',
+                        onClick: () => void navigate('/plans'),
+                      },
+                    ]
+                  : []),
                 {
                   type: 'button',
                   iconSvg: <Icon name={preference} size={16} />,

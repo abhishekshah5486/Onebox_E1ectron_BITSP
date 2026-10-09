@@ -20,6 +20,7 @@ import { useUiVersion } from './theme/UiVersionProvider';
 // Settings and the v2 console pull in Cloudscape, so they load only when needed.
 const SettingsPage = lazy(() => import('./settings/SettingsPage'));
 const SuggestionsPage = lazy(() => import('./suggestions/SuggestionsPage'));
+const PlansPage = lazy(() => import('./billing/PlansPage'));
 const loadConsole = () => import('./console');
 const ConsoleShell = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleShell })));
 const ConsoleUnifiedMailbox = lazy(() =>
@@ -130,6 +131,7 @@ export function AppRoutes() {
             path="/suggestions"
             element={loading('Loading suggestions', <SuggestionsPage />)}
           />
+          <Route path="/plans" element={loading('Loading plans', <PlansPage />)} />
           <Route path="/settings" element={loading('Loading settings', <SettingsPage />)} />
           <Route path="/settings/:tab" element={loading('Loading settings', <SettingsPage />)} />
         </Route>

@@ -1,0 +1,295 @@
+/* A pricing page in the style of modern SaaS plan pickers, in both themes. */
+.page {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 32px 24px 48px;
+  color: var(--ob-text);
+}
+
+.close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ob-surface-hover);
+  color: var(--ob-text);
+  cursor: pointer;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.header p {
+  margin: 0;
+  color: var(--ob-text-muted);
+  font-size: 16px;
+}
+
+.toggle {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 4px;
+  border: 1px solid var(--ob-border);
+  border-radius: 14px;
+}
+
+.toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ob-text-muted);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.toggle .toggleOn {
+  background: var(--ob-surface-hover);
+  color: var(--ob-text);
+  font-weight: 500;
+}
+
+.saveTag {
+  color: #1e8e3e;
+  font-weight: 600;
+}
+
+:root[data-theme='dark'] .saveTag {
+  color: #81c995;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ob-border);
+  border-radius: 28px;
+  background: var(--ob-surface-raised);
+  overflow: hidden;
+}
+
+/* The top of each card carries the plan's look; features sit below on the plain surface. */
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px;
+  padding: 24px;
+  border-radius: 22px;
+}
+
+.free .head {
+  background: linear-gradient(160deg, #e8f1fd 0%, #cfe2fb 55%, #a9cdf6 100%);
+  color: #10233f;
+}
+
+.standard .head {
+  background: #202124;
+  color: #e8eaed;
+}
+
+.pro .head {
+  background:
+    radial-gradient(circle at 85% 15%, rgb(255 255 255 / 55%), transparent 40%),
+    linear-gradient(135deg, #fde7c8 0%, #f8c9d9 50%, #d7e3fb 100%);
+  color: #2a1530;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.current {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 10%);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.standard .current {
+  background: rgb(255 255 255 / 14%);
+}
+
+.tagline {
+  margin: 0;
+  opacity: 0.75;
+  font-size: 14px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.price {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.per {
+  opacity: 0.7;
+  font-size: 15px;
+}
+
+.save {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #1e4620;
+  color: #9ce5a1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.billed {
+  margin: -4px 0 0;
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+.credits {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 70%);
+  color: #1f1f1f;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.standard .credits {
+  background: #2d2e31;
+  color: #e8eaed;
+}
+
+.bonus {
+  color: #b06000;
+}
+
+.standard .bonus {
+  color: #fdd663;
+}
+
+.choose {
+  height: 48px;
+  margin-top: 6px;
+  border: none;
+  border-radius: 14px;
+  background: #1f1f1f;
+  color: #ffffff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.standard .choose {
+  background: #ffffff;
+  color: #1f1f1f;
+}
+
+.choose:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.standard .choose:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.choose:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.choose:focus-visible,
+.toggle button:focus-visible,
+.close:focus-visible {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: 2px;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 16px 28px 28px;
+  list-style: none;
+  font-size: 15px;
+}
+
+.features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.features li svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--ob-text-muted);
+}
+
+.bonusLine {
+  color: #b06000;
+  font-weight: 500;
+}
+
+:root[data-theme='dark'] .bonusLine {
+  color: #fdd663;
+}
+
+.bonusLine svg {
+  color: inherit !important;
+}
+
+.note {
+  max-width: 720px;
+  margin: 32px auto 0;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+  text-align: center;
+}
