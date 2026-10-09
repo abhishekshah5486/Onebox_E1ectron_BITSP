@@ -52,7 +52,7 @@ describe('StorageSection', () => {
     await waitFor(() =>
       expect(open).toHaveBeenCalledWith(
         'https://accounts.google.com/o/oauth2/v2/auth?x=1',
-        'onebox-google',
+        'onebox-storage',
         expect.any(String),
       ),
     );
@@ -90,6 +90,25 @@ describe('StorageSection', () => {
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/settings/storage/connect', { provider: 'DROPBOX' }),
     );
+  });
+
+  it('stops waiting and says so when the sign-in window is closed early', async () => {
+    const popup = { closed: false, close: vi.fn() };
+    vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    const post = vi.fn(async () => ({ url: 'https://login.microsoftonline.com/x' }));
+    setup([account()], { post: post as ApiClient['post'] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Connect storage' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /OneDrive/ }));
+    expect(
+      await screen.findByText('Sign in to OneDrive in the window that opened.'),
+    ).toBeInTheDocument();
+
+    popup.closed = true;
+    expect(
+      await screen.findByText(/OneDrive was not connected/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Sign in to OneDrive in the window that opened.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Connect storage' })).toBeEnabled();
   });
 
   it('lists accounts with their folders and edits one', async () => {

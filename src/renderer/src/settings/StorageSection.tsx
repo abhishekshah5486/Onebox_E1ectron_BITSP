@@ -8,7 +8,7 @@ import Modal from '@cloudscape-design/components/modal';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Table from '@cloudscape-design/components/table';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   useConnectStorage,
   useDisconnectStorage,
@@ -88,16 +88,28 @@ function FolderModal({ account, onDismiss }: { account: StorageAccount; onDismis
   );
 }
 
+interface Waiting {
+  id: number;
+  provider: StorageProviderId;
+  // The accounts before the sign-in, to tell when a new or refreshed one shows up.
+  before: string;
+  // The popup in the web app; Electron opens the system browser and returns none.
+  popup: Window | null;
+}
+
+let nextConnect = 0;
+
 export function StorageSection() {
-  const [waitingFrom, setWaitingFrom] = useState<{ at: number; before: string } | null>(null);
-  const status = useStorage(waitingFrom !== null);
+  const [waiting, setWaiting] = useState<Waiting | null>(null);
+  const status = useStorage(waiting !== null);
   const connect = useConnectStorage();
   const disconnect = useDisconnectStorage();
   const flash = useFlash();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editing, setEditing] = useState<StorageAccount | null>(null);
   const [confirm, setConfirm] = useState(false);
-  const announced = useRef<number | null>(null);
+  const [reloading, setReloading] = useState(false);
+  const finished = useRef<number | null>(null);
 
   const accounts = status.data?.accounts ?? [];
   const available = status.data?.providers ?? [];
@@ -105,31 +117,78 @@ export function StorageSection() {
   const only = current.length === 1 ? current[0]! : null;
   const fail = (error: unknown) => flash({ type: 'error', content: describeError(error) });
 
-  // Stops waiting once the sign-in shows up in the list, or after a few minutes.
+  // Reports how a sign-in ended (once) and stops waiting.
+  const finish = useCallback(
+    (wait: Waiting, outcome: 'connected' | 'closed' | 'timeout' | 'cancelled') => {
+      if (finished.current === wait.id) return;
+      finished.current = wait.id;
+      const name = STORAGE_PROVIDERS[wait.provider].name;
+      const id = `storage-connect-${wait.id}`;
+      if (outcome === 'connected') {
+        flash({ id, type: 'success', content: `${name} connected.` });
+      } else if (outcome === 'closed') {
+        flash({
+          id,
+          type: 'warning',
+          content: `${name} was not connected. The sign-in window was closed before it finished.`,
+        });
+      } else if (outcome === 'timeout') {
+        flash({ id, type: 'warning', content: `Stopped waiting for the ${name} sign-in.` });
+      } else {
+        flash({ id, type: 'info', content: `Cancelled connecting ${name}.` });
+      }
+      if (outcome === 'cancelled') wait.popup?.close();
+      setWaiting(null);
+    },
+    [flash],
+  );
+
+  // Done as soon as the sign-in shows up in the list.
   const now = signature(status.data?.accounts);
   useEffect(() => {
-    if (waitingFrom === null) return;
-    const done = now !== waitingFrom.before;
-    if (done && announced.current !== waitingFrom.at) {
-      announced.current = waitingFrom.at;
-      flash({ type: 'success', content: 'Storage account connected.' });
-    }
-    const timer = setTimeout(
-      () => setWaitingFrom(null),
-      done ? 0 : waitingFrom.at + WAIT_MS - Date.now(),
-    );
-    return () => clearTimeout(timer);
-  }, [waitingFrom, now, flash]);
+    if (waiting && now !== waiting.before) finish(waiting, 'connected');
+  }, [waiting, now, finish]);
+
+  // A closed popup ends the wait: one last look decides whether the sign-in went through.
+  useEffect(() => {
+    if (!waiting) return;
+    const deadline = setTimeout(() => finish(waiting, 'timeout'), WAIT_MS);
+    const watch = setInterval(() => {
+      if (!waiting.popup?.closed) return;
+      clearInterval(watch);
+      void status.refetch().then(({ data }) => {
+        finish(waiting, signature(data?.accounts) !== waiting.before ? 'connected' : 'closed');
+      });
+    }, 500);
+    return () => {
+      clearTimeout(deadline);
+      clearInterval(watch);
+    };
+    // status.refetch is stable; the wait is what matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting, finish]);
 
   const start = (provider: StorageProviderId) =>
     connect.mutate(provider, {
       onSuccess: ({ url }) => {
-        // Electron opens it in the browser; the web app opens a popup.
-        window.open(url, 'onebox-google', 'width=520,height=680');
-        setWaitingFrom({ at: Date.now(), before: now });
+        const popup = window.open(url, 'onebox-storage', 'width=520,height=680');
+        const wait = { id: nextConnect++, provider, before: now, popup };
+        setWaiting(wait);
+        flash({
+          id: `storage-connect-${wait.id}`,
+          type: 'info',
+          loading: true,
+          content: `Sign in to ${STORAGE_PROVIDERS[provider].name} in the window that opened.`,
+          action: { label: 'Cancel', onClick: () => finish(wait, 'cancelled') },
+        });
       },
       onError: fail,
     });
+
+  const reload = () => {
+    setReloading(true);
+    void status.refetch().finally(() => setReloading(false));
+  };
 
   return (
     <div className={tableStyles.table}>
@@ -159,8 +218,8 @@ export function StorageSection() {
                 <Button
                   iconName="refresh"
                   ariaLabel="Reload storage accounts"
-                  loading={status.isFetching && !status.isLoading}
-                  onClick={() => void status.refetch()}
+                  loading={reloading}
+                  onClick={reload}
                 />
                 <Button disabled={!only} onClick={() => setEditing(only)}>
                   Edit folder
@@ -170,7 +229,8 @@ export function StorageSection() {
                 </Button>
                 <ButtonDropdown
                   variant="primary"
-                  loading={connect.isPending || waitingFrom !== null}
+                  loading={connect.isPending}
+                  disabled={waiting !== null}
                   items={[
                     ...available.map((id) => ({
                       id,
@@ -232,7 +292,7 @@ export function StorageSection() {
                   ? 'Connect Google Drive, OneDrive or Dropbox to save attachments there.'
                   : 'Add a storage provider’s OAuth client to the server to turn this on.'}
               </Box>
-              {waitingFrom !== null && (
+              {waiting !== null && (
                 <StatusIndicator type="pending">Waiting for sign-in</StatusIndicator>
               )}
             </SpaceBetween>
