@@ -1,14 +1,14 @@
+import type { CSSProperties } from 'react';
 import type { PaymentProvider } from '../api/payments';
+import razorpayLogo from './logos/razorpay.png';
 import styles from './ProviderLogo.module.css';
 
-// The providers' own marks (from their brand assets, via Simple Icons) on their brand colours.
-const BRAND: Record<PaymentProvider, { name: string; tile: string; mark: string; path: string }> = {
-  RAZORPAY: {
-    name: 'Razorpay',
-    tile: '#0C2451',
-    mark: '#3395FF',
-    path: 'M22.436 0l-11.91 7.773-1.174 4.276 6.625-4.297L11.65 24h4.391l6.395-24zM14.26 10.098L3.389 17.166 1.564 24h9.008l3.688-13.902Z',
-  },
+// Razorpay's two-tone mark on white, and Stripe's from its brand assets (via Simple Icons).
+const BRAND: Record<
+  PaymentProvider,
+  { name: string; tile: string } & ({ image: string } | { mark: string; path: string })
+> = {
+  RAZORPAY: { name: 'Razorpay', tile: '#FFFFFF', image: razorpayLogo },
   STRIPE: {
     name: 'Stripe',
     tile: '#635BFF',
@@ -30,30 +30,33 @@ export function ProviderLogo({
   const brand = BRAND[provider];
   return (
     <span
-      className={styles.tile}
+      className={`${styles.tile} ${'image' in brand ? styles.light : ''}`}
       style={{ width: size, height: size, background: brand.tile }}
       {...(label ? { role: 'img', 'aria-label': brand.name } : { 'aria-hidden': true })}
     >
-      <svg viewBox="0 0 24 24" width={size * 0.55} height={size * 0.55} fill={brand.mark}>
-        <path d={brand.path} />
-      </svg>
+      {'image' in brand ? (
+        <img src={brand.image} alt="" width={size} height={size} />
+      ) : (
+        <svg viewBox="0 0 24 24" width={size * 0.55} height={size * 0.55} fill={brand.mark}>
+          <path d={brand.path} />
+        </svg>
+      )}
     </span>
   );
 }
 
-// Both marks, the second overlapping the first; the ring matches the surface behind them.
+// Both marks, the second overlapping the first and sliding beside it on hover; the ring
+// matches the surface behind them.
 export function ProviderLogos({ size = 40, ring }: { size?: number; ring: string }) {
   return (
-    <span className={styles.stack} role="img" aria-label="Razorpay and Stripe">
+    <span
+      className={styles.stack}
+      role="img"
+      aria-label="Razorpay and Stripe"
+      style={{ '--overlap': `${-size * 0.22}px`, '--apart': `${size * 0.15}px` } as CSSProperties}
+    >
       {(['RAZORPAY', 'STRIPE'] as const).map((provider) => (
-        <span
-          key={provider}
-          className={styles.ring}
-          style={{
-            boxShadow: `0 0 0 3px ${ring}`,
-            marginLeft: provider === 'STRIPE' ? -size * 0.3 : 0,
-          }}
-        >
+        <span key={provider} className={styles.ring} style={{ boxShadow: `0 0 0 3px ${ring}` }}>
           <ProviderLogo provider={provider} size={size} label={false} />
         </span>
       ))}
