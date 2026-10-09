@@ -128,8 +128,18 @@
 
 :root[data-theme='dark'] .plan {
   border-color: #3c4043;
-  background: #1e1f20;
+  background: #161718;
   box-shadow: none;
+}
+
+/* In dark mode the dark Standard top needs its own lift to stand off the card. */
+:root[data-theme='dark'] .standard .head {
+  background: linear-gradient(160deg, #34363b 0%, #23252a 60%, #1c1d21 100%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 9%);
+}
+
+:root[data-theme='dark'] .standard .credits {
+  background: #3c3f45;
 }
 
 /* Too narrow for a row of cards: stack them. */
