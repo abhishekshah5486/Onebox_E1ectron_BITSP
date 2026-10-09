@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
-import { fakeApi, testUser } from '../test/fake-api';
+import { FlashProvider } from '../settings/flash';
+import { fakeApi, routedGet, testUser } from '../test/fake-api';
 import { renderPage } from '../test/render';
 import { SnackbarProvider } from '../ui/Snackbar';
 import { BillingSection } from './BillingSection';
@@ -120,8 +121,13 @@ describe('PlansPage in v2 (console)', () => {
 
 describe('BillingSection', () => {
   it('shows the plan, the credits left and the history', async () => {
-    render(<BillingSection />);
-    expect(await screen.findByText('Billing preview')).toBeInTheDocument();
+    render(
+      <FlashProvider>
+        <BillingSection />
+      </FlashProvider>,
+    );
+    expect(await screen.findByText('Credits preview')).toBeInTheDocument();
+    expect(await screen.findByText(/You're on the Free plan/)).toBeInTheDocument();
     expect(await screen.findByText('Credits and usage')).toBeInTheDocument();
     expect(await screen.findByText(/of 20 credits/)).toBeInTheDocument();
     expect(screen.getAllByText('Free').length).toBeGreaterThan(0);
@@ -131,5 +137,54 @@ describe('BillingSection', () => {
     expect(await screen.findByText('Free plan credits')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Actions' })).toBeEnabled();
     expect(screen.getByRole('link', { name: 'View all plans' })).toBeInTheDocument();
+  });
+
+  it('shows a paid plan and cancels it at the end of the period after asking', async () => {
+    const subscription = {
+      id: 's1',
+      provider: 'RAZORPAY',
+      plan: 'STANDARD',
+      interval: 'monthly',
+      status: 'active',
+      currentPeriodStart: '2026-10-09T00:00:00.000Z',
+      currentPeriodEnd: '2026-11-09T00:00:00.000Z',
+      cancelAtPeriodEnd: false,
+      createdAt: '2026-10-09T00:00:00.000Z',
+    };
+    const post = vi.fn(async () => ({ ...subscription, cancelAtPeriodEnd: true }));
+    render(
+      <FlashProvider>
+        <BillingSection />
+      </FlashProvider>,
+      {
+        get: routedGet({
+          '/payments/subscription': () => ({ subscription }),
+          '/payments/history': () => ({
+            items: [
+              {
+                id: 'p1',
+                amount: 49_900,
+                currency: 'INR',
+                status: 'captured',
+                method: 'upi',
+                failureReason: null,
+                createdAt: '2026-10-09T00:00:00.000Z',
+              },
+            ],
+          }),
+        }),
+        post: post as ApiClient['post'],
+      },
+    );
+    expect(await screen.findByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('UPI')).toBeInTheDocument();
+
+    // The subscription's Actions come first, above the credits'.
+    await userEvent.click(screen.getAllByRole('button', { name: 'Actions' })[0]!);
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Cancel subscription' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Cancel subscription' }));
+    await userEvent.click(dialog.getByRole('button', { name: 'Cancel subscription' }));
+    expect(post).toHaveBeenCalledWith('/payments/subscription/cancel');
+    expect(await screen.findByText(/plan is cancelled/)).toBeInTheDocument();
   });
 });

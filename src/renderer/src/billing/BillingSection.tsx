@@ -16,6 +16,7 @@ import tableStyles from '../ui/DataTable.module.css';
 import { IS_BILLING_PREVIEW, useBilling, type LedgerEntry } from './billing';
 import styles from './BillingSection.module.css';
 import { formatCredits, formatRupees, planById } from './plans';
+import { SubscriptionSection } from './SubscriptionSection';
 
 const PAGE = 10;
 
@@ -53,11 +54,13 @@ export function BillingSection() {
   return (
     <SpaceBetween size="l">
       {IS_BILLING_PREVIEW && (
-        <Alert type="info" header="Billing preview">
-          Plans and credits are being built. The numbers here are examples; payments are not
-          connected yet.
+        <Alert type="info" header="Credits preview">
+          Payments run through Razorpay in test mode. The credit figures below are examples until
+          credits are connected.
         </Alert>
       )}
+
+      <SubscriptionSection />
 
       <Container
         header={
