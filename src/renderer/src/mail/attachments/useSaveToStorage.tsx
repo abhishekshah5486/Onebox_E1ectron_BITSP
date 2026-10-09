@@ -68,8 +68,10 @@ export function useSaveToStorage() {
     : {
         label: 'Save to cloud storage',
         allLabel: 'Save all to cloud storage',
-        icon: (size) => <Icon name="cloudUpload" size={size} />,
+        icon: (size) => <Icon name="addToStorage" size={size} />,
       };
+  // "Add all" keeps the general icon, as files may go to any connected service.
+  const allIcon = (size: number) => <Icon name="addToStorage" size={size} />;
 
   const report = (
     id: string,
@@ -175,5 +177,5 @@ export function useSaveToStorage() {
       />
     ) : null;
 
-  return { save, saving, dialog, button };
+  return { save, saving, dialog, button: { ...button, allIcon } };
 }

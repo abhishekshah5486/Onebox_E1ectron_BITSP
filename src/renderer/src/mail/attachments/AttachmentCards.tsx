@@ -117,7 +117,7 @@ export function AttachmentCards({
               disabled={storage.saving}
               onClick={addAll}
             >
-              {storage.button.icon(20)}
+              {storage.button.allIcon(22)}
               {storage.saving ? 'Saving…' : storage.button.allLabel}
             </button>
           </span>
@@ -135,7 +135,7 @@ export function AttachmentCards({
             disabled={storage.saving}
             onClick={addAll}
           >
-            {storage.button.icon(22)}
+            {storage.button.allIcon(24)}
             {storage.saving ? 'Saving…' : storage.button.allLabel}
           </button>
         </div>

@@ -49,12 +49,11 @@ export function SaveToStorageDialog({
   };
   const confirm = () => onConfirm({ account, path });
   const what = count === 1 ? '1 file' : `${count} files`;
+  // The provider's logo before each address, in the list and in the field once chosen.
   const option = (a: StorageAccount) => ({
     value: a.id,
     label: a.email,
-    labelTag: STORAGE_PROVIDERS[a.provider].name,
-    iconUrl: STORAGE_PROVIDERS[a.provider].logo,
-    iconAlt: '',
+    iconSvg: <ProviderLogo provider={a.provider} size={16} />,
   });
 
   if (version === 'v2') {
@@ -80,6 +79,7 @@ export function SaveToStorageDialog({
           <Box>Save {what} to your cloud storage.</Box>
           <FormField label="Storage account">
             <Select
+              triggerVariant="option"
               selectedOption={option(account)}
               options={accounts.map(option)}
               onChange={({ detail }) => choose(detail.selectedOption.value ?? '')}
