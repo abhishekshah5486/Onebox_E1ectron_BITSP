@@ -18,6 +18,8 @@ export interface LedgerEntry {
   kind: 'grant' | 'charge' | 'refund' | 'expiry';
   description: string;
   model: string | null;
+  // e.g. perplexity/glm-5.3-flash, for the maker's logo; missing on older entries.
+  modelId: string | null;
   // Positive for credits added, negative for credits used.
   credits: number;
   balanceAfter: number;

@@ -4,7 +4,7 @@ const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).
 
 // A Free user's month: the sign-up grant and a few AI actions, newest first.
 export function sampleBilling(): Billing {
-  const charges: Omit<LedgerEntry, 'id' | 'balanceAfter'>[] = [
+  const charges: Omit<LedgerEntry, 'id' | 'balanceAfter' | 'modelId'>[] = [
     {
       at: minutesAgo(5),
       kind: 'charge',
@@ -96,7 +96,7 @@ export function sampleBilling(): Billing {
     .reverse()
     .map((entry, index) => {
       balance = Math.round((balance + entry.credits) * 10) / 10;
-      return { ...entry, id: `preview-${index}`, balanceAfter: balance };
+      return { ...entry, id: `preview-${index}`, modelId: null, balanceAfter: balance };
     })
     .reverse();
   return {

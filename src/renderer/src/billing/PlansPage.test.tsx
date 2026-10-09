@@ -300,6 +300,8 @@ describe('BillingSection', () => {
     expect(screen.getByRole('button', { name: 'Upgrade plan' })).toBeEnabled();
     // Newest first, ten to a page: the sign-up grant is on the second page.
     expect(screen.getAllByText('Sorted an email into labels').length).toBeGreaterThan(0);
+    // Each model shows its maker's logo beside the name.
+    expect(screen.getAllByText('Kimi K3')[0]!.closest('span')!.querySelector('svg')).not.toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /page 2/i }));
     expect(await screen.findByText('Free plan credits')).toBeInTheDocument();
   });

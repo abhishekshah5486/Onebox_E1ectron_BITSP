@@ -13,6 +13,7 @@ import tableStyles from '../ui/DataTable.module.css';
 import { useBilling, type LedgerEntry } from './billing';
 import styles from './BillingSection.module.css';
 import { formatCredits } from './plans';
+import { ModelLogo } from '../settings/ModelLogo';
 import { SubscriptionSection } from './SubscriptionSection';
 
 const PAGE = 10;
@@ -149,7 +150,19 @@ export function BillingSection() {
             { id: 'when', header: 'When', cell: (item) => formatWhen(item.at) },
             { id: 'kind', header: 'Type', cell: (item) => KIND[item.kind] },
             { id: 'activity', header: 'Activity', cell: (item) => item.description },
-            { id: 'model', header: 'Model', cell: (item) => item.model ?? '–' },
+            {
+              id: 'model',
+              header: 'Model',
+              cell: (item) =>
+                item.model ? (
+                  <span className={styles.paidWith}>
+                    <ModelLogo model={item.modelId ?? item.model.toLowerCase()} />
+                    {item.model}
+                  </span>
+                ) : (
+                  '–'
+                ),
+            },
             {
               id: 'credits',
               header: 'Credits',
