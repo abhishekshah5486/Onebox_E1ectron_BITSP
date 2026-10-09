@@ -21,8 +21,8 @@ export default defineConfig({
           name: 'renderer',
           environment: 'jsdom',
           css: true,
-          // Form tests type through Cloudscape dialogs, which can near 5s under parallel load.
-          testTimeout: 10_000,
+          // Cloudscape dialogs and paging tests can take several seconds on CI runners with coverage.
+          testTimeout: 20_000,
           include: ['src/renderer/**/*.test.{ts,tsx}'],
           setupFiles: ['src/renderer/src/test/setup.ts'],
         },

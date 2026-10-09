@@ -17,6 +17,12 @@ function Section() {
   ) : null;
 }
 
+// Pasting is much faster than typing each key, which matters on slow CI runners.
+async function fill(field: HTMLElement, text: string) {
+  await userEvent.click(field);
+  await userEvent.paste(text);
+}
+
 function setup(overrides: Partial<ApiClient> = {}, accounts = [account()]) {
   const api = fakeApi({
     restoreSession: vi.fn(async () => testUser),
@@ -61,8 +67,8 @@ describe('AccountsSection', () => {
     const dialog = await openModal();
 
     await userEvent.click(within(dialog).getByRole('radio', { name: new RegExp(`^${label}`) }));
-    await userEvent.type(within(dialog).getByLabelText('Email address'), 'me@example.com');
-    await userEvent.type(within(dialog).getByLabelText('Password'), 'app-password');
+    await fill(within(dialog).getByLabelText('Email address'), 'me@example.com');
+    await fill(within(dialog).getByLabelText('Password'), 'app-password');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Connect' }));
 
     await waitFor(() =>
@@ -90,8 +96,8 @@ describe('AccountsSection', () => {
     const dialog = await openModal();
 
     await userEvent.click(within(dialog).getByRole('radio', { name: /^Other IMAP/ }));
-    await userEvent.type(within(dialog).getByLabelText('Email address'), 'me@corp.example');
-    await userEvent.type(within(dialog).getByLabelText('Password'), 'pw');
+    await fill(within(dialog).getByLabelText('Email address'), 'me@corp.example');
+    await fill(within(dialog).getByLabelText('Password'), 'pw');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Connect' }));
 
     expect(within(dialog).getByText(/Enter the IMAP server/)).toBeInTheDocument();
@@ -112,8 +118,8 @@ describe('AccountsSection', () => {
     setup({ post: post }, []);
     const dialog = await openModal();
 
-    await userEvent.type(within(dialog).getByLabelText('Email address'), 'me@gmail.com');
-    await userEvent.type(within(dialog).getByLabelText('Password'), 'wrong');
+    await fill(within(dialog).getByLabelText('Email address'), 'me@gmail.com');
+    await fill(within(dialog).getByLabelText('Password'), 'wrong');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Connect' }));
 
     expect(
