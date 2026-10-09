@@ -1,14 +1,11 @@
-/* A large figure with a small note after it, e.g. "12.2 credits". */
+/* A large figure with a small note after it, e.g. "12.2 of 20"; the note wraps below it
+   when the column is narrow rather than running into the next one. */
 .valueRow {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
-}
-
-.divider {
-  margin: 0;
-  border: none;
-  border-top: 1px solid var(--ob-border);
+  column-gap: 6px;
+  max-width: 100%;
 }
 
 .paidWith {

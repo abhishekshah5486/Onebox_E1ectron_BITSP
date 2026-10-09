@@ -47,6 +47,7 @@ export interface CheckoutStatus {
 
 export interface PaymentRecord {
   id: string;
+  provider: PaymentProvider;
   amount: number;
   currency: string;
   status: 'captured' | 'failed' | 'refunded';

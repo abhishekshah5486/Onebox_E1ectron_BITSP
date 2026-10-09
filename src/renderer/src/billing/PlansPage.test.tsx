@@ -293,15 +293,15 @@ describe('BillingSection', () => {
       </FlashProvider>,
     );
     expect(await screen.findByText(/You're on the Free plan/)).toBeInTheDocument();
-    expect(await screen.findByText('Credits and usage')).toBeInTheDocument();
-    expect(await screen.findByText(/of 20 credits/)).toBeInTheDocument();
-    expect(screen.getAllByText('Free').length).toBeGreaterThan(0);
+    expect(await screen.findByText('of 20')).toBeInTheDocument();
+    expect(screen.getByText('Never (Free credits are given once)')).toBeInTheDocument();
+    // The plan and its actions live in Subscription only, not repeated beside the credits.
+    expect(screen.queryByRole('button', { name: 'Actions' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Upgrade plan' })).toBeEnabled();
     // Newest first, ten to a page: the sign-up grant is on the second page.
     expect(screen.getAllByText('Sorted an email into labels').length).toBeGreaterThan(0);
     await userEvent.click(screen.getByRole('button', { name: /page 2/i }));
     expect(await screen.findByText('Free plan credits')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Actions' })).toBeEnabled();
-    expect(screen.getByRole('link', { name: 'View all plans' })).toBeInTheDocument();
   });
 
   it('shows a paid plan and cancels it at the end of the period after asking', async () => {
@@ -328,6 +328,7 @@ describe('BillingSection', () => {
             items: [
               {
                 id: 'p1',
+                provider: 'RAZORPAY',
                 amount: 49_900,
                 currency: 'INR',
                 status: 'captured',
@@ -343,6 +344,8 @@ describe('BillingSection', () => {
     );
     expect(await screen.findByText('Active')).toBeInTheDocument();
     expect(screen.getByText('UPI')).toBeInTheDocument();
+    // Paid with, and the payment's Provider column.
+    expect(screen.getAllByText('Razorpay')).toHaveLength(2);
 
     // The subscription's Actions come first, above the credits'.
     await userEvent.click(screen.getAllByRole('button', { name: 'Actions' })[0]!);

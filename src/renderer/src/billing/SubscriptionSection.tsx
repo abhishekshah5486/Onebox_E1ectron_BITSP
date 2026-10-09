@@ -50,6 +50,15 @@ function status(sub: Subscription): { type: StatusIndicatorProps.Type; text: str
   return { type: 'success', text: 'Active' };
 }
 
+// How each provider names a payment method, in words.
+const METHOD: Record<string, string> = {
+  card: 'Card',
+  upi: 'UPI',
+  netbanking: 'Net banking',
+  wallet: 'Wallet',
+  emi: 'EMI',
+};
+
 const PAYMENT_STATUS: Record<PaymentRecord['status'], StatusIndicatorProps.Type> = {
   captured: 'success',
   failed: 'error',
@@ -183,6 +192,16 @@ export function SubscriptionSection() {
           columnDefinitions={[
             { id: 'date', header: 'Date', cell: (item) => formatDate(item.createdAt) },
             {
+              id: 'provider',
+              header: 'Provider',
+              cell: (item) => (
+                <span className={styles.paidWith}>
+                  <ProviderLogo provider={item.provider} size={20} label={false} />
+                  {PROVIDER_NAME[item.provider]}
+                </span>
+              ),
+            },
+            {
               id: 'amount',
               header: 'Amount',
               cell: (item) =>
@@ -206,7 +225,9 @@ export function SubscriptionSection() {
             {
               id: 'method',
               header: 'Method',
-              cell: (item) => item.failureReason ?? item.method?.toUpperCase() ?? '–',
+              cell: (item) =>
+                item.failureReason ??
+                (item.method ? (METHOD[item.method] ?? item.method.toUpperCase()) : '–'),
             },
           ]}
           empty={
