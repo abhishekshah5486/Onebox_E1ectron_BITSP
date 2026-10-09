@@ -1,3 +1,14 @@
+/* The Classic / Showcase switch above either layout. */
+.layoutBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px 0;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 /* v1: a plan picker in the style of Google's (centred cards, big green price, pill buttons),
    keeping each plan's own colours. */
 .page {

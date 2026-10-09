@@ -41,6 +41,19 @@ describe('PlansPage', () => {
   });
 });
 
+describe('Plans layout switch', () => {
+  it('switches to the original Showcase design and remembers it', async () => {
+    render(<PlansPage />);
+    await userEvent.click(await screen.findByRole('radio', { name: 'Showcase' }));
+    expect(await screen.findByRole('button', { name: 'Upgrade to Pro' })).toBeInTheDocument();
+    expect(localStorage.getItem('onebox.plans.layout')).toBe('showcase');
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Classic' }));
+    expect(screen.queryByRole('button', { name: 'Upgrade to Pro' })).toBeNull();
+    localStorage.removeItem('onebox.plans.layout');
+  });
+});
+
 describe('BillingSection', () => {
   it('shows the plan, the credits left and the history', async () => {
     render(<BillingSection />);
