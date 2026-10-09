@@ -215,75 +215,77 @@ function ConsolePlans() {
       }
     >
       <SpaceBetween size="l">
-        <ColumnLayout columns={plansFor(interval).length}>
-          {plansFor(interval).map((plan) => {
-            const isCurrent = plan.id === current;
-            const badge = BADGE[plan.id];
-            return (
-              <Container key={plan.id} fitHeight disableContentPaddings>
-                <div className={styles.consoleCard}>
-                  <div className={`${styles.consoleHead} ${styles[plan.id.toLowerCase()]}`}>
-                    <div className={styles.consoleTitle}>
-                      <h2>
-                        {plan.name}
-                        {badge && <Icon name={badge} size={20} />}
-                      </h2>
-                      {isCurrent ? (
-                        <Badge color="blue">Current plan</Badge>
-                      ) : plan.id === RECOMMENDED ? (
-                        <Badge color="green">Recommended</Badge>
-                      ) : null}
-                    </div>
-                    <p className={styles.consoleTagline}>{plan.tagline}</p>
-                    <p className={styles.consolePrice}>
-                      {formatRupees(priceOf(plan, interval))}
-                      <span>/month</span>
-                    </p>
-                  </div>
-                  <div className={styles.consoleBody}>
-                    <SpaceBetween size="m">
-                      <Box color="text-body-secondary">
-                        {billedLine(plan, interval)}
-                        {interval === 'annual' && plan.monthlyPrice > 0 && (
-                          <> · saves {formatRupees(yearlySaving(plan))} a year</>
-                        )}
-                      </Box>
-                      <div className={styles.consoleCredits}>
-                        <Icon name="credit" size={22} />
-                        <span>
-                          <b>{formatCredits(plan.credits)}</b> credits{' '}
-                          {plan.monthlyPrice ? 'per month' : 'to start'}
-                        </span>
+        <div className={interval === 'annual' ? styles.consoleNarrow : undefined}>
+          <ColumnLayout columns={plansFor(interval).length}>
+            {plansFor(interval).map((plan) => {
+              const isCurrent = plan.id === current;
+              const badge = BADGE[plan.id];
+              return (
+                <Container key={plan.id} fitHeight disableContentPaddings>
+                  <div className={styles.consoleCard}>
+                    <div className={`${styles.consoleHead} ${styles[plan.id.toLowerCase()]}`}>
+                      <div className={styles.consoleTitle}>
+                        <h2>
+                          {plan.name}
+                          {badge && <Icon name={badge} size={20} />}
+                        </h2>
+                        {isCurrent ? (
+                          <Badge color="blue">Current plan</Badge>
+                        ) : plan.id === RECOMMENDED ? (
+                          <Badge color="green">Recommended</Badge>
+                        ) : null}
                       </div>
-                      <Button
-                        fullWidth
-                        variant={!isCurrent && plan.id === RECOMMENDED ? 'primary' : 'normal'}
-                        disabled={isCurrent}
-                        onClick={() => choose(plan)}
-                      >
-                        {isCurrent ? 'Current plan' : `Choose ${plan.name}`}
-                      </Button>
-                      <ul className={styles.consoleFeatures}>
-                        {plan.bonusCredits > 0 && (
-                          <li className={styles.consoleBonus}>
-                            <ConsoleFeatureIcon kind="credit" />
-                            {formatCredits(plan.bonusCredits)} bonus credits in the first month
-                          </li>
-                        )}
-                        {plan.features.map((feature) => (
-                          <li key={feature.text}>
-                            <ConsoleFeatureIcon kind={feature.kind} />
-                            {feature.text}
-                          </li>
-                        ))}
-                      </ul>
-                    </SpaceBetween>
+                      <p className={styles.consoleTagline}>{plan.tagline}</p>
+                      <p className={styles.consolePrice}>
+                        {formatRupees(priceOf(plan, interval))}
+                        <span>/month</span>
+                      </p>
+                    </div>
+                    <div className={styles.consoleBody}>
+                      <SpaceBetween size="m">
+                        <Box color="text-body-secondary">
+                          {billedLine(plan, interval)}
+                          {interval === 'annual' && plan.monthlyPrice > 0 && (
+                            <> · saves {formatRupees(yearlySaving(plan))} a year</>
+                          )}
+                        </Box>
+                        <div className={styles.consoleCredits}>
+                          <Icon name="credit" size={22} />
+                          <span>
+                            <b>{formatCredits(plan.credits)}</b> credits{' '}
+                            {plan.monthlyPrice ? 'per month' : 'to start'}
+                          </span>
+                        </div>
+                        <Button
+                          fullWidth
+                          variant={!isCurrent && plan.id === RECOMMENDED ? 'primary' : 'normal'}
+                          disabled={isCurrent}
+                          onClick={() => choose(plan)}
+                        >
+                          {isCurrent ? 'Current plan' : `Choose ${plan.name}`}
+                        </Button>
+                        <ul className={styles.consoleFeatures}>
+                          {plan.bonusCredits > 0 && (
+                            <li className={styles.consoleBonus}>
+                              <ConsoleFeatureIcon kind="credit" />
+                              {formatCredits(plan.bonusCredits)} bonus credits in the first month
+                            </li>
+                          )}
+                          {plan.features.map((feature) => (
+                            <li key={feature.text}>
+                              <ConsoleFeatureIcon kind={feature.kind} />
+                              {feature.text}
+                            </li>
+                          ))}
+                        </ul>
+                      </SpaceBetween>
+                    </div>
                   </div>
-                </div>
-              </Container>
-            );
-          })}
-        </ColumnLayout>
+                </Container>
+              );
+            })}
+          </ColumnLayout>
+        </div>
         <Alert type="info">{NOTE}</Alert>
       </SpaceBetween>
     </ContentLayout>

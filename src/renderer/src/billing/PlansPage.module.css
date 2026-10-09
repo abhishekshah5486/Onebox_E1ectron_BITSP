@@ -93,7 +93,9 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  /* Fixed-width cards, centred, so two plans (yearly) are not stretched across the page. */
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 360px));
+  justify-content: center;
   align-items: stretch;
   gap: 24px;
   max-width: 1180px;
@@ -412,4 +414,16 @@
 :root[data-theme='dark'] .consoleFeatures li.consoleBonus,
 :root[data-theme='dark'] .consoleFeatures li.consoleBonus svg {
   color: #fdd663;
+}
+
+/* Two plans (yearly) keep the width of a column in the three-plan layout, centred. */
+.consoleNarrow {
+  max-width: 66.67%;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .consoleNarrow {
+    max-width: none;
+  }
 }
