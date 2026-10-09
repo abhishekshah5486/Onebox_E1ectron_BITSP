@@ -85,7 +85,14 @@ function PeriodToggle({
 // showcase design; kept so it can come back.
 export function GmailPlans() {
   const navigate = useNavigate();
-  const { interval, setBillingInterval, current, choose, busy, overlay } = usePlansState();
+  const {
+    interval,
+    setBillingInterval,
+    isCurrent: isCurrentPlan,
+    choose,
+    busy,
+    overlay,
+  } = usePlansState();
 
   return (
     <div className={styles.page}>
@@ -103,7 +110,7 @@ export function GmailPlans() {
 
       <div className={styles.grid}>
         {plansFor(interval).map((plan) => {
-          const isCurrent = plan.id === current;
+          const isCurrent = isCurrentPlan(plan.id);
           const recommended = plan.id === RECOMMENDED;
           const badge = BADGE[plan.id];
           return (
@@ -175,7 +182,14 @@ export function GmailPlans() {
 // per plan whose short coloured band carries its name and price.
 function ConsolePlans() {
   const navigate = useNavigate();
-  const { interval, setBillingInterval, current, choose, busy, overlay } = usePlansState();
+  const {
+    interval,
+    setBillingInterval,
+    isCurrent: isCurrentPlan,
+    choose,
+    busy,
+    overlay,
+  } = usePlansState();
   const follow = (event: CustomEvent<{ href: string }>) => {
     event.preventDefault();
     void navigate(event.detail.href);
@@ -218,7 +232,7 @@ function ConsolePlans() {
         <div className={interval === 'annual' ? styles.consoleNarrow : undefined}>
           <ColumnLayout columns={plansFor(interval).length}>
             {plansFor(interval).map((plan) => {
-              const isCurrent = plan.id === current;
+              const isCurrent = isCurrentPlan(plan.id);
               const badge = BADGE[plan.id];
               return (
                 <Container key={plan.id} fitHeight disableContentPaddings>

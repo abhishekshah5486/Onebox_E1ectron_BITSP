@@ -1,4 +1,3 @@
-import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
@@ -13,7 +12,7 @@ import Table from '@cloudscape-design/components/table';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import tableStyles from '../ui/DataTable.module.css';
-import { IS_BILLING_PREVIEW, useBilling, type LedgerEntry } from './billing';
+import { useBilling, type LedgerEntry } from './billing';
 import styles from './BillingSection.module.css';
 import { formatCredits, formatRupees, planById } from './plans';
 import { SubscriptionSection } from './SubscriptionSection';
@@ -49,17 +48,12 @@ export function BillingSection() {
   const pages = Math.max(1, Math.ceil(ledger.length / PAGE));
   const used = data ? Math.max(0, data.periodCredits - data.balance) : 0;
   const low = data ? data.balance <= data.periodCredits * 0.2 : false;
+  // A plan stopped for non-payment pauses AI even with credits left.
+  const paused = data?.subscription.status === 'halted';
   const lastUse = ledger.find((entry) => entry.kind === 'charge');
 
   return (
     <SpaceBetween size="l">
-      {IS_BILLING_PREVIEW && (
-        <Alert type="info" header="Credits preview">
-          Payments run in test mode (Razorpay or Stripe). The credit figures below are examples
-          until credits are connected.
-        </Alert>
-      )}
-
       <SubscriptionSection />
 
       <Container
@@ -175,12 +169,16 @@ export function BillingSection() {
               </div>
               <div>
                 <Box variant="awsui-key-label">Status</Box>
-                <StatusIndicator type={data.balance <= 0 ? 'error' : low ? 'warning' : 'success'}>
-                  {data.balance <= 0
-                    ? 'Out of credits'
-                    : low
-                      ? 'Running low'
-                      : 'AI features available'}
+                <StatusIndicator
+                  type={paused || data.balance <= 0 ? 'error' : low ? 'warning' : 'success'}
+                >
+                  {paused
+                    ? 'Paused until payment'
+                    : data.balance <= 0
+                      ? 'Out of credits'
+                      : low
+                        ? 'Running low'
+                        : 'AI features available'}
                 </StatusIndicator>
               </div>
             </ColumnLayout>

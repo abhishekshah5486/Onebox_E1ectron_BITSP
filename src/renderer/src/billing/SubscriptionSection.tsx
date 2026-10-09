@@ -13,18 +13,21 @@ import Table from '@cloudscape-design/components/table';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
+  paymentsApi,
   useCancelSubscription,
   usePaymentHistory,
   useSubscription,
   type PaymentRecord,
   type Subscription,
 } from '../api/payments';
+import { useAuth } from '../auth/AuthProvider';
 import { describeError } from '../auth/errors';
 import { useFlash } from '../settings/flash';
 import tableStyles from '../ui/DataTable.module.css';
 import styles from './BillingSection.module.css';
 import { PROVIDER_NAME } from './CheckoutOverlay';
 import { ProviderLogo } from './ProviderLogo';
+import { openInBrowser } from './openInBrowser';
 import { formatRupees, planById } from './plans';
 
 // Subscriptions that still hold a paid plan.
@@ -56,6 +59,7 @@ const PAYMENT_STATUS: Record<PaymentRecord['status'], StatusIndicatorProps.Type>
 // Settings → Billing: the paid plan, if any, with cancelling and the payments made.
 export function SubscriptionSection() {
   const navigate = useNavigate();
+  const { api } = useAuth();
   const flash = useFlash();
   const subscription = useSubscription();
   const history = usePaymentHistory();
@@ -64,6 +68,21 @@ export function SubscriptionSection() {
   const sub =
     subscription.data && HOLDS_PLAN.has(subscription.data.status) ? subscription.data : null;
   const plan = sub ? planById(sub.plan) : null;
+
+  // Stripe's own page for the saved card and invoices, in the browser.
+  async function openPortal() {
+    try {
+      const { url } = await paymentsApi.portal(api);
+      if (openInBrowser(url)) return;
+      flash({
+        type: 'info',
+        content: 'Your payment details page is ready.',
+        action: { label: 'Open', onClick: () => openInBrowser(url) },
+      });
+    } catch (error) {
+      flash({ type: 'error', content: describeError(error) });
+    }
+  }
   const shown = sub ? status(sub) : null;
 
   return (
@@ -78,6 +97,9 @@ export function SubscriptionSection() {
                 <ButtonDropdown
                   items={[
                     { id: 'plans', text: 'Change plan' },
+                    ...(sub.provider === 'STRIPE'
+                      ? [{ id: 'card', text: 'Update payment method', external: true }]
+                      : []),
                     {
                       id: 'cancel',
                       text: 'Cancel subscription',
@@ -85,9 +107,11 @@ export function SubscriptionSection() {
                       disabledReason: 'Already ends at the end of this period',
                     },
                   ]}
-                  onItemClick={({ detail }) =>
-                    detail.id === 'plans' ? void navigate('/plans') : setConfirmCancel(true)
-                  }
+                  onItemClick={({ detail }) => {
+                    if (detail.id === 'plans') void navigate('/plans');
+                    else if (detail.id === 'card') void openPortal();
+                    else setConfirmCancel(true);
+                  }}
                 >
                   Actions
                 </ButtonDropdown>
