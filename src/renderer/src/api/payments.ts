@@ -47,6 +47,7 @@ export interface CheckoutStatus {
 
 export interface PaymentRecord {
   id: string;
+  provider: PaymentProvider;
   amount: number;
   currency: string;
   status: 'captured' | 'failed' | 'refunded';
@@ -69,6 +70,9 @@ export const paymentsApi = {
   subscription: async (api: ApiClient) =>
     (await api.get<{ subscription: Subscription | null }>('/payments/subscription')).subscription,
   cancel: (api: ApiClient) => api.post<Subscription>('/payments/subscription/cancel'),
+  change: (api: ApiClient, plan: PlanId, interval: BillingInterval) =>
+    api.post<Subscription>('/payments/subscription/change', { plan, interval }),
+  portal: (api: ApiClient) => api.post<{ url: string }>('/payments/portal'),
   history: async (api: ApiClient) =>
     (await api.get<{ items: PaymentRecord[] }>('/payments/history')).items,
 };

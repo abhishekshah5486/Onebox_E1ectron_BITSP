@@ -196,6 +196,41 @@ describe('PlansPage in v1 (showcase)', () => {
     open.mockRestore();
   });
 
+  it('switches a paid plan after confirming, instead of opening checkout', async () => {
+    const subscription = {
+      id: 's1',
+      provider: 'STRIPE',
+      plan: 'STANDARD',
+      interval: 'monthly',
+      status: 'active',
+      currentPeriodStart: '2026-10-09T00:00:00.000Z',
+      currentPeriodEnd: '2026-11-09T00:00:00.000Z',
+      cancelAtPeriodEnd: false,
+      createdAt: '2026-10-09T00:00:00.000Z',
+    };
+    const post = vi.fn(async () => ({ ...subscription, plan: 'PRO' }));
+    render(<PlansPage />, {
+      get: routedGet({ '/payments/subscription': () => ({ subscription }) }),
+      post: post as ApiClient['post'],
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Switch to Pro' }));
+    expect(screen.getByRole('button', { name: 'Current plan' })).toBeDisabled();
+
+    const dialog = within(await screen.findByRole('dialog', { name: 'Switch to Pro?' }));
+    expect(dialog.getByText(/difference for the rest of this billing period/)).toBeInTheDocument();
+    await userEvent.click(dialog.getByRole('button', { name: 'Switch to Pro' }));
+    expect(await screen.findByText(/You're on Pro/)).toBeInTheDocument();
+    expect(post).toHaveBeenCalledWith('/payments/subscription/change', {
+      plan: 'PRO',
+      interval: 'monthly',
+    });
+    expect(post).not.toHaveBeenCalledWith('/payments/checkout', expect.anything());
+
+    // Billed yearly, Standard is a different plan to switch to.
+    await userEvent.click(screen.getByRole('radio', { name: /Annually/ }));
+    expect(screen.getByRole('button', { name: 'Switch to Standard' })).toBeEnabled();
+  });
+
   it('says nothing was charged when checkout is closed', async () => {
     fakeRazorpay('dismissed');
     const post = checkoutApi();
@@ -257,17 +292,18 @@ describe('BillingSection', () => {
         <BillingSection />
       </FlashProvider>,
     );
-    expect(await screen.findByText('Credits preview')).toBeInTheDocument();
     expect(await screen.findByText(/You're on the Free plan/)).toBeInTheDocument();
-    expect(await screen.findByText('Credits and usage')).toBeInTheDocument();
-    expect(await screen.findByText(/of 20 credits/)).toBeInTheDocument();
-    expect(screen.getAllByText('Free').length).toBeGreaterThan(0);
+    expect(await screen.findByText('of 20')).toBeInTheDocument();
+    expect(screen.getByText('Never (Free credits are given once)')).toBeInTheDocument();
+    // The plan and its actions live in Subscription only, not repeated beside the credits.
+    expect(screen.queryByRole('button', { name: 'Actions' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Upgrade plan' })).toBeEnabled();
     // Newest first, ten to a page: the sign-up grant is on the second page.
     expect(screen.getAllByText('Sorted an email into labels').length).toBeGreaterThan(0);
+    // Each model shows its maker's logo beside the name.
+    expect(screen.getAllByText('Kimi K3')[0]!.closest('span')!.querySelector('svg')).not.toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /page 2/i }));
     expect(await screen.findByText('Free plan credits')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Actions' })).toBeEnabled();
-    expect(screen.getByRole('link', { name: 'View all plans' })).toBeInTheDocument();
   });
 
   it('shows a paid plan and cancels it at the end of the period after asking', async () => {
@@ -294,6 +330,7 @@ describe('BillingSection', () => {
             items: [
               {
                 id: 'p1',
+                provider: 'RAZORPAY',
                 amount: 49_900,
                 currency: 'INR',
                 status: 'captured',
@@ -309,6 +346,8 @@ describe('BillingSection', () => {
     );
     expect(await screen.findByText('Active')).toBeInTheDocument();
     expect(screen.getByText('UPI')).toBeInTheDocument();
+    // Paid with, and the payment's Provider column.
+    expect(screen.getAllByText('Razorpay')).toHaveLength(2);
 
     // The subscription's Actions come first, above the credits'.
     await userEvent.click(screen.getAllByRole('button', { name: 'Actions' })[0]!);
@@ -317,5 +356,52 @@ describe('BillingSection', () => {
     await userEvent.click(dialog.getByRole('button', { name: 'Cancel subscription' }));
     expect(post).toHaveBeenCalledWith('/payments/subscription/cancel');
     expect(await screen.findByText(/plan is cancelled/)).toBeInTheDocument();
+  });
+  it("opens Stripe's page for the card on file, and says when AI is paused", async () => {
+    const subscription = {
+      id: 's1',
+      provider: 'STRIPE',
+      plan: 'STANDARD',
+      interval: 'monthly',
+      status: 'halted',
+      currentPeriodStart: '2026-10-09T00:00:00.000Z',
+      currentPeriodEnd: '2026-11-09T00:00:00.000Z',
+      cancelAtPeriodEnd: false,
+      createdAt: '2026-10-09T00:00:00.000Z',
+    };
+    const open = vi.spyOn(window, 'open').mockReturnValue({ opener: window } as unknown as Window);
+    const post = vi.fn(async () => ({ url: 'https://billing.stripe.com/p/session' }));
+    render(
+      <FlashProvider>
+        <BillingSection />
+      </FlashProvider>,
+      {
+        get: routedGet({
+          '/payments/subscription': () => ({ subscription }),
+          '/billing': () => ({
+            subscription: {
+              plan: 'STANDARD',
+              interval: 'monthly',
+              status: 'halted',
+              renewsAt: '2026-11-09T00:00:00.000Z',
+            },
+            balance: 120,
+            periodCredits: 750,
+            ledger: [],
+          }),
+        }),
+        post: post as unknown as ApiClient['post'],
+      },
+    );
+    expect(await screen.findByText('Paused until payment')).toBeInTheDocument();
+    expect(screen.getByText('Payment failed')).toBeInTheDocument();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Actions' })[0]!);
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Update payment method/ }));
+    await vi.waitFor(() =>
+      expect(open).toHaveBeenCalledWith('https://billing.stripe.com/p/session', '_blank'),
+    );
+    expect(post).toHaveBeenCalledWith('/payments/portal');
+    open.mockRestore();
   });
 });

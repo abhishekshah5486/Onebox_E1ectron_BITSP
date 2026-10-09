@@ -22,12 +22,15 @@ function PlanCard({
   plan,
   interval,
   current,
+  onPaidPlan,
   busy,
   onChoose,
 }: {
   plan: Plan;
   interval: BillingInterval;
   current: boolean;
+  // Already paying: another plan is a switch, not a checkout.
+  onPaidPlan: boolean;
   busy: Plan['id'] | null;
   onChoose: () => void;
 }) {
@@ -78,9 +81,11 @@ function PlanCard({
           {current
             ? 'Current plan'
             : busy === plan.id
-              ? 'Opening checkout…'
-              : free
-                ? 'Switch to Free'
+              ? onPaidPlan
+                ? 'Switching…'
+                : 'Opening checkout…'
+              : free || onPaidPlan
+                ? `Switch to ${plan.name}`
                 : `Upgrade to ${plan.name}`}
         </button>
       </div>
@@ -111,6 +116,7 @@ export function ShowcasePlans() {
     interval,
     setBillingInterval,
     current: currentPlan,
+    isCurrent,
     choose,
     busy,
     overlay,
@@ -155,7 +161,8 @@ export function ShowcasePlans() {
             key={plan.id}
             plan={plan}
             interval={interval}
-            current={plan.id === currentPlan}
+            current={isCurrent(plan.id)}
+            onPaidPlan={currentPlan !== 'FREE'}
             busy={busy}
             onChoose={() => choose(plan)}
           />

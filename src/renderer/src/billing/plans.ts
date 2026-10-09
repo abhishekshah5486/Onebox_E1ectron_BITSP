@@ -145,6 +145,7 @@ export const formatRupees = (paise: number) =>
     maximumFractionDigits: 0,
   }).format(paise / 100);
 
-// Credits are kept to one decimal place in the UI, e.g. 12.4.
+// Credits have three decimals, as billing keeps them, e.g. 0.038 or 1,999.962; whole numbers
+// stay whole (500).
 export const formatCredits = (credits: number) =>
-  new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 }).format(credits);
+  new Intl.NumberFormat('en-IN', { maximumFractionDigits: 3 }).format(credits);

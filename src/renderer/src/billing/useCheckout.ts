@@ -5,8 +5,10 @@ import { useAuth } from '../auth/AuthProvider';
 import { describeError } from '../auth/errors';
 import { useOptionalFlash, type FlashInput } from '../settings/flash';
 import { useSnackbar } from '../ui/Snackbar';
+import { refreshBilling } from './billing';
 import { CheckoutOverlay, type CheckoutStep } from './CheckoutOverlay';
 import { formatRupees, planById, type BillingInterval, type PlanId } from './plans';
+import { openInBrowser } from './openInBrowser';
 import { openRazorpayCheckout } from './razorpay';
 
 const POLL_MS = 2_000;
@@ -15,22 +17,6 @@ const WAIT_LIMIT_MS = 30 * 60_000;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const deadline = () => Date.now() + WAIT_LIMIT_MS;
 const before = (until: number) => Date.now() < until;
-
-// The desktop app (its preload adds window.onebox) sends links to the system browser.
-const isDesktop = () => 'onebox' in window;
-
-// Opens the checkout page in a new tab; false when the browser blocked it, as it can once the
-// click that started checkout is a few seconds old.
-function openCheckout(url: string) {
-  if (isDesktop()) {
-    window.open(url, '_blank');
-    return true;
-  }
-  const tab = window.open(url, '_blank');
-  if (!tab) return false;
-  tab.opener = null;
-  return true;
-}
 
 // Upgrading: pick a provider when there are several, pay in its checkout (Razorpay's window in
 // the app, or Stripe's page in the browser), and say how it went in a banner (v2) or the
@@ -72,6 +58,7 @@ export function useCheckout() {
 
   const activated = async (name: string) => {
     await queryClient.invalidateQueries({ queryKey: ['payments'] });
+    refreshBilling(queryClient);
     notify({
       type: 'success',
       header: `You're on ${name}.`,
@@ -160,7 +147,7 @@ export function useCheckout() {
         return;
       }
       setStep({
-        kind: openCheckout(session.url) ? 'waiting' : 'ready',
+        kind: openInBrowser(session.url) ? 'waiting' : 'ready',
         url: session.url,
         ...shown,
       });
@@ -223,7 +210,7 @@ export function useCheckout() {
     onPick: pick,
     onOpen: () => {
       if (step?.kind !== 'waiting' && step?.kind !== 'ready') return;
-      openCheckout(step.url);
+      openInBrowser(step.url);
       setStep({ ...step, kind: 'waiting' });
     },
   });
