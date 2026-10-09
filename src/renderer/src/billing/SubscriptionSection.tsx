@@ -65,12 +65,12 @@ export function SubscriptionSection() {
   const shown = sub ? status(sub) : null;
 
   return (
-    <>
+    <SpaceBetween size="l">
       <Container
         header={
           <Header
             variant="h2"
-            description="Your plan and how it is paid. Payments are handled by Razorpay."
+            description="Manage your plan and payments. Payments are processed securely by Razorpay."
             actions={
               sub ? (
                 <ButtonDropdown
@@ -225,6 +225,6 @@ export function SubscriptionSection() {
         <b>{formatDate(sub?.currentPeriodEnd ?? null)}</b>, then you move to Free. You won't be
         charged again.
       </Modal>
-    </>
+    </SpaceBetween>
   );
 }
