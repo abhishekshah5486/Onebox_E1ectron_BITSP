@@ -1,5 +1,4 @@
 import Alert from '@cloudscape-design/components/alert';
-import Badge from '@cloudscape-design/components/badge';
 import BreadcrumbGroup from '@cloudscape-design/components/breadcrumb-group';
 import Button from '@cloudscape-design/components/button';
 import Box from '@cloudscape-design/components/box';
@@ -33,6 +32,7 @@ import {
   type Plan,
 } from './plans';
 import { ConsoleFeatureIcon, GMAIL_FEATURE_ICON } from './featureIcons';
+import tableStyles from '../ui/DataTable.module.css';
 import styles from './PlansPage.module.css';
 import { ShowcasePlans } from './ShowcasePlans';
 
@@ -187,8 +187,6 @@ function ConsolePlans() {
     event.preventDefault();
     void navigate(event.detail.href);
   };
-  const showComparison = () =>
-    document.getElementById('compare-plans')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <ContentLayout
@@ -222,22 +220,14 @@ function ConsolePlans() {
       }
     >
       <SpaceBetween size="l">
+        <Alert type="info">{NOTE}</Alert>
         <div className={interval === 'annual' ? styles.consoleNarrow : undefined}>
           <ColumnLayout columns={plansFor(interval).length}>
             {plansFor(interval).map((plan) => {
               const isCurrent = plan.id === current;
               const badge = BADGE[plan.id];
               return (
-                <Container
-                  key={plan.id}
-                  fitHeight
-                  disableContentPaddings
-                  footer={
-                    <Box textAlign="center">
-                      <Link onFollow={showComparison}>Compare plans</Link>
-                    </Box>
-                  }
-                >
+                <Container key={plan.id} fitHeight disableContentPaddings>
                   <div className={styles.consoleCard}>
                     <div className={`${styles.consoleHead} ${styles[plan.id.toLowerCase()]}`}>
                       <div className={styles.consoleTitle}>
@@ -250,7 +240,10 @@ function ConsolePlans() {
                             <StatusIndicator type="success">Current plan</StatusIndicator>
                           </span>
                         ) : plan.id === RECOMMENDED ? (
-                          <Badge color="green">Recommended</Badge>
+                          <span className={styles.recommendedPill}>
+                            <CloudscapeIcon name="star-filled" size="small" />
+                            Recommended
+                          </span>
                         ) : null}
                       </div>
                       <p className={styles.consoleTagline}>{plan.tagline}</p>
@@ -267,15 +260,12 @@ function ConsolePlans() {
                             <> · saves {formatRupees(yearlySaving(plan))} a year</>
                           )}
                         </Box>
-                        <div>
-                          <Box variant="awsui-key-label">Credits</Box>
-                          <div className={styles.consoleCreditValue}>
-                            <Icon name="credit" size={22} />
-                            <span>
-                              <b>{formatCredits(plan.credits)}</b>{' '}
-                              {plan.monthlyPrice ? 'per month' : 'to start'}
-                            </span>
-                          </div>
+                        <div className={styles.consoleCredits}>
+                          <Icon name="credit" size={22} />
+                          <span>
+                            <b>{formatCredits(plan.credits)}</b> credits{' '}
+                            {plan.monthlyPrice ? 'per month' : 'to start'}
+                          </span>
                         </div>
                         <Button
                           fullWidth
@@ -307,7 +297,7 @@ function ConsolePlans() {
             })}
           </ColumnLayout>
         </div>
-        <div id="compare-plans">
+        <div id="compare-plans" className={tableStyles.table}>
           <Table
             variant="container"
             header={
@@ -327,7 +317,6 @@ function ConsolePlans() {
             ]}
           />
         </div>
-        <Alert type="info">{NOTE}</Alert>
       </SpaceBetween>
     </ContentLayout>
   );
