@@ -42,6 +42,7 @@ import { actionIcon, ConsoleActions } from './ConsoleActions';
 import styles from './ConsoleMailbox.module.css';
 import { useUnsubscribeFlow } from './UnsubscribeFlow';
 import { LoadError } from '../ui/LoadError';
+import { useCompose } from '../compose/ComposeProvider';
 
 const PROBLEM: Record<string, string> = {
   AUTH_FAILED: 'The mail server rejected this account’s password.',
@@ -288,6 +289,7 @@ function MailTable({
       : null;
   const soleFolders = useAccountFolders(soleAccount ? [soleAccount] : [])[0]?.data?.items ?? null;
 
+  const compose = useCompose();
   const run = (threads: Thread[], request: ActionSpec) => {
     act(
       threads.map((thread) => thread.id),
@@ -356,6 +358,9 @@ function MailTable({
                     selected={selected}
                     onAction={(request) => run(selected, request)}
                   />
+                  <Button variant="primary" iconName="edit" onClick={() => compose.open()}>
+                    Compose email
+                  </Button>
                 </SpaceBetween>
               }
             >

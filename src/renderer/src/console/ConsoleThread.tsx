@@ -6,9 +6,14 @@ import SpaceBetween from '@cloudscape-design/components/space-between';
 import Spinner from '@cloudscape-design/components/spinner';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import type { ReplyMode } from '../api/compose';
 import type { Address, Message } from '../api/mail';
 import { useAccountFolders, useThread, useUpdateThread } from '../api/mail-queries';
+import { useAccounts, usePreferences } from '../api/queries';
 import { describeError } from '../auth/errors';
+import { useCompose } from '../compose/ComposeProvider';
+import { replyComposition } from '../compose/model';
+import { Icon as OneboxIcon } from '../ui/Icon';
 import { AttachmentCards } from '../mail/attachments/AttachmentCards';
 import { EmailFrame } from '../mail/EmailFrame';
 import type { ActionSpec } from '../mail/actions';
@@ -148,6 +153,22 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
   const navigate = useNavigate();
   const query = useThread(threadId);
   const update = useUpdateThread();
+  const compose = useCompose();
+  const accounts = useAccounts();
+  const preferences = usePreferences();
+  // Replies answer the newest message, as in Gmail.
+  const replyWith = (mode: ReplyMode) => {
+    const latest = query.data?.messages.at(-1);
+    if (!latest) return;
+    compose.open({
+      composition: replyComposition(
+        latest,
+        mode,
+        (accounts.data ?? []).map((account) => account.emailAddress),
+        preferences.data?.signature ?? null,
+      ),
+    });
+  };
   const act = useMailAction();
   const flash = useFlash();
   const unsubscribe = useUnsubscribeFlow();
@@ -203,6 +224,30 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
               }}
             >
               Mark as unread
+            </Button>
+          )}
+          {thread && (
+            <Button
+              iconSvg={<OneboxIcon name="reply" size={16} />}
+              onClick={() => replyWith('reply')}
+            >
+              Reply
+            </Button>
+          )}
+          {thread && (
+            <Button
+              iconSvg={<OneboxIcon name="replyAll" size={16} />}
+              onClick={() => replyWith('replyAll')}
+            >
+              Reply all
+            </Button>
+          )}
+          {thread && (
+            <Button
+              iconSvg={<OneboxIcon name="forward" size={16} />}
+              onClick={() => replyWith('forward')}
+            >
+              Forward
             </Button>
           )}
           {thread && (

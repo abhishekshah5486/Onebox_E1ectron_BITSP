@@ -25,6 +25,8 @@ const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/accounts' || path === '/settings/integrations') return { items: [] };
   if (path === '/settings/preferences') return defaultPreferences;
   if (path === '/billing') return sampleBilling();
+  if (path === '/mail/drafts' || path === '/mail/outbox') return { items: [] };
+  if (path.startsWith('/mail/contacts')) return { items: [] };
   if (path === '/payments/config') return { providers: ['RAZORPAY'] };
   if (path === '/payments/subscription') return { subscription: null };
   if (path === '/payments/history') return { items: [] };
@@ -59,6 +61,7 @@ export function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     put: vi.fn(),
     delete: vi.fn(),
     blob: vi.fn(async () => new Blob()),
+    upload: vi.fn(),
     login: vi.fn(async () => testUser),
     register: vi.fn(async () => testUser),
     restoreSession: vi.fn(async () => null),

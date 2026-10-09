@@ -111,6 +111,26 @@ export function createApiClient({
     return response.blob();
   }
 
+  // A file as the request body, e.g. a compose attachment; its name and type go in headers.
+  async function upload<T>(path: string, file: File): Promise<T> {
+    const post = () =>
+      fetchImpl(`${baseUrl}${path}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'x-onebox-client': 'web',
+          'content-type': 'application/octet-stream',
+          'x-filename': encodeURIComponent(file.name),
+          'x-content-type': file.type || 'application/octet-stream',
+          ...(accessToken && { authorization: `Bearer ${accessToken}` }),
+        },
+        body: file,
+      });
+    let response = await post();
+    if (response.status === 401 && (await refreshSession())) response = await post();
+    return parse<T>(response);
+  }
+
   async function startSession(path: string, body: unknown): Promise<User> {
     const session = await request<Session>('POST', path, body);
     accessToken = session.tokens.accessToken;
@@ -124,6 +144,7 @@ export function createApiClient({
     put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
     delete: <T>(path: string) => request<T>('DELETE', path),
     blob,
+    upload,
 
     login: (email: string, password: string) => startSession('/auth/login', { email, password }),
     register: (input: { name: string; email: string; password: string }) =>

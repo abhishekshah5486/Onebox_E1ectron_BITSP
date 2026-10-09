@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router';
+import { ComposeProvider } from '../compose/ComposeProvider';
+import { ComposeDock } from '../compose/ComposeWindow';
 import { SnackbarProvider } from '../ui/Snackbar';
 import { TooltipLayer } from '../ui/TooltipLayer';
 import styles from './AppShell.module.css';
@@ -10,15 +12,18 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
   return (
     <SnackbarProvider>
-      <div className={styles.shell}>
-        <TopBar onToggleMenu={() => setCollapsed((value) => !value)} />
-        <div className={styles.body}>
-          <Sidebar collapsed={collapsed} />
-          <main className={styles.content}>
-            <Outlet />
-          </main>
+      <ComposeProvider>
+        <div className={styles.shell}>
+          <TopBar onToggleMenu={() => setCollapsed((value) => !value)} />
+          <div className={styles.body}>
+            <Sidebar collapsed={collapsed} />
+            <main className={styles.content}>
+              <Outlet />
+            </main>
+          </div>
         </div>
-      </div>
+        <ComposeDock />
+      </ComposeProvider>
       <TooltipLayer />
     </SnackbarProvider>
   );

@@ -20,6 +20,7 @@ import {
   MAIL_CATEGORY_LABEL,
   type FolderRole,
 } from '../mail/folders';
+import { useCompose } from '../compose/ComposeProvider';
 import { Icon } from '../ui/Icon';
 import styles from './Sidebar.module.css';
 
@@ -134,6 +135,7 @@ function AccountItem({
 }
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
+  const compose = useCompose();
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const accounts = useAccounts();
@@ -217,7 +219,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}
       aria-label="Mailboxes"
     >
-      <button className={styles.compose} aria-label="Compose">
+      <button className={styles.compose} aria-label="Compose" onClick={() => compose.open()}>
         <Icon name="edit" size={24} />
         {!collapsed && 'Compose'}
       </button>

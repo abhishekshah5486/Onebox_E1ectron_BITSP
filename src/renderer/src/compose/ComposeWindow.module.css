@@ -1,0 +1,76 @@
+.dock {
+  position: fixed;
+  right: 16px;
+  bottom: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  gap: 16px;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+.window {
+  display: flex;
+  flex-direction: column;
+  width: 540px;
+  max-width: calc(100vw - 32px);
+  height: min(560px, calc(100vh - 96px));
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  background: var(--ob-dialog-bg);
+  color: var(--ob-dialog-text);
+  box-shadow: var(--ob-shadow);
+  pointer-events: auto;
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 4px 0 16px;
+  background: var(--ob-surface-hover);
+  cursor: default;
+}
+
+.header h2 {
+  flex: 1;
+  overflow: hidden;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header > span {
+  display: flex;
+}
+
+.minimized {
+  width: 280px;
+  height: auto;
+}
+
+.minimized .header {
+  cursor: pointer;
+}
+
+.maximized {
+  width: min(1100px, 90vw);
+  max-width: none;
+  height: 88vh;
+  border-radius: 12px;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 40%);
+}

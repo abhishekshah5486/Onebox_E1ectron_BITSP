@@ -37,6 +37,7 @@ export const CONSOLE_ICONS = {
 // One icon per sidebar entry: Cloudscape's where it has one, else one of ours.
 export function navIcon(key: string) {
   const name: Record<string, IconProps.Name> = {
+    compose: 'edit',
     suggestions: 'gen-ai',
     starred: 'star',
     sent: 'send',

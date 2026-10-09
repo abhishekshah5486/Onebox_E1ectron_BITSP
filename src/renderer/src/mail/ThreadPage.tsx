@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { useAccountFolders, useThread, useUpdateThread } from '../api/mail-queries';
 import { useAccounts } from '../api/queries';
 import { describeError } from '../auth/errors';
+import { InlineReply } from '../compose/InlineReply';
 import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 import { Menu } from '../ui/Menu';
@@ -187,6 +188,12 @@ export function ThreadPage({ basePath = '/inbox' }: { basePath?: string }) {
                 />
               );
             })}
+            {query.data.messages.length > 0 && (
+              <InlineReply
+                key={query.data.messages.at(-1)!.id}
+                message={query.data.messages.at(-1)!}
+              />
+            )}
           </>
         )}
       </div>

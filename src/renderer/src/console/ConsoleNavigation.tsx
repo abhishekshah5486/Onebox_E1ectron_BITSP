@@ -262,6 +262,7 @@ export function ConsoleNavigation() {
             type: 'section-group',
             title: 'All accounts',
             items: [
+              link({ key: 'compose', type: 'link', text: 'Compose', href: '/compose' }),
               link({
                 key: 'inbox',
                 type: 'link',

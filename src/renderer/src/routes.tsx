@@ -12,6 +12,7 @@ import {
   type FolderRole,
   type MailCategory,
 } from './mail/folders';
+import { OpenCompose } from './compose/OpenCompose';
 import { AccountMailbox, UnifiedMailbox } from './mail/MailboxPage';
 import { ThreadPage } from './mail/ThreadPage';
 import { AppShell } from './shell/AppShell';
@@ -30,6 +31,7 @@ const ConsoleAccountMailbox = lazy(() =>
   loadConsole().then((m) => ({ default: m.ConsoleAccountMailbox })),
 );
 const ConsoleThread = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleThread })));
+const ConsoleCompose = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleCompose })));
 
 interface UnifiedProps {
   filter: ThreadFilter;
@@ -45,6 +47,7 @@ interface Kit {
   Unified: ComponentType<UnifiedProps>;
   Account: ComponentType;
   Thread: ComponentType<{ basePath: string }>;
+  Compose: ComponentType;
 }
 
 const CLASSIC: Kit = {
@@ -52,6 +55,7 @@ const CLASSIC: Kit = {
   Unified: UnifiedMailbox,
   Account: AccountMailbox,
   Thread: ThreadPage,
+  Compose: OpenCompose,
 };
 
 const CONSOLE: Kit = {
@@ -59,6 +63,7 @@ const CONSOLE: Kit = {
   Unified: ConsoleUnifiedMailbox,
   Account: ConsoleAccountMailbox,
   Thread: ConsoleThread,
+  Compose: ConsoleCompose,
 };
 
 const UNIFIED_FOLDERS: FolderRole[] = ['sent', 'drafts', 'archive', 'spam', 'trash'];
@@ -80,7 +85,7 @@ function AccountThread({ Thread }: { Thread: Kit['Thread'] }) {
 
 export function AppRoutes() {
   const { version } = useUiVersion();
-  const { Shell, Unified, Account, Thread } = version === 'v2' ? CONSOLE : CLASSIC;
+  const { Shell, Unified, Account, Thread, Compose } = version === 'v2' ? CONSOLE : CLASSIC;
   const unified = (key: string, props: UnifiedProps) => [
     <Route key={key} path={props.basePath} element={<Unified key={key} {...props} />} />,
     <Route
@@ -127,6 +132,8 @@ export function AppRoutes() {
             path="/accounts/:accountId/:folder/:threadId"
             element={<AccountThread Thread={Thread} />}
           />
+          <Route path="/compose" element={loading('Loading compose', <Compose />)} />
+          <Route path="/compose/:draftId" element={loading('Loading compose', <Compose />)} />
           <Route
             path="/suggestions"
             element={loading('Loading suggestions', <SuggestionsPage />)}

@@ -6,6 +6,7 @@ import { Outlet, useNavigate } from 'react-router';
 import { useAuth, useCurrentUser } from '../auth/AuthProvider';
 import { useBilling } from '../billing/billing';
 import { formatCredits } from '../billing/plans';
+import { ComposeProvider } from '../compose/ComposeProvider';
 import { FlashArea } from '../settings/flash';
 import { useTheme, type ThemePreference } from '../theme/ThemeProvider';
 import { Icon } from '../ui/Icon';
@@ -38,7 +39,7 @@ export function ConsoleShell() {
   return (
     <FlashArea>
       {(banners) => (
-        <>
+        <ComposeProvider>
           <div id="onebox-top-nav" style={{ position: 'sticky', top: 0, zIndex: 1002 }}>
             <TopNavigation
               identity={{
@@ -115,7 +116,7 @@ export function ConsoleShell() {
           {navigationOpen && (
             <SidebarResizer width={navigationWidth} onResize={setNavigationWidth} />
           )}
-        </>
+        </ComposeProvider>
       )}
     </FlashArea>
   );

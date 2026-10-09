@@ -3,8 +3,7 @@ import { createElement, useCallback, useRef, useState } from 'react';
 import { paymentsApi, usePaymentProviders, type PaymentProvider } from '../api/payments';
 import { useAuth } from '../auth/AuthProvider';
 import { describeError } from '../auth/errors';
-import { useOptionalFlash, type FlashInput } from '../settings/flash';
-import { useSnackbar } from '../ui/Snackbar';
+import { useNotify } from '../ui/useNotify';
 import { refreshBilling } from './billing';
 import { CheckoutOverlay, type CheckoutStep } from './CheckoutOverlay';
 import { formatRupees, planById, type BillingInterval, type PlanId } from './plans';
@@ -25,8 +24,7 @@ export function useCheckout() {
   const { api } = useAuth();
   const queryClient = useQueryClient();
   const providers = usePaymentProviders();
-  const flash = useOptionalFlash();
-  const snackbar = useSnackbar();
+  const notify = useNotify();
   const [busy, setBusy] = useState<PlanId | null>(null);
   const [step, setStep] = useState<CheckoutStep | null>(null);
   // The plan waiting on a provider choice.
@@ -35,15 +33,6 @@ export function useCheckout() {
   );
   // Each checkout's number; cancelling moves it on, so an older flow knows to stop.
   const run = useRef(0);
-
-  // Plain text, so the snackbar (v1) can show it too.
-  const notify = (message: FlashInput & { header?: string; content: string }) => {
-    if (flash) return flash(message);
-    snackbar({
-      text: [message.header, message.content].filter(Boolean).join(' '),
-      ...(message.action && { action: message.action }),
-    });
-  };
 
   const purchase = (plan: PlanId, interval: BillingInterval) => {
     const details = planById(plan);
