@@ -31,6 +31,8 @@
   color: #1f1f1f;
   /* Light colours for what sits on the white page, such as attachment cards. */
   --ob-text: #1f1f1f;
+  --ob-drive-pill: #e9eef6;
+  --ob-drive-pill-hover: #dde3ea;
   --ob-text-muted: #444746;
   --ob-border: #e0e0e0;
   --ob-outline: #747775;

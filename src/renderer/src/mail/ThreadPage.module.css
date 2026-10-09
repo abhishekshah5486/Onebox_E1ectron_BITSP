@@ -44,6 +44,8 @@
 /* Like Gmail, the reading pane is white in both themes, under the themed toolbar. */
 .body {
   --ob-text: #1f1f1f;
+  --ob-drive-pill: #e9eef6;
+  --ob-drive-pill-hover: #dde3ea;
   --ob-text-muted: #444746;
   --ob-border: #e0e0e0;
   --ob-chip-bg: #e1e3e1;

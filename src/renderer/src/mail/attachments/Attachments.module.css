@@ -71,7 +71,7 @@
   color: var(--ob-text-muted);
 }
 
-/* Gmail's "Add all to Drive" pill. */
+/* Gmail's "Add all to Drive": plain text, a pill on hover. */
 .drivePill {
   display: inline-flex;
   align-items: center;
@@ -80,15 +80,55 @@
   padding: 0 16px 0 12px;
   border: none;
   border-radius: 18px;
-  background: var(--ob-drive-pill);
+  background: transparent;
   color: var(--ob-text);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
+  transition: background 120ms;
 }
 
 .drivePill:hover {
-  background: var(--ob-drive-pill-hover);
+  background: var(--ob-drive-pill);
+}
+
+/* Cloudscape's light normal button, kept light on the white reading pane in both themes. */
+.awsPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 18px 0 14px;
+  border: 2px solid #006ce0;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #006ce0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.awsPill:hover {
+  border-color: #002b66;
+  background: #f0fbff;
+  color: #002b66;
+}
+
+.awsPill:disabled {
+  border-color: #b4b4bb;
+  color: #8c8c94;
+  cursor: default;
+}
+
+.awsPill:focus-visible {
+  outline: 2px solid #006ce0;
+  outline-offset: 2px;
+}
+
+.pillGroup {
+  display: flex;
+  gap: 8px;
 }
 
 .drivePill:disabled {

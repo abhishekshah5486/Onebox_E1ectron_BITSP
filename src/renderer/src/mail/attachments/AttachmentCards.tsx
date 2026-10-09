@@ -1,5 +1,3 @@
-import Button from '@cloudscape-design/components/button';
-import SpaceBetween from '@cloudscape-design/components/space-between';
 import { useState, type CSSProperties } from 'react';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
@@ -70,7 +68,7 @@ function Card({
           data-tooltip="Add to Drive"
           onClick={onSaveToDrive}
         >
-          <Icon name="addToDrive" size={20} />
+          <Icon name="addToDrive" size={22} />
         </button>
       </span>
       {/* The dog-ear stays on top, hovered or not. */}
@@ -105,18 +103,21 @@ export function AttachmentCards({
       {console ? (
         <div className={styles.cardsHeader}>
           <b>{title}</b>
-          <SpaceBetween direction="horizontal" size="xs">
-            <Button iconName="download" onClick={downloadAll}>
+          <span className={styles.pillGroup}>
+            <button type="button" className={styles.awsPill} onClick={downloadAll}>
+              <Icon name="download" size={20} />
               Download all
-            </Button>
-            <Button
-              iconSvg={<Icon name="addToDrive" size={16} />}
-              loading={drive.saving}
+            </button>
+            <button
+              type="button"
+              className={styles.awsPill}
+              disabled={drive.saving}
               onClick={addAll}
             >
-              Add all to Drive
-            </Button>
-          </SpaceBetween>
+              <Icon name="addToDrive" size={22} />
+              {drive.saving ? 'Adding to Drive…' : 'Add all to Drive'}
+            </button>
+          </span>
         </div>
       ) : (
         <div className={styles.cardsHeader}>
@@ -131,7 +132,7 @@ export function AttachmentCards({
             disabled={drive.saving}
             onClick={addAll}
           >
-            <Icon name="addToDrive" size={20} />
+            <Icon name="addToDrive" size={24} />
             {drive.saving ? 'Adding to Drive…' : 'Add all to Drive'}
           </button>
         </div>
