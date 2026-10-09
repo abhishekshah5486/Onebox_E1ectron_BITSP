@@ -60,18 +60,28 @@ export interface IntegrationTestResult {
   integration: Integration;
 }
 
+export interface DriveAccount {
+  id: string;
+  email: string;
+  // Folder path under My Drive, e.g. "OneBox/Receipts"; empty means the top level.
+  defaultPath: string;
+  connectedAt: string;
+  updatedAt: string;
+}
+
 export interface GoogleDriveStatus {
   configured: boolean;
-  connected: boolean;
-  email: string | null;
-  connectedAt: string | null;
+  accounts: DriveAccount[];
 }
 
 export const settingsApi = {
   googleDrive: (api: ApiClient) => api.get<GoogleDriveStatus>('/settings/integrations/google'),
   connectGoogleDrive: (api: ApiClient) =>
     api.post<{ url: string }>('/settings/integrations/google/connect'),
-  disconnectGoogleDrive: (api: ApiClient) => api.delete<void>('/settings/integrations/google'),
+  updateDriveAccount: (api: ApiClient, id: string, defaultPath: string) =>
+    api.patch<DriveAccount>(`/settings/integrations/google/${id}`, { defaultPath }),
+  disconnectGoogleDrive: (api: ApiClient, id: string) =>
+    api.delete<void>(`/settings/integrations/google/${id}`),
   getPreferences: (api: ApiClient) => api.get<Preferences>('/settings/preferences'),
   updatePreferences: (api: ApiClient, changes: Partial<Omit<Preferences, 'updatedAt'>>) =>
     api.patch<Preferences>('/settings/preferences', changes),

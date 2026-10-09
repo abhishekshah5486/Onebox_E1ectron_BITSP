@@ -86,6 +86,7 @@ export function AttachmentViewer({ file, onClose }: { file: AttachmentFile; onCl
           onClick={() => void drive.save([file])}
         />
       </header>
+      {drive.dialog}
       <div
         className={styles.viewerBody}
         onClick={(event) => event.target === event.currentTarget && onClose()}

@@ -148,6 +148,7 @@ export function AttachmentCards({
         ))}
       </div>
       {open && <AttachmentViewer file={open} onClose={() => setOpen(null)} />}
+      {drive.dialog}
     </section>
   );
 }

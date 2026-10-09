@@ -24,7 +24,7 @@ const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/accounts' || path === '/settings/integrations') return { items: [] };
   if (path === '/settings/preferences') return defaultPreferences;
   if (path === '/settings/integrations/google') {
-    return { configured: true, connected: false, email: null, connectedAt: null };
+    return { configured: true, accounts: [] };
   }
   if (path.startsWith('/mail/threads?') || /^\/mail\/accounts\/[^/]+\/threads/.test(path)) {
     return { items: [], page: 1, pageSize: 50, total: 0 };

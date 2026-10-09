@@ -189,10 +189,14 @@ export const mailApi = {
   stats: (api: ApiClient) => api.get<MailStats>('/mail/stats'),
   attachment: (api: ApiClient, messageId: string, index: number, inline = false) =>
     api.blob(`/mail/messages/${messageId}/attachments/${index}${inline ? '?inline=true' : ''}`),
-  saveToDrive: (api: ApiClient, messageId: string, indexes: number[]) =>
+  saveToDrive: (
+    api: ApiClient,
+    messageId: string,
+    target: { indexes: number[]; accountId: string; path: string },
+  ) =>
     api.post<{ files: { index: number; name: string; link: string }[] }>(
       `/mail/messages/${messageId}/attachments/drive`,
-      { indexes },
+      target,
     ),
   lookup: (api: ApiClient, threadIds: string[]) =>
     api.post<{ items: Thread[] }>('/mail/threads/lookup', { threadIds }),

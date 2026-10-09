@@ -1,112 +1,215 @@
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
-import Container from '@cloudscape-design/components/container';
+import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
-import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
+import Input from '@cloudscape-design/components/input';
 import Modal from '@cloudscape-design/components/modal';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
+import Table from '@cloudscape-design/components/table';
 import { useEffect, useRef, useState } from 'react';
-import { useConnectGoogleDrive, useDisconnectGoogleDrive, useGoogleDrive } from '../api/queries';
+import {
+  useConnectGoogleDrive,
+  useDisconnectGoogleDrive,
+  useGoogleDrive,
+  useUpdateDriveAccount,
+} from '../api/queries';
+import type { DriveAccount } from '../api/settings';
 import { describeError } from '../auth/errors';
+import { drivePathLabel } from '../mail/attachments/drivePath';
 import { useFlash } from './flash';
 
 const WAIT_MS = 3 * 60_000;
 
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+// Changes whenever an account is added or connected again.
+const signature = (accounts: DriveAccount[] | undefined) =>
+  (accounts ?? []).map((account) => `${account.id}:${account.updatedAt}`).join(',');
+
+function FolderModal({ account, onDismiss }: { account: DriveAccount; onDismiss: () => void }) {
+  const update = useUpdateDriveAccount();
+  const flash = useFlash();
+  const [path, setPath] = useState(account.defaultPath);
+
+  return (
+    <Modal
+      visible
+      onDismiss={onDismiss}
+      header="Default folder"
+      footer={
+        <Box float="right">
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button variant="link" onClick={onDismiss}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={update.isPending}
+              onClick={() =>
+                update.mutate(
+                  { id: account.id, defaultPath: path },
+                  {
+                    onSuccess: (saved) => {
+                      flash({
+                        type: 'success',
+                        content: `Files for ${saved.email} will go to ${drivePathLabel(saved.defaultPath)}.`,
+                      });
+                      onDismiss();
+                    },
+                    onError: (error) => flash({ type: 'error', content: describeError(error) }),
+                  },
+                )
+              }
+            >
+              Save
+            </Button>
+          </SpaceBetween>
+        </Box>
+      }
+    >
+      <FormField
+        label="Folder path"
+        description={`Where OneBox saves attachments in ${account.email}'s Drive. Missing folders are created, and you can pick another folder each time you save.`}
+        constraintText={`Leave empty for the top of My Drive. Saves to: ${drivePathLabel(path)}`}
+      >
+        <Input
+          value={path}
+          placeholder="OneBox/Receipts"
+          onChange={({ detail }) => setPath(detail.value)}
+        />
+      </FormField>
+    </Modal>
+  );
+}
+
 export function GoogleDriveCard() {
-  const [waitingSince, setWaitingSince] = useState<number | null>(null);
-  const status = useGoogleDrive(waitingSince !== null);
+  const [waitingFrom, setWaitingFrom] = useState<{ at: number; before: string } | null>(null);
+  const status = useGoogleDrive(waitingFrom !== null);
   const connect = useConnectGoogleDrive();
   const disconnect = useDisconnectGoogleDrive();
   const flash = useFlash();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<DriveAccount | null>(null);
   const [confirm, setConfirm] = useState(false);
-  const drive = status.data;
-  const fail = (error: unknown) => flash({ type: 'error', content: describeError(error) });
-
   const announced = useRef<number | null>(null);
 
-  // Stops waiting once the account shows up, or after a few minutes.
+  const accounts = status.data?.accounts ?? [];
+  const configured = status.data?.configured ?? false;
+  const current = accounts.find((account) => account.id === selectedId) ?? null;
+  const fail = (error: unknown) => flash({ type: 'error', content: describeError(error) });
+
+  // Stops waiting once the sign-in shows up in the list, or after a few minutes.
+  const now = signature(status.data?.accounts);
   useEffect(() => {
-    if (waitingSince === null) return;
-    const done = Boolean(drive?.connected);
-    if (done && announced.current !== waitingSince) {
-      announced.current = waitingSince;
-      flash({
-        type: 'success',
-        content: `Google Drive connected as ${drive?.email ?? 'your account'}.`,
-      });
+    if (waitingFrom === null) return;
+    const done = now !== waitingFrom.before;
+    if (done && announced.current !== waitingFrom.at) {
+      announced.current = waitingFrom.at;
+      flash({ type: 'success', content: 'Google account connected.' });
     }
     const timer = setTimeout(
-      () => setWaitingSince(null),
-      done ? 0 : waitingSince + WAIT_MS - Date.now(),
+      () => setWaitingFrom(null),
+      done ? 0 : waitingFrom.at + WAIT_MS - Date.now(),
     );
     return () => clearTimeout(timer);
-  }, [waitingSince, drive, flash]);
+  }, [waitingFrom, now, flash]);
 
   const start = () =>
     connect.mutate(undefined, {
       onSuccess: ({ url }) => {
         // Electron opens it in the browser; the web app opens a popup.
         window.open(url, 'onebox-google', 'width=520,height=680');
-        setWaitingSince(Date.now());
+        setWaitingFrom({ at: Date.now(), before: now });
       },
       onError: fail,
     });
 
-  const actions = drive?.connected ? (
-    <Button onClick={() => setConfirm(true)}>Disconnect</Button>
-  ) : (
-    <Button
-      variant="primary"
-      disabled={!drive?.configured}
-      loading={connect.isPending || waitingSince !== null}
-      onClick={start}
-    >
-      Connect Google Drive
-    </Button>
-  );
-
-  const state = () => {
-    if (status.isLoading) return <StatusIndicator type="loading">Loading</StatusIndicator>;
-    if (!drive?.configured)
-      return <StatusIndicator type="stopped">Not set up on this server</StatusIndicator>;
-    if (drive.connected) return <StatusIndicator type="success">Connected</StatusIndicator>;
-    if (waitingSince !== null) {
-      return <StatusIndicator type="pending">Waiting for Google sign-in</StatusIndicator>;
-    }
-    return <StatusIndicator type="stopped">Not connected</StatusIndicator>;
-  };
-
   return (
     <>
-      <Container
+      <Table
+        variant="container"
+        loading={status.isLoading}
+        loadingText="Loading Google accounts"
+        selectionType="single"
+        selectedItems={current ? [current] : []}
+        onSelectionChange={({ detail }) => setSelectedId(detail.selectedItems[0]?.id ?? null)}
+        trackBy="id"
+        items={accounts}
+        ariaLabels={{
+          selectionGroupLabel: 'Google Drive accounts',
+          itemSelectionLabel: (_, item) => item.email,
+          allItemsSelectionLabel: () => 'all',
+        }}
         header={
           <Header
             variant="h2"
+            counter={accounts.length ? `(${accounts.length})` : undefined}
             description="Save attachments to Drive and attach Drive files to your mail. OneBox only sees files it creates or you pick."
-            actions={actions}
+            actions={
+              <SpaceBetween direction="horizontal" size="xs">
+                <Button disabled={!current} onClick={() => setEditing(current)}>
+                  Edit folder
+                </Button>
+                <Button disabled={!current} onClick={() => setConfirm(true)}>
+                  Disconnect
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={!configured}
+                  loading={connect.isPending || waitingFrom !== null}
+                  onClick={start}
+                >
+                  {accounts.length ? 'Connect another account' : 'Connect Google Drive'}
+                </Button>
+              </SpaceBetween>
+            }
           >
             Google Drive
           </Header>
         }
-      >
-        <KeyValuePairs
-          columns={3}
-          items={[
-            { label: 'Status', value: state() },
-            { label: 'Account', value: drive?.email ?? '-' },
-            {
-              label: 'Saved files go to',
-              value: drive?.connected ? 'OneBox folder in My Drive' : '-',
-            },
-          ]}
-        />
-      </Container>
+        columnDefinitions={[
+          {
+            id: 'account',
+            header: 'Account',
+            cell: (item) => <Box fontWeight="bold">{item.email}</Box>,
+          },
+          {
+            id: 'folder',
+            header: 'Default folder',
+            cell: (item) => drivePathLabel(item.defaultPath),
+          },
+          {
+            id: 'status',
+            header: 'Status',
+            cell: () => <StatusIndicator type="success">Connected</StatusIndicator>,
+          },
+          { id: 'connected', header: 'Connected on', cell: (item) => formatDate(item.connectedAt) },
+        ]}
+        empty={
+          <Box textAlign="center" color="inherit" padding="m">
+            <SpaceBetween size="xs">
+              <b>{configured ? 'No Google accounts connected' : 'Google Drive is not set up'}</b>
+              <Box color="inherit">
+                {configured
+                  ? 'Connect one or more Google accounts to save attachments to Drive.'
+                  : 'Add a Google OAuth client to the server to turn this on.'}
+              </Box>
+              {waitingFrom !== null && (
+                <StatusIndicator type="pending">Waiting for Google sign-in</StatusIndicator>
+              )}
+            </SpaceBetween>
+          </Box>
+        }
+      />
+
+      {editing && <FolderModal account={editing} onDismiss={() => setEditing(null)} />}
 
       <Modal
-        visible={confirm}
+        visible={confirm && current !== null}
         onDismiss={() => setConfirm(false)}
-        header="Disconnect Google Drive"
+        header="Disconnect Google account"
         footer={
           <Box float="right">
             <SpaceBetween direction="horizontal" size="xs">
@@ -117,9 +220,11 @@ export function GoogleDriveCard() {
                 variant="primary"
                 loading={disconnect.isPending}
                 onClick={() =>
-                  disconnect.mutate(undefined, {
+                  current &&
+                  disconnect.mutate(current.id, {
                     onSuccess: () => {
-                      flash({ type: 'success', content: 'Google Drive disconnected.' });
+                      flash({ type: 'success', content: `Disconnected ${current.email}.` });
+                      setSelectedId(null);
                       setConfirm(false);
                     },
                     onError: fail,
@@ -132,7 +237,7 @@ export function GoogleDriveCard() {
           </Box>
         }
       >
-        Disconnect <b>{drive?.email}</b>? Files already saved stay in your Drive.
+        Disconnect <b>{current?.email}</b>? Files already saved stay in that Drive.
       </Modal>
     </>
   );

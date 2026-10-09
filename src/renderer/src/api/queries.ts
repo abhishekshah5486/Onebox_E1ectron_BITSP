@@ -153,11 +153,21 @@ export function useConnectGoogleDrive() {
   return useMutation({ mutationFn: () => settingsApi.connectGoogleDrive(api) });
 }
 
+export function useUpdateDriveAccount() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, defaultPath }: { id: string; defaultPath: string }) =>
+      settingsApi.updateDriveAccount(api, id, defaultPath),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.googleDrive }),
+  });
+}
+
 export function useDisconnectGoogleDrive() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => settingsApi.disconnectGoogleDrive(api),
+    mutationFn: (id: string) => settingsApi.disconnectGoogleDrive(api, id),
     onSettled: () => queryClient.invalidateQueries({ queryKey: keys.googleDrive }),
   });
 }
