@@ -31,7 +31,7 @@ function setup(accounts: StorageAccount[], overrides: Partial<ApiClient> = {}) {
   const api = fakeApi({
     restoreSession: vi.fn(async () => testUser),
     get: routedGet({
-      '/settings/storage': () => ({ providers: ['GOOGLE_DRIVE'], accounts }),
+      '/settings/storage': () => ({ providers: ['GOOGLE_DRIVE', 'ONEDRIVE'], accounts }),
     }),
     ...overrides,
   });
@@ -54,6 +54,28 @@ describe('StorageSection', () => {
       ),
     );
     expect(post).toHaveBeenCalledWith('/settings/storage/connect', { provider: 'GOOGLE_DRIVE' });
+  });
+
+  it('connects OneDrive and shows it beside Google Drive', async () => {
+    vi.spyOn(window, 'open').mockReturnValue(null);
+    const post = vi.fn(async () => ({ url: 'https://login.microsoftonline.com/x' }));
+    setup(
+      [
+        account(),
+        account({ id: 'o1', provider: 'ONEDRIVE', email: 'me@outlook.com', defaultPath: '' }),
+      ],
+      {
+        post: post as ApiClient['post'],
+      },
+    );
+    const table = within(await screen.findByRole('table'));
+    expect(await table.findByText('OneDrive')).toBeInTheDocument();
+    expect(table.getByText('My files')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Connect storage' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /OneDrive/ }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/settings/storage/connect', { provider: 'ONEDRIVE' }),
+    );
   });
 
   it('lists accounts with their folders and edits one', async () => {

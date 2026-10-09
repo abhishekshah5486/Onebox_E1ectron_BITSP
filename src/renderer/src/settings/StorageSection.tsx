@@ -229,7 +229,7 @@ export function StorageSection() {
               <b>{available.length ? 'No storage connected' : 'Cloud storage is not set up'}</b>
               <Box color="inherit">
                 {available.length
-                  ? 'Connect Google Drive to save attachments there. OneDrive and Dropbox are coming.'
+                  ? 'Connect Google Drive or OneDrive to save attachments there.'
                   : 'Add a storage provider’s OAuth client to the server to turn this on.'}
               </Box>
               {waitingFrom !== null && (
