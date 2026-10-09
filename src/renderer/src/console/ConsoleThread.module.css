@@ -4,7 +4,6 @@
   flex-direction: column;
   gap: 12px;
   height: calc(100dvh - 56px - 60px);
-  min-height: 320px;
 }
 
 .toolbar {
