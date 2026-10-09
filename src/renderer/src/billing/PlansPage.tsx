@@ -85,7 +85,7 @@ function PeriodToggle({
 // showcase design; kept so it can come back.
 export function GmailPlans() {
   const navigate = useNavigate();
-  const { interval, setBillingInterval, current, choose, busy } = usePlansState();
+  const { interval, setBillingInterval, current, choose, busy, overlay } = usePlansState();
 
   return (
     <div className={styles.page}>
@@ -165,6 +165,7 @@ export function GmailPlans() {
           );
         })}
       </div>
+      {overlay}
       <p className={styles.note}>{NOTE}</p>
     </div>
   );
@@ -174,7 +175,7 @@ export function GmailPlans() {
 // per plan whose short coloured band carries its name and price.
 function ConsolePlans() {
   const navigate = useNavigate();
-  const { interval, setBillingInterval, current, choose, busy } = usePlansState();
+  const { interval, setBillingInterval, current, choose, busy, overlay } = usePlansState();
   const follow = (event: CustomEvent<{ href: string }>) => {
     event.preventDefault();
     void navigate(event.detail.href);
@@ -212,6 +213,7 @@ function ConsolePlans() {
       }
     >
       <SpaceBetween size="l">
+        {overlay}
         <Alert type="info">{NOTE}</Alert>
         <div className={interval === 'annual' ? styles.consoleNarrow : undefined}>
           <ColumnLayout columns={plansFor(interval).length}>

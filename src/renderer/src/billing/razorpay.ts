@@ -54,6 +54,8 @@ export async function openRazorpayCheckout(options: {
   subscriptionId: string;
   description: string;
   email: string;
+  // Called once Razorpay's window is showing.
+  onOpen?: () => void;
 }): Promise<CheckoutOutcome> {
   const Razorpay = await loadRazorpay();
   return new Promise((resolve) => {
@@ -82,5 +84,6 @@ export async function openRazorpayCheckout(options: {
       failure = event.error?.description ?? 'The payment was declined.';
     });
     checkout.open();
+    options.onOpen?.();
   });
 }

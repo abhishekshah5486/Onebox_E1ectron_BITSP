@@ -88,6 +88,28 @@ describe('PlansPage in v1 (showcase)', () => {
     delete window.Razorpay;
   });
 
+  it('explains the wait, and cancelling it keeps checkout from opening', async () => {
+    const opened = vi.fn();
+    window.Razorpay = class {
+      on() {}
+      open = opened;
+    };
+    let answer!: (session: unknown) => void;
+    const post = vi.fn(() => new Promise((resolve) => (answer = resolve)));
+    render(<PlansPage />, { post: post as unknown as ApiClient['post'] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Upgrade to Pro' }));
+
+    const waiting = await screen.findByRole('dialog', { name: 'Opening secure checkout' });
+    expect(within(waiting).getByText(/pay for Pro \(₹1,499\/month\)/)).toBeInTheDocument();
+    await userEvent.click(within(waiting).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Opening secure checkout' })).toBeNull();
+
+    answer({ provider: 'RAZORPAY', keyId: 'k', subscriptionId: 'sub_1', email: 'a@onebox.dev' });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(opened).not.toHaveBeenCalled();
+    delete window.Razorpay;
+  });
+
   it('says nothing was charged when checkout is closed', async () => {
     fakeRazorpay('dismissed');
     const post = checkoutApi();

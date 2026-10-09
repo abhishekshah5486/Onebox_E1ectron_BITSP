@@ -12,7 +12,7 @@ const HOLDS_PLAN = new Set(['authenticated', 'active', 'pending', 'halted']);
 export function usePlanChoice() {
   const navigate = useNavigate();
   const subscription = useSubscription();
-  const { upgrade, busy, notify } = useCheckout();
+  const { upgrade, busy, notify, overlay } = useCheckout();
   const [interval, setBillingInterval] = useState<BillingInterval>('monthly');
   const paid =
     subscription.data && HOLDS_PLAN.has(subscription.data.status) ? subscription.data : null;
@@ -28,5 +28,5 @@ export function usePlanChoice() {
     });
   };
 
-  return { interval, setBillingInterval, current, choose, busy };
+  return { interval, setBillingInterval, current, choose, busy, overlay };
 }

@@ -107,7 +107,14 @@ function PlanCard({
 // with Gmail's type, Material buttons and segmented control. Used by the v1 interface.
 export function ShowcasePlans() {
   const navigate = useNavigate();
-  const { interval, setBillingInterval, current: currentPlan, choose, busy } = usePlanChoice();
+  const {
+    interval,
+    setBillingInterval,
+    current: currentPlan,
+    choose,
+    busy,
+    overlay,
+  } = usePlanChoice();
 
   return (
     <div className={styles.page}>
@@ -155,6 +162,7 @@ export function ShowcasePlans() {
         ))}
       </div>
 
+      {overlay}
       <p className={styles.note}>
         Credits pay for AI features such as sorting, summaries and drafts. Each action uses credits
         based on the AI model's cost; mail, labels and cloud storage are always free.
