@@ -77,16 +77,7 @@
   color: #001d35;
 }
 
-:root[data-theme='dark'] .saveTag {
-  color: #137333;
-  font-weight: 600;
-}
-
-:root[data-theme='dark'] .saveTag {
-  color: #81c995;
-}
-
-.segmented .segmentOn {
+:root[data-theme='dark'] .segmented .segmentOn {
   background: #004a77;
   color: #c2e7ff;
 }
