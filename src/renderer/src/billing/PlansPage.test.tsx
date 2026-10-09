@@ -22,6 +22,35 @@ const render = (ui: React.ReactNode, overrides: Partial<ApiClient> = {}) =>
     api: fakeApi({ restoreSession: vi.fn(async () => testUser), ...overrides }),
   });
 
+// Both providers set up; Stripe's checkout is a page in a new tab, paid once the test says so.
+function stripeSetup(paid: { current: boolean }) {
+  const tab = { document: { title: '' }, location: { href: '' }, closed: false, close: vi.fn() };
+  const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+  const get = routedGet({
+    '/payments/config': () => ({ providers: ['RAZORPAY', 'STRIPE'] }),
+    '/payments/checkout/cs_1/status': () =>
+      paid.current
+        ? { state: 'paid', subscription: { id: 's1', plan: 'PRO', status: 'active' } }
+        : { state: 'open', subscription: null },
+  });
+  const post = vi.fn(async () => ({
+    provider: 'STRIPE',
+    sessionId: 'cs_1',
+    url: 'https://checkout.stripe.com/c/cs_1',
+    plan: 'PRO',
+    interval: 'monthly',
+    amount: 149_900,
+    currency: 'INR',
+    email: 'a@onebox.dev',
+  }));
+  return { tab, open, get, post: post as unknown as ApiClient['post'] };
+}
+
+const providersLoaded = async (get: ApiClient['get']) => {
+  await vi.waitFor(() => expect(get).toHaveBeenCalledWith('/payments/config'));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+};
+
 describe('PlansPage in v1 (showcase)', () => {
   it('shows monthly prices, then yearly ones with the saving', async () => {
     render(<PlansPage />);
@@ -79,7 +108,11 @@ describe('PlansPage in v1 (showcase)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Upgrade to Pro' }));
 
     expect(await screen.findByText(/You're on Pro/)).toBeInTheDocument();
-    expect(post).toHaveBeenCalledWith('/payments/checkout', { plan: 'PRO', interval: 'monthly' });
+    expect(post).toHaveBeenCalledWith('/payments/checkout', {
+      plan: 'PRO',
+      interval: 'monthly',
+      provider: 'RAZORPAY',
+    });
     expect(post).toHaveBeenCalledWith('/payments/checkout/confirm', {
       paymentId: 'pay_1',
       subscriptionId: 'sub_1',
@@ -110,6 +143,31 @@ describe('PlansPage in v1 (showcase)', () => {
     delete window.Razorpay;
   });
 
+  it("asks how to pay, then waits for Stripe's page in another tab", async () => {
+    const paid = { current: false };
+    const { tab, open, get, post } = stripeSetup(paid);
+    render(<PlansPage />, { get, post });
+    await providersLoaded(get);
+    await userEvent.click(await screen.findByRole('button', { name: 'Upgrade to Pro' }));
+
+    const choose = await screen.findByRole('dialog', { name: 'Choose how to pay' });
+    await userEvent.click(within(choose).getByRole('button', { name: /Stripe/ }));
+    expect(post).toHaveBeenCalledWith('/payments/checkout', {
+      plan: 'PRO',
+      interval: 'monthly',
+      provider: 'STRIPE',
+    });
+    expect(
+      await screen.findByRole('dialog', { name: 'Finish paying in your browser' }),
+    ).toBeInTheDocument();
+    expect(tab.location.href).toBe('https://checkout.stripe.com/c/cs_1');
+
+    paid.current = true;
+    expect(await screen.findByText(/You're on Pro/, {}, { timeout: 5_000 })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Finish paying in your browser' })).toBeNull();
+    open.mockRestore();
+  });
+
   it('says nothing was charged when checkout is closed', async () => {
     fakeRazorpay('dismissed');
     const post = checkoutApi();
@@ -138,6 +196,29 @@ describe('PlansPage in v2 (console)', () => {
     const compare = within(screen.getByRole('table'));
     expect(compare.getByText('Priority support')).toBeInTheDocument();
     expect(compare.queryByRole('columnheader', { name: 'Free' })).toBeNull();
+  });
+  it('picks Stripe from the tiles and stops waiting when cancelled', async () => {
+    const { open, get, post } = stripeSetup({ current: false });
+    render(
+      <FlashProvider>
+        <PlansPage />
+      </FlashProvider>,
+      { get, post },
+    );
+    await providersLoaded(get);
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose Pro' }));
+
+    const choose = within(await screen.findByRole('dialog', { name: 'Choose how to pay' }));
+    await userEvent.click(choose.getByRole('radio', { name: /Stripe/ }));
+    await userEvent.click(choose.getByRole('button', { name: 'Continue' }));
+
+    const waiting = within(
+      await screen.findByRole('dialog', { name: 'Finish paying in your browser' }),
+    );
+    await userEvent.click(waiting.getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByText(/Stopped waiting for checkout/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose Pro' })).toBeEnabled();
+    open.mockRestore();
   });
 });
 

@@ -23,6 +23,7 @@ import { describeError } from '../auth/errors';
 import { useFlash } from '../settings/flash';
 import tableStyles from '../ui/DataTable.module.css';
 import styles from './BillingSection.module.css';
+import { PROVIDER_NAME } from './CheckoutOverlay';
 import { formatRupees, planById } from './plans';
 
 // Subscriptions that still hold a paid plan.
@@ -70,7 +71,7 @@ export function SubscriptionSection() {
         header={
           <Header
             variant="h2"
-            description="Manage your plan and payments. Payments are processed securely by Razorpay."
+            description="Manage your plan and payments. Payments are processed securely by Razorpay or Stripe."
             actions={
               sub ? (
                 <ButtonDropdown
@@ -125,7 +126,7 @@ export function SubscriptionSection() {
             </div>
             <div>
               <Box variant="awsui-key-label">Paid with</Box>
-              <div>Razorpay</div>
+              <div>{PROVIDER_NAME[sub.provider]}</div>
             </div>
           </ColumnLayout>
         ) : (

@@ -1,29 +1,52 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { createElement, useCallback, useRef, useState } from 'react';
-import { paymentsApi } from '../api/payments';
+import { paymentsApi, usePaymentProviders, type PaymentProvider } from '../api/payments';
 import { useAuth } from '../auth/AuthProvider';
 import { describeError } from '../auth/errors';
 import { useOptionalFlash, type FlashInput } from '../settings/flash';
 import { useSnackbar } from '../ui/Snackbar';
-import { CheckoutOverlay, type PreparingCheckout } from './CheckoutOverlay';
+import { CheckoutOverlay, type CheckoutStep } from './CheckoutOverlay';
 import { formatRupees, planById, type BillingInterval, type PlanId } from './plans';
 import { openRazorpayCheckout } from './razorpay';
 
-// Upgrading: start a subscription, pay in Razorpay's checkout, confirm it, and say how it went
-// in a banner (v2) or the snackbar (v1).
+const POLL_MS = 2_000;
+// Stop waiting on a Stripe tab after this long; a later payment still starts the plan.
+const WAIT_LIMIT_MS = 30 * 60_000;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const deadline = () => Date.now() + WAIT_LIMIT_MS;
+const before = (until: number) => Date.now() < until;
+
+// A tab opened during the click, so the browser doesn't block it as a popup once the checkout
+// page is ready. The desktop app opens links in the system browser instead, and gets null.
+function openBlankTab() {
+  const tab = window.open('', '_blank');
+  if (tab) tab.document.title = 'Opening checkout…';
+  return tab;
+}
+
+function showCheckout(url: string, tab: Window | null) {
+  if (tab && !tab.closed) tab.location.href = url;
+  else window.open(url, '_blank', 'noopener');
+}
+
+// Upgrading: pick a provider when there are several, pay in its checkout (Razorpay's window in
+// the app, or Stripe's page in the browser), and say how it went in a banner (v2) or the
+// snackbar (v1).
 export function useCheckout() {
   const { api } = useAuth();
   const queryClient = useQueryClient();
+  const providers = usePaymentProviders();
   const flash = useOptionalFlash();
   const snackbar = useSnackbar();
   const [busy, setBusy] = useState<PlanId | null>(null);
-  // While checkout is being prepared; cancelling it means Razorpay's window never opens.
-  const [preparing, setPreparing] = useState<PreparingCheckout | null>(null);
-  const cancelled = useRef(false);
-  const cancelPreparing = useCallback(() => {
-    cancelled.current = true;
-    setPreparing(null);
-  }, []);
+  const [step, setStep] = useState<CheckoutStep | null>(null);
+  // The plan waiting on a provider choice.
+  const [choosing, setChoosing] = useState<{ plan: PlanId; interval: BillingInterval } | null>(
+    null,
+  );
+  // Each checkout's number; cancelling moves it on, so an older flow knows to stop.
+  const run = useRef(0);
+  const stripeTab = useRef<Window | null>(null);
 
   // Plain text, so the snackbar (v1) can show it too.
   const notify = (message: FlashInput & { header?: string; content: string }) => {
@@ -34,72 +57,170 @@ export function useCheckout() {
     });
   };
 
-  async function upgrade(plan: PlanId, interval: BillingInterval) {
-    if (busy) return;
-    const name = planById(plan).name;
-    const again = { label: 'Try again', onClick: () => void upgrade(plan, interval) };
+  const purchase = (plan: PlanId, interval: BillingInterval) => {
     const details = planById(plan);
-    setBusy(plan);
-    cancelled.current = false;
-    setPreparing({
-      planName: name,
+    return {
+      planName: details.name,
       price:
         interval === 'annual'
           ? `${formatRupees(details.annualMonthlyPrice * 12)}/year`
           : `${formatRupees(details.monthlyPrice)}/month`,
+    };
+  };
+
+  const activated = async (name: string) => {
+    await queryClient.invalidateQueries({ queryKey: ['payments'] });
+    notify({
+      type: 'success',
+      header: `You're on ${name}.`,
+      content: 'Payment received and your plan is active.',
     });
-    try {
-      const session = await paymentsApi.checkout(api, plan, interval);
-      if (cancelled.current) return;
-      const outcome = await openRazorpayCheckout({
-        keyId: session.keyId,
-        subscriptionId: session.subscriptionId,
-        description: `${name} plan, billed ${interval === 'annual' ? 'yearly' : 'monthly'}`,
-        email: session.email,
-        onOpen: () => setPreparing(null),
-      });
-      if (outcome.kind === 'dismissed') {
-        notify({
-          type: 'info',
-          tone: 'burgundy',
-          content: "Checkout closed. You weren't charged.",
-        });
-        return;
-      }
-      if (outcome.kind === 'failed') {
-        notify({
-          type: 'error',
-          header: "Payment didn't go through.",
-          content: `${outcome.reason} Please try again.`,
-          action: again,
-        });
-        return;
-      }
-      await paymentsApi.confirm(api, {
-        paymentId: outcome.paymentId,
-        subscriptionId: outcome.subscriptionId,
-        signature: outcome.signature,
-      });
-      await queryClient.invalidateQueries({ queryKey: ['payments'] });
-      notify({
-        type: 'success',
-        header: `You're on ${name}.`,
-        content: 'Payment received and your plan is active.',
-      });
-    } catch (error) {
-      if (cancelled.current) return;
+  };
+
+  async function payWithRazorpay(
+    session: { keyId: string; subscriptionId: string; email: string },
+    name: string,
+    interval: BillingInterval,
+    again: { label: string; onClick: () => void },
+  ) {
+    const outcome = await openRazorpayCheckout({
+      keyId: session.keyId,
+      subscriptionId: session.subscriptionId,
+      description: `${name} plan, billed ${interval === 'annual' ? 'yearly' : 'monthly'}`,
+      email: session.email,
+      onOpen: () => setStep(null),
+    });
+    if (outcome.kind === 'dismissed') {
+      notify({ type: 'info', tone: 'burgundy', content: "Checkout closed. You weren't charged." });
+      return;
+    }
+    if (outcome.kind === 'failed') {
       notify({
         type: 'error',
-        header: `Couldn't start ${name}.`,
+        header: "Payment didn't go through.",
+        content: `${outcome.reason} Please try again.`,
+        action: again,
+      });
+      return;
+    }
+    await paymentsApi.confirm(api, {
+      paymentId: outcome.paymentId,
+      subscriptionId: outcome.subscriptionId,
+      signature: outcome.signature,
+    });
+    await activated(name);
+  }
+
+  // Stripe's page is in another tab, so the app asks until the payment shows up.
+  async function waitForStripe(sessionId: string, name: string, stopped: () => boolean) {
+    const until = deadline();
+    let failures = 0;
+    while (before(until)) {
+      await sleep(POLL_MS);
+      if (stopped()) return;
+      try {
+        const status = await paymentsApi.checkoutStatus(api, sessionId);
+        failures = 0;
+        if (status.state === 'paid') return activated(name);
+        if (status.state === 'expired') {
+          notify({
+            type: 'info',
+            tone: 'burgundy',
+            content: "Checkout expired. You weren't charged.",
+          });
+          return;
+        }
+      } catch (error) {
+        if (++failures >= 5) throw error;
+      }
+    }
+    if (!stopped()) {
+      notify({
+        type: 'info',
+        tone: 'amber',
+        content: 'Stopped waiting for checkout. If you finish paying, your plan starts on its own.',
+      });
+    }
+  }
+
+  async function pay(plan: PlanId, interval: BillingInterval, provider?: PaymentProvider) {
+    const shown = purchase(plan, interval);
+    const again = { label: 'Try again', onClick: () => void upgrade(plan, interval) };
+    const mine = ++run.current;
+    const stopped = () => run.current !== mine;
+    setBusy(plan);
+    stripeTab.current = provider === 'STRIPE' ? openBlankTab() : null;
+    setStep({ kind: 'preparing', provider: provider ?? 'RAZORPAY', ...shown });
+    try {
+      const session = await paymentsApi.checkout(api, plan, interval, provider);
+      if (stopped()) return;
+      if (session.provider === 'RAZORPAY') {
+        await payWithRazorpay(session, shown.planName, interval, again);
+        return;
+      }
+      showCheckout(session.url, stripeTab.current);
+      setStep({ kind: 'waiting', url: session.url, ...shown });
+      await waitForStripe(session.sessionId, shown.planName, stopped);
+    } catch (error) {
+      if (stopped()) return;
+      stripeTab.current?.close();
+      notify({
+        type: 'error',
+        header: `Couldn't start ${shown.planName}.`,
         content: describeError(error),
         action: again,
       });
     } finally {
-      setPreparing(null);
-      setBusy(null);
+      if (!stopped()) {
+        stripeTab.current = null;
+        setStep(null);
+        setBusy(null);
+      }
     }
   }
 
-  const overlay = createElement(CheckoutOverlay, { preparing, onCancel: cancelPreparing });
+  function upgrade(plan: PlanId, interval: BillingInterval) {
+    if (busy) return;
+    const available = providers.data ?? [];
+    if (available.length > 1) {
+      setChoosing({ plan, interval });
+      setBusy(plan);
+      setStep({ kind: 'choose', ...purchase(plan, interval) });
+      return;
+    }
+    void pay(plan, interval, available[0]);
+  }
+
+  const pick = useCallback(
+    (provider: PaymentProvider) => {
+      setChoosing(null);
+      if (choosing) void pay(choosing.plan, choosing.interval, provider);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pay is rebuilt each render
+    [choosing],
+  );
+
+  const cancel = useCallback(() => {
+    run.current++;
+    setChoosing(null);
+    if (step?.kind === 'preparing') stripeTab.current?.close();
+    if (step?.kind === 'waiting') {
+      notify({
+        type: 'info',
+        tone: 'burgundy',
+        content: 'Stopped waiting for checkout. If you finish paying, your plan starts on its own.',
+      });
+    }
+    setStep(null);
+    setBusy(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- notify is rebuilt each render
+  }, [step]);
+
+  const overlay = createElement(CheckoutOverlay, {
+    step,
+    onCancel: cancel,
+    onPick: pick,
+    onReopen: () => step?.kind === 'waiting' && window.open(step.url, '_blank', 'noopener'),
+  });
   return { upgrade, busy, notify, overlay };
 }

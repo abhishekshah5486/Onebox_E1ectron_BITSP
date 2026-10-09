@@ -23,6 +23,7 @@ export const defaultPreferences = {
 const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/accounts' || path === '/settings/integrations') return { items: [] };
   if (path === '/settings/preferences') return defaultPreferences;
+  if (path === '/payments/config') return { providers: ['RAZORPAY'] };
   if (path === '/payments/subscription') return { subscription: null };
   if (path === '/payments/history') return { items: [] };
   if (path === '/settings/storage')

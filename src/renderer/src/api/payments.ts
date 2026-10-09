@@ -25,16 +25,24 @@ export interface Subscription {
   createdAt: string;
 }
 
-// What Razorpay's checkout needs to open for a new subscription.
-export interface CheckoutSession {
-  provider: 'RAZORPAY';
-  keyId: string;
-  subscriptionId: string;
+export type PaymentProvider = 'RAZORPAY' | 'STRIPE';
+
+interface CheckoutBase {
   plan: PlanId;
   interval: BillingInterval;
   amount: number;
   currency: string;
   email: string;
+}
+
+// What the provider's checkout needs: Razorpay's opens in the app, Stripe's is a hosted page.
+export type CheckoutSession =
+  | (CheckoutBase & { provider: 'RAZORPAY'; keyId: string; subscriptionId: string })
+  | (CheckoutBase & { provider: 'STRIPE'; sessionId: string; url: string });
+
+export interface CheckoutStatus {
+  state: 'open' | 'paid' | 'expired';
+  subscription: Subscription | null;
 }
 
 export interface PaymentRecord {
@@ -48,9 +56,12 @@ export interface PaymentRecord {
 }
 
 export const paymentsApi = {
-  config: (api: ApiClient) => api.get<{ providers: ('RAZORPAY' | 'STRIPE')[] }>('/payments/config'),
-  checkout: (api: ApiClient, plan: PlanId, interval: BillingInterval) =>
-    api.post<CheckoutSession>('/payments/checkout', { plan, interval }),
+  providers: async (api: ApiClient) =>
+    (await api.get<{ providers: PaymentProvider[] }>('/payments/config')).providers,
+  checkout: (api: ApiClient, plan: PlanId, interval: BillingInterval, provider?: PaymentProvider) =>
+    api.post<CheckoutSession>('/payments/checkout', { plan, interval, provider }),
+  checkoutStatus: (api: ApiClient, id: string) =>
+    api.get<CheckoutStatus>(`/payments/checkout/${encodeURIComponent(id)}/status`),
   confirm: (
     api: ApiClient,
     input: { paymentId: string; subscriptionId: string; signature: string },
@@ -63,6 +74,7 @@ export const paymentsApi = {
 };
 
 export const paymentKeys = {
+  providers: ['payments', 'providers'] as const,
   subscription: ['payments', 'subscription'] as const,
   history: ['payments', 'history'] as const,
 };
@@ -72,6 +84,16 @@ export function useSubscription() {
   return useQuery({
     queryKey: paymentKeys.subscription,
     queryFn: () => paymentsApi.subscription(api),
+  });
+}
+
+// Which providers can take payments; the choice is offered when there are several.
+export function usePaymentProviders() {
+  const { api } = useAuth();
+  return useQuery({
+    queryKey: paymentKeys.providers,
+    queryFn: () => paymentsApi.providers(api),
+    staleTime: 5 * 60_000,
   });
 }
 

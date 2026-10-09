@@ -55,8 +55,8 @@ export function BillingSection() {
     <SpaceBetween size="l">
       {IS_BILLING_PREVIEW && (
         <Alert type="info" header="Credits preview">
-          Payments run through Razorpay in test mode. The credit figures below are examples until
-          credits are connected.
+          Payments run in test mode (Razorpay or Stripe). The credit figures below are examples
+          until credits are connected.
         </Alert>
       )}
 
