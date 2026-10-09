@@ -21,7 +21,9 @@ import {
   type BillingInterval,
   type Plan,
 } from './plans';
+import { LayoutSwitch, type PlansLayout } from './LayoutSwitch';
 import styles from './PlansPage.module.css';
+import { ShowcasePlans } from './ShowcasePlans';
 
 const BADGE: Partial<Record<Plan['id'], IconName>> = { STANDARD: 'bolt', PRO: 'crown' };
 // The plan most people should pick, shown with emphasis.
@@ -267,9 +269,44 @@ function ConsolePlans() {
   );
 }
 
+const LAYOUT_KEY = 'onebox.plans.layout';
+
+const savedLayout = (): PlansLayout => {
+  try {
+    return localStorage.getItem(LAYOUT_KEY) === 'showcase' ? 'showcase' : 'classic';
+  } catch {
+    return 'classic';
+  }
+};
+
+// Classic follows the interface (Gmail or console); Showcase is the original design.
 export function PlansPage() {
   const { version } = useUiVersion();
-  return version === 'v2' ? <ConsolePlans /> : <GmailPlans />;
+  const [layout, setLayout] = useState<PlansLayout>(savedLayout);
+  const choose = (next: PlansLayout) => {
+    setLayout(next);
+    try {
+      localStorage.setItem(LAYOUT_KEY, next);
+    } catch {
+      // Only a convenience.
+    }
+  };
+
+  return (
+    <>
+      <div className={styles.layoutBar}>
+        <span>Layout</span>
+        <LayoutSwitch layout={layout} onChange={choose} />
+      </div>
+      {layout === 'showcase' ? (
+        <ShowcasePlans />
+      ) : version === 'v2' ? (
+        <ConsolePlans />
+      ) : (
+        <GmailPlans />
+      )}
+    </>
+  );
 }
 
 export default PlansPage;
