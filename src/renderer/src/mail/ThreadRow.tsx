@@ -84,7 +84,12 @@ export function ThreadRow({
       </button>
       <span className={styles.sender}>
         {account && (
-          <span className={styles.chip} data-tooltip={account.emailAddress}>
+          <span
+            className={styles.chip}
+            role="img"
+            aria-label={account.emailAddress}
+            data-tooltip={account.emailAddress}
+          >
             <ProviderLogo provider={account.provider} size={14} />
           </span>
         )}
