@@ -1,0 +1,179 @@
+/* Mirrors Cloudscape's side navigation so the custom Accounts list blends in. */
+.accounts {
+  margin-top: -20px;
+  padding: 0 28px;
+}
+
+.accounts ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.heading {
+  margin: 4px 0 8px;
+  color: var(--nav-heading);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  margin-left: -20px;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.trailing {
+  display: inline-flex;
+  flex: none;
+}
+
+.toggle,
+.name {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--nav-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--nav-muted);
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toggle:hover,
+.name:hover,
+.folder:hover {
+  color: var(--nav-hover);
+}
+
+.current .name {
+  color: var(--nav-active);
+  font-weight: 700;
+}
+
+.toggle:focus-visible,
+.name:focus-visible,
+.folder:focus-visible {
+  outline: 2px solid var(--nav-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.folders {
+  margin: 2px 0 6px !important;
+  padding-left: 24px !important;
+}
+
+.folder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  color: var(--nav-text);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.active {
+  color: var(--nav-active);
+  font-weight: 700;
+}
+
+/* Quiet counts that suit the light theme; bolder in dark where contrast allows. */
+.count {
+  flex: none;
+  margin-left: 4px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: #e9ebed;
+  color: #414d5c;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+:root[data-theme='dark'] .count {
+  background: #2f3b4a;
+  color: #dedee3;
+}
+
+.problem {
+  margin-left: 6px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #db0000;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* A section, not a folder: a rule, small caps and space set it apart. */
+.labelsHeading {
+  margin: 10px 0 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--nav-divider);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nav-muted);
+}
+
+.folderIcon {
+  display: inline-flex;
+  flex: none;
+  color: var(--nav-muted);
+}
+
+.active .folderIcon {
+  color: var(--nav-active);
+}
+
+.more {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.labelName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

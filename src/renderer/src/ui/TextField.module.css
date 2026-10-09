@@ -1,0 +1,61 @@
+.field {
+  position: relative;
+  display: block;
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 56px;
+  padding: 18px 14px 6px;
+  border: 1px solid var(--ob-text-muted);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 120ms;
+}
+
+.input:focus {
+  border: 2px solid var(--ob-accent);
+  padding: 17px 13px 5px;
+}
+
+.label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ob-text-muted);
+  font-size: 16px;
+  pointer-events: none;
+  transition: all 120ms;
+}
+
+.input:focus + .label,
+.input:not(:placeholder-shown) + .label {
+  top: 14px;
+  font-size: 12px;
+}
+
+.input:focus + .label {
+  color: var(--ob-accent);
+}
+
+.invalid .input {
+  border-color: var(--ob-danger);
+}
+
+.error {
+  margin: 6px 2px 0;
+  color: var(--ob-danger);
+  font-size: 12px;
+}
+
+.hint {
+  margin: 6px 2px 0;
+  color: var(--ob-text-muted);
+  font-size: 12px;
+}

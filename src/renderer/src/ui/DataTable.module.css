@@ -1,0 +1,112 @@
+/* Tables outside the mail list get the inbox's rows: the console's (v2) or Gmail's (v1).
+   Cloudscape has no per-row styling, so these rules reach into its markup; selected rows
+   keep Cloudscape's own highlight. */
+.table {
+  --table-row-bg: #f6f6f9;
+  --table-row-hover: #f0f6ff;
+  --table-scroll-thumb: #b4b4bb;
+}
+
+/* The values ConsoleMailbox uses for its rows. */
+:root[data-theme='dark'] .table {
+  --table-header-bg: #232b37;
+  --table-row-bg: #0f141a;
+  --table-row-hover: #26354a;
+  --table-line: #3b4652;
+  --table-scroll-thumb: #5f6b7a;
+}
+
+.table tbody tr:not(:has(> td:first-child input:checked)) > td {
+  background: var(--table-row-bg) !important;
+}
+
+.table tbody tr:not(:has(> td:first-child input:checked)):hover > td {
+  background: var(--table-row-hover) !important;
+}
+
+:root[data-theme='dark'] .table th {
+  background: var(--table-header-bg) !important;
+}
+
+:root[data-theme='dark'] .table tbody tr:not(:has(> td:first-child input:checked)) > td {
+  border-block-end: 1px solid var(--table-line) !important;
+}
+
+/* Gmail's rows (v1): its read-row ground, thin dividers and the lifted halo on hover. */
+:root[data-ui='v1'] .table {
+  --table-row-bg: var(--ob-row-read);
+  --table-row-hover: var(--ob-row-read);
+  --table-scroll-thumb: var(--ob-scroll-thumb);
+}
+
+/* The header and rows a shade apart, inside a rounded box, like Gemini's lists. */
+:root[data-ui='v1'] .table th {
+  background: var(--ob-table-header) !important;
+  color: var(--ob-text-muted) !important;
+  font-weight: 500;
+}
+
+:root[data-ui='v1'] .table :global(table) {
+  border-collapse: separate;
+  border: 1px solid var(--ob-row-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Room on both ends, so text never touches the box edge. */
+:root[data-ui='v1'] .table th:first-child,
+:root[data-ui='v1'] .table td:first-child {
+  padding-inline-start: 12px !important;
+}
+
+:root[data-ui='v1'] .table th:last-child,
+:root[data-ui='v1'] .table td:last-child {
+  padding-inline-end: 12px !important;
+}
+
+:root[data-ui='v1'] .table tbody tr:not(:has(> td:first-child input:checked)) > td {
+  border-block-end: 1px solid var(--ob-row-border) !important;
+  border-block-start: none !important;
+  color: var(--ob-text);
+}
+
+:root[data-ui='v1'] .table tbody tr:hover {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--ob-row-hover-shadow);
+}
+
+/* A styled scrollbar is always drawn, so a wide table shows it can scroll sideways. */
+.table *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.table *::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: var(--table-scroll-thumb);
+  background-clip: padding-box;
+}
+
+.table *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Space under each table, so stacked tables and the page end do not crowd it. */
+.table {
+  margin-bottom: 24px;
+}
+
+/* Fixed layout fits the table to the window like the mail list: unsized columns share the rest. */
+.fixed :global(table) {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* A logo before a cell's text, e.g. a storage provider. */
+.withLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

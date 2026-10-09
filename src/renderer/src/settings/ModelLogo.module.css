@@ -1,0 +1,13 @@
+/* Sized to Cloudscape's 16px icon slot, so the logo lines up with the model name. */
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.logo svg {
+  width: 16px;
+  height: 16px;
+}

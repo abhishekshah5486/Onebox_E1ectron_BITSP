@@ -1,0 +1,37 @@
+.button {
+  flex: none;
+  border: 1px solid var(--ob-outline);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--ob-icon-hover);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.row {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.header {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.done {
+  font-size: 12px;
+  color: var(--ob-text-muted);
+}

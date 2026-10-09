@@ -1,0 +1,126 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 236px;
+  flex-shrink: 0;
+  color: var(--ob-text);
+  text-decoration: none;
+}
+
+.search {
+  flex: 1;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+  padding: 0 6px;
+  border-radius: var(--ob-radius-pill);
+  background: var(--ob-search-bg);
+  color: var(--ob-text-muted);
+}
+
+.search:focus-within {
+  background: var(--ob-surface);
+  box-shadow: var(--ob-shadow);
+}
+
+.searchInput {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--ob-text-muted);
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ob-text-muted);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--ob-surface-hover);
+}
+
+.account {
+  position: relative;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #2e7d32;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 10;
+  min-width: 280px;
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--ob-surface-raised);
+  box-shadow: var(--ob-shadow);
+  text-align: center;
+}
+
+.menuName {
+  margin: 8px 0 2px;
+  font-size: 18px;
+}
+
+.menuEmail {
+  margin: 0 0 16px;
+  color: var(--ob-text-muted);
+}
+
+.avatarLarge {
+  margin: 0 auto;
+  width: 64px;
+  height: 64px;
+  font-size: 28px;
+}
+
+.versionSlot {
+  display: inline-flex;
+  margin-right: 8px;
+}

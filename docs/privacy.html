@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OneBox Privacy Policy</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <nav>
+        <a href="./">OneBox</a>
+        <a href="privacy.html">Privacy policy</a>
+      </nav>
+
+      <h1>Privacy policy</h1>
+      <p class="updated">Last updated: 9 October 2026</p>
+      <p>
+        This policy explains what data OneBox collects, how it is used and stored, and the choices
+        you have. OneBox does not sell your data or use it for advertising.
+      </p>
+
+      <h2>Data we collect</h2>
+      <ul>
+        <li><b>Your OneBox account:</b> your name, email address and a hashed password.</li>
+        <li>
+          <b>Connected email accounts:</b> the server settings and app password you enter, and the
+          mail OneBox downloads from those accounts so it can show it to you.
+        </li>
+        <li>
+          <b>Google account (only if you connect Google Drive):</b> your Google email address and
+          the access token Google issues to OneBox.
+        </li>
+        <li><b>Settings:</b> your labels, preferences and integrations.</li>
+      </ul>
+
+      <h2>Google user data</h2>
+      <p>OneBox requests these Google permissions, and only when you choose to connect Drive:</p>
+      <ul>
+        <li><b>openid</b> and <b>email</b>: to show which Google account is connected.</li>
+        <li>
+          <b>drive.file</b>: to create a OneBox folder, save attachments you choose into it, and
+          read files you pick with the Google file picker. OneBox cannot see any other files in your
+          Drive.
+        </li>
+      </ul>
+      <p>
+        OneBox uses Google data only to provide these features, and only when you ask for them. It
+        does not transfer Google data to others except as needed to provide these features, as
+        required by law, or with your consent. Google data is never used for advertising, never
+        sold, and never used to train AI models. Your Drive files are not sent to AI providers.
+        People do not read your Google data unless you ask for help with a specific problem, it is
+        needed for security, or the law requires it.
+      </p>
+      <p>
+        OneBox's use and transfer of information received from Google APIs adheres to the
+        <a href="https://developers.google.com/terms/api-services-user-data-policy"
+          >Google API Services User Data Policy</a
+        >, including the Limited Use requirements.
+      </p>
+
+      <h2>How we use AI</h2>
+      <p>
+        To sort mail into your labels, OneBox sends the sender, subject and text of new messages to
+        an AI model provider (such as OpenAI, Google Gemini, Anthropic or Perplexity) under their
+        API terms, which do not allow them to train on this data. You choose the model in Settings,
+        and you can switch a label's AI sorting off.
+      </p>
+
+      <h2>How data is stored and protected</h2>
+      <ul>
+        <li>Data is sent over encrypted connections (HTTPS/TLS).</li>
+        <li>
+          Email passwords, Google tokens and integration secrets are encrypted at rest with
+          AES-256-GCM.
+        </li>
+        <li>Each user's data is kept separate and is only accessible through their account.</li>
+      </ul>
+
+      <h2>Your choices and deleting data</h2>
+      <ul>
+        <li>
+          <b>Disconnect Google Drive</b> in Settings → Integrations. OneBox deletes its Google token
+          and revokes its access at Google. Files already saved stay in your Drive. You can also
+          remove access at
+          <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.
+        </li>
+        <li>
+          <b>Remove an email account</b> in Settings → Accounts to stop OneBox syncing it. To delete
+          its stored mail too, email us.
+        </li>
+        <li>
+          <b>Delete everything</b>: email us and we will delete your account and all its data within
+          30 days.
+        </li>
+      </ul>
+
+      <h2>Changes</h2>
+      <p>If this policy changes, we will update this page and the date at the top.</p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions or deletion requests:
+        <a href="mailto:abhishek.shah5486@gmail.com">abhishek.shah5486@gmail.com</a>
+      </p>
+
+      <footer>OneBox, a BITS Pilani capstone project.</footer>
+    </main>
+  </body>
+</html>

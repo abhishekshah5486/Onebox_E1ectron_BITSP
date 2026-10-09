@@ -1,0 +1,187 @@
+/* Cloudscape's table has no per-row styling, so these rules reach into its markup.
+   Selected rows are left alone so Cloudscape's own selection styling shows. */
+.table {
+  --mail-read-bg: #f6f6f9;
+  --mail-unread-text: #0f141a;
+  --mail-read-text: #5f6b7a;
+}
+
+/* Dark mode keeps a distinct header, firmer lines and a darker tint for read mail. */
+:root[data-theme='dark'] .table {
+  --mail-header-bg: #232b37;
+  --mail-unread-bg: #1b2430;
+  --mail-read-bg: #0f141a;
+  --mail-hover-bg: #26354a;
+  --mail-line: #3b4652;
+  --mail-unread-text: #ffffff;
+  --mail-read-text: #a4afbd;
+}
+
+/* Fixed layout fits the table to the window: Subject takes what is left and truncates. */
+.table :global(table) {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.table tbody tr:not(:has(input:checked)):not(:has([data-unread])) > td {
+  background: var(--mail-read-bg) !important;
+}
+
+:root[data-theme='dark'] .table th {
+  background: var(--mail-header-bg) !important;
+}
+
+:root[data-theme='dark'] .table tbody tr:not(:has(input:checked)) > td {
+  border-block-end: 1px solid var(--mail-line) !important;
+}
+
+:root[data-theme='dark'] .table tbody tr:not(:has(input:checked)):has([data-unread]) > td {
+  background: var(--mail-unread-bg) !important;
+}
+
+:root[data-theme='dark'] .table tbody tr:not(:has(input:checked)):hover > td {
+  background: var(--mail-hover-bg) !important;
+}
+
+.table tbody td {
+  cursor: pointer;
+}
+
+.cell {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--mail-read-text);
+}
+
+.cell[data-unread] {
+  color: var(--mail-unread-text);
+  font-weight: 600;
+}
+
+.snippet {
+  font-weight: 400;
+  color: var(--mail-read-text);
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The address and its header fade and collapse; the column narrows alongside. */
+.accountText {
+  display: block;
+  max-width: 200px;
+  opacity: 1;
+  transition:
+    opacity 180ms ease,
+    max-width 240ms ease;
+}
+
+.table[data-compact] .accountText {
+  max-width: 0;
+  opacity: 0;
+}
+
+.table th {
+  transition: width 240ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accountText,
+  .table th {
+    transition: none;
+  }
+}
+
+.star {
+  display: inline-flex;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.filters > :first-child {
+  flex: 1 1 280px;
+  max-width: 480px;
+}
+
+.subjectCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.subjectCell > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.received {
+  display: flex;
+  align-items: center;
+}
+
+/* Revealed while the row is hovered or a control in it has focus. */
+.quick,
+.unsubscribe {
+  display: none;
+  flex: none;
+}
+
+.quick {
+  gap: 4px;
+}
+
+tr:hover .quick,
+tr:has(:focus-visible) .quick,
+tr:hover .unsubscribe,
+tr:has(:focus-visible) .unsubscribe {
+  display: inline-flex;
+}
+
+tr:hover .time,
+tr:has(:focus-visible) .time {
+  display: none;
+}
+
+/* A compact pill in Cloudscape's style, short enough not to stretch the row. */
+.pill {
+  height: 20px;
+  padding: 0 12px;
+  border: 2px solid var(--pill-color);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--pill-color);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pill:hover {
+  background: var(--pill-hover);
+}
+
+.pill:focus-visible {
+  outline: 2px solid var(--pill-color);
+  outline-offset: 2px;
+}
+
+/* A conversation with files shows Gmail-style chips under its subject. */
+.subjectStack {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}

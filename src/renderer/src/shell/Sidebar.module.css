@@ -1,0 +1,167 @@
+.sidebar {
+  width: 256px;
+  padding: 8px 16px 16px 8px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  transition: width 150ms;
+}
+
+.collapsed {
+  width: 72px;
+}
+
+.compose {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 24px 0 16px;
+  margin: 0 0 16px;
+  border: none;
+  border-radius: var(--ob-radius);
+  background: var(--ob-surface);
+  color: var(--ob-text);
+  font: inherit;
+  font-weight: 500;
+  box-shadow: var(--ob-shadow);
+  cursor: pointer;
+}
+
+.collapsed .compose {
+  width: 56px;
+  padding: 0;
+  justify-content: center;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 32px;
+  padding: 0 12px 0 16px;
+  border-radius: 0 var(--ob-radius-pill) var(--ob-radius-pill) 0;
+  color: var(--ob-text);
+  text-decoration: none;
+}
+
+.item:hover {
+  background: var(--ob-nav-hover);
+}
+
+button.item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.item:hover {
+  background: var(--ob-nav-hover);
+}
+
+/* Like Gmail, a folder with unread mail is bold. */
+.hasUnread {
+  font-weight: 700;
+}
+
+.active {
+  background: var(--ob-nav-active);
+  font-weight: 700;
+}
+
+.collapsed .item {
+  width: 32px;
+  padding: 0 0 0 12px;
+  border-radius: var(--ob-radius-pill);
+}
+
+.section {
+  margin: 20px 0 8px 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.logo {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.warn {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ob-danger);
+  color: var(--ob-surface);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.accountRow {
+  position: relative;
+}
+
+.toggle {
+  position: absolute;
+  left: -2px;
+  top: 7px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ob-text-muted);
+  cursor: pointer;
+  z-index: 1;
+  transition: transform 120ms;
+}
+
+.toggle:hover {
+  color: var(--ob-text);
+}
+
+.open {
+  transform: rotate(90deg);
+}
+
+.folders {
+  display: flex;
+  flex-direction: column;
+}
+
+.folders .item {
+  padding-left: 52px;
+  gap: 14px;
+}
+
+.labelsHeading {
+  margin: 12px 0 4px 52px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ob-text);
+}

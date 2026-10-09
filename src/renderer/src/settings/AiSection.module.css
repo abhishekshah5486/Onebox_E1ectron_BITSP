@@ -1,0 +1,50 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.toolbar > :first-child {
+  flex: 1 1 280px;
+  max-width: 480px;
+}
+
+.filters {
+  display: grid;
+  gap: 12px;
+}
+
+.filters > :last-child {
+  max-width: 480px;
+}
+
+/* The period's totals, in a burgundy banner across the table. */
+.totals {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid #c4325f;
+  border-radius: 12px;
+  background: #fdf0f4;
+  color: #6b0f2b;
+}
+
+:root[data-theme='dark'] .totals {
+  border-color: #b0284f;
+  background: #2e0a17;
+  color: #f6d4df;
+}
+
+.modelName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modelName > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}

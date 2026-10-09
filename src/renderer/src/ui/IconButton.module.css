@@ -1,0 +1,33 @@
+.button {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ob-text-muted);
+  cursor: pointer;
+}
+
+.button:hover,
+.button:focus-visible {
+  background: var(--ob-icon-hover);
+  color: var(--ob-text);
+}
+
+.button:disabled {
+  opacity: 0.38;
+  cursor: default;
+  background: transparent;
+}
+
+.normal {
+  width: 40px;
+  height: 40px;
+}
+
+.small {
+  width: 32px;
+  height: 32px;
+}

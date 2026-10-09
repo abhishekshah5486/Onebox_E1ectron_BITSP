@@ -1,0 +1,22 @@
+/* A darker sheet than the cards on it, so each section stands out. */
+.panel {
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px 32px 48px;
+  border-radius: var(--ob-radius);
+  background: var(--ob-settings-bg);
+  box-sizing: border-box;
+}
+
+.content {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border-radius: var(--ob-radius);
+  background: var(--ob-surface);
+}

@@ -1,0 +1,449 @@
+/* List chips: Gmail's outlined pills under the subject. */
+.chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chip {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 180px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--ob-outline);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--ob-icon-hover);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: 1px;
+}
+
+.chip svg {
+  flex: none;
+}
+
+.chipName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.more {
+  align-self: center;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+}
+
+/* Reading pane cards. */
+.cards {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dotted var(--ob-border);
+}
+
+.cardsHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--ob-text);
+  font-size: 14px;
+}
+
+.cardsDot {
+  margin: 0 -4px;
+  color: var(--ob-text-muted);
+}
+
+/* Gmail's "Add all to Drive": plain text, a pill on hover. */
+.storagePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px 0 12px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.storagePill:hover {
+  background: var(--ob-storage-pill);
+}
+
+/* Cloudscape's light normal button, kept light on the white reading pane in both themes. */
+.awsPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 18px 0 14px;
+  border: 2px solid #006ce0;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #006ce0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.awsPill:hover {
+  border-color: #002b66;
+  background: #f0fbff;
+  color: #002b66;
+}
+
+.awsPill:disabled {
+  border-color: #b4b4bb;
+  color: #8c8c94;
+  cursor: default;
+}
+
+.awsPill:focus-visible {
+  outline: 2px solid #006ce0;
+  outline-offset: 2px;
+}
+
+.pillGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.storagePill:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.storagePill:focus-visible {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: 2px;
+}
+
+.cardGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.card {
+  position: relative;
+  width: 180px;
+  height: 120px;
+  border: 1px solid var(--ob-border);
+  border-radius: 4px;
+  background: var(--ob-surface-hover);
+}
+
+.cardOpen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardPreview {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 4px 4px 0 0;
+  background: var(--ob-surface-raised);
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardBadge {
+  display: grid;
+  opacity: 0.9;
+}
+
+.cardFooter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 52px 0 10px;
+  border-top: 1px solid var(--ob-border);
+}
+
+/* Gmail's dog-ear: the tip of the card is cut away (the page shows through), its flap turned
+   back in the file's colour, with the grey underside of the fold beside it. */
+.fold {
+  position: absolute;
+  z-index: 1;
+  right: -1px;
+  bottom: -1px;
+  pointer-events: none;
+  width: 48px;
+  height: 24px;
+  background:
+    linear-gradient(to bottom right, transparent 50%, #c4c4c4 50%) left / 24px 24px no-repeat,
+    linear-gradient(to bottom right, var(--fold) 50%, var(--ob-surface-raised) 50%) right / 24px
+      24px no-repeat;
+}
+
+.cardFooter svg,
+.cardHoverHead svg {
+  flex: none;
+}
+
+.cardName {
+  overflow: hidden;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The hover sheet covers the card; clicks still reach the card underneath. */
+.cardHover {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--ob-surface-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+
+.cardHoverHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cardHoverName {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  word-break: break-all;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.cardSize {
+  margin-left: 30px;
+  color: var(--ob-text-muted);
+  font-size: 12px;
+}
+
+.cardActions {
+  position: absolute;
+  bottom: 10px;
+  left: 42px;
+  display: flex;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.card:hover .cardHover,
+.card:hover .cardActions,
+.card:focus-within .cardHover,
+.card:focus-within .cardActions {
+  opacity: 1;
+}
+
+/* Full-window viewer. */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  background: rgb(0 0 0 / 85%);
+  color: #e3e3e3;
+}
+
+.viewerBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px;
+  background: rgb(0 0 0 / 50%);
+  color: #e3e3e3;
+}
+
+.viewerBar button {
+  color: #e3e3e3;
+}
+
+.viewerName {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.viewerSize {
+  flex: 1;
+  color: #a8abaf;
+  font-size: 13px;
+}
+
+.viewerBody {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 0;
+  padding: 24px;
+}
+
+.viewerImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.viewerFrame {
+  width: min(1000px, 100%);
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+.viewerText {
+  width: min(900px, 100%);
+  max-height: 100%;
+  margin: 0;
+  padding: 24px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #1e1f20;
+  color: #e3e3e3;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.noPreview {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  color: #c4c7c5;
+}
+
+.viewerButton {
+  height: 36px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 18px;
+  background: #a8c7fa;
+  color: #062e6f;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Gmail's solid grey square buttons on the hover sheet. */
+.cardButton {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: #80868b;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.cardButton:hover {
+  background: #5f6368;
+}
+
+.cardButton:focus-visible {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: 2px;
+}
+
+/* The Gmail-style "save to cloud storage" dialog. */
+.storageForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.storageAccounts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.storageAccount {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--ob-dialog-line, rgb(128 128 128 / 30%));
+  border-radius: 12px;
+  color: var(--ob-dialog-text);
+  cursor: pointer;
+}
+
+.storageChosen {
+  border-color: var(--ob-dialog-accent);
+}
+
+.storageAccount input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--ob-dialog-accent);
+}
+
+.storageWho {
+  display: flex;
+  flex-direction: column;
+  line-height: 18px;
+}
+
+.storageWho small {
+  color: var(--ob-dialog-muted);
+  font-size: 12px;
+}

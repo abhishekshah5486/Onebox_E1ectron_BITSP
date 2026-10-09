@@ -1,0 +1,329 @@
+/* Gmail's reading view: a fixed toolbar over one scroll area for the whole conversation. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: var(--ob-radius);
+  background: var(--ob-surface);
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+  padding: 0 16px 0 12px;
+  color: var(--ob-text-muted);
+}
+
+.gap {
+  width: 16px;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 8px;
+  background: var(--ob-border);
+}
+
+.position {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.position > span {
+  margin-right: 8px;
+}
+
+/* Like Gmail, the reading pane is white in both themes, under the themed toolbar. */
+.body {
+  --ob-text: #1f1f1f;
+  --ob-storage-pill: #e9eef6;
+  --ob-storage-pill-hover: #dde3ea;
+  --ob-text-muted: #444746;
+  --ob-border: #e0e0e0;
+  --ob-chip-bg: #e1e3e1;
+  --ob-icon-hover: rgb(68 71 70 / 8%);
+  --ob-surface-raised: #ffffff;
+  --ob-surface-hover: #f2f2f2;
+  --ob-accent: #0b57d0;
+  --ob-outline: #747775;
+  --ob-scroll-thumb: #c4c7c5;
+  --ob-star: #f4b400;
+
+  flex: 1;
+  min-height: 0;
+  overflow-y: scroll;
+  padding: 12px 24px 48px 0;
+  background: #ffffff;
+  color: var(--ob-text);
+}
+
+.body::-webkit-scrollbar {
+  width: 16px;
+}
+
+.body::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  border: 4px solid transparent;
+  border-radius: 8px;
+  background: var(--ob-scroll-thumb) padding-box;
+}
+
+.subjectRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 20px 72px;
+}
+
+.subject {
+  margin: 0 8px 0 0;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 28px;
+  overflow-wrap: anywhere;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+  padding: 0 4px 0 6px;
+  border-radius: 4px;
+  background: var(--ob-chip-bg);
+  color: var(--ob-text);
+  font-size: 12px;
+}
+
+.chip button {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ob-text-muted);
+  cursor: pointer;
+}
+
+.chip button:hover {
+  color: var(--ob-text);
+  background: var(--ob-icon-hover);
+}
+
+.message {
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--ob-border);
+}
+
+.message:last-child {
+  border-bottom: none;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: start;
+  cursor: pointer;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #5f6368;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.who {
+  min-width: 0;
+}
+
+.fromLine {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 24px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.from {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.address {
+  overflow: hidden;
+  color: var(--ob-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.snippet {
+  overflow: hidden;
+  color: var(--ob-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.toLine {
+  position: relative;
+}
+
+.toButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ob-text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.toButton:hover {
+  color: var(--ob-text);
+}
+
+/* Gmail's details card: a light, square-cornered table under "to me". */
+.popover {
+  position: absolute;
+  top: 22px;
+  left: -8px;
+  z-index: 30;
+  min-width: 360px;
+  max-width: min(640px, 70vw);
+  padding: 12px 20px 12px 8px;
+  border: 1px solid var(--ob-border);
+  background: var(--ob-surface-raised);
+  box-shadow: var(--ob-shadow);
+  cursor: default;
+}
+
+.details {
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.details th {
+  padding: 4px 12px 4px 0;
+  color: var(--ob-text-muted);
+  font-weight: 400;
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.details td {
+  padding: 4px 0;
+  overflow-wrap: anywhere;
+}
+
+.security {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 16px;
+  cursor: default;
+}
+
+.date {
+  color: var(--ob-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.starred {
+  color: var(--ob-star) !important;
+}
+
+.content {
+  margin: 12px 0 0 72px;
+}
+
+.text {
+  margin: 0;
+  font-family: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--ob-surface-hover);
+  font-size: 13px;
+}
+
+.banner button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ob-accent);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--ob-border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.status {
+  padding: 24px;
+  color: var(--ob-text-muted);
+}

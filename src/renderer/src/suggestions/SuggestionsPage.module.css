@@ -1,0 +1,203 @@
+.panel {
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px 32px 48px;
+  border-radius: var(--ob-radius);
+  background: var(--ob-settings-bg);
+  box-sizing: border-box;
+}
+
+.filters {
+  display: grid;
+  gap: 12px;
+}
+
+.filters > :first-child {
+  max-width: 480px;
+}
+
+.clip {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.account,
+.label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.account > :first-child {
+  flex: none;
+}
+
+.snippet {
+  color: var(--muted);
+}
+
+.info {
+  display: inline-flex;
+  flex: none;
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Bold blue icons, like the inbox's row actions. */
+.mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--link);
+  cursor: pointer;
+}
+
+.mark svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mark:hover {
+  background: var(--pill-hover);
+}
+
+.mark:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+/* v1: Gmail's in-list search, at the right of the toolbar. */
+.gmailSearch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, 45%);
+  height: 40px;
+  margin-left: auto;
+  padding: 0 8px 0 14px;
+  border: 1px solid var(--ob-border);
+  border-radius: 999px;
+  background: var(--ob-search-bg);
+  color: var(--ob-text-muted);
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+
+.gmailSearch:hover {
+  border-color: var(--ob-outline);
+}
+
+/* Gemini-like: the field brightens and gets an accent ring while typing. */
+.gmailSearch:focus-within {
+  border-color: var(--ob-accent);
+  box-shadow: 0 0 0 1px var(--ob-accent);
+  color: var(--ob-text);
+}
+
+.gmailSearch input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.gmailSearch input::placeholder {
+  color: var(--ob-text-muted);
+}
+
+.gmailSearch input::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* v1: Gmail's rows under console-style column headers, every row on one grid. */
+.grid {
+  --suggestion-columns: 40px minmax(140px, 190px) minmax(0, 1fr) 180px 96px 72px;
+}
+
+.grid[data-view='past'] {
+  --suggestion-columns: 40px minmax(140px, 190px) minmax(0, 1fr) 180px 96px 120px 72px;
+}
+
+.gridHead,
+.gridRow {
+  display: grid;
+  grid-template-columns: var(--suggestion-columns) !important;
+  align-items: center;
+  column-gap: 16px;
+}
+
+.gridHead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 36px;
+  padding: 0 16px 0 8px;
+  border-bottom: 1px solid var(--ob-border);
+  background: var(--ob-surface);
+  color: var(--ob-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.alignEnd {
+  text-align: right;
+}
+
+.cell {
+  overflow: hidden;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Row actions float over the row's right end, like Gmail's, so no column is kept for them. */
+.overlay {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  bottom: 0;
+  padding-left: 24px;
+  background: linear-gradient(to right, transparent, var(--ob-row-read) 24px);
+}
+
+.gridRow > :last-child {
+  min-width: 0;
+  padding-left: 0;
+}
+
+/* On a selected row the actions sit on its blue, as in the inbox. */
+.gridRow[aria-selected='true'] .overlay {
+  background: linear-gradient(to right, transparent, var(--ob-row-selected) 24px);
+}
+
+.gridRow[aria-selected='true'] .cell {
+  color: var(--ob-text);
+}
