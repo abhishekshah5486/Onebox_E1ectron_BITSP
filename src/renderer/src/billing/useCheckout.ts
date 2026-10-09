@@ -16,17 +16,20 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const deadline = () => Date.now() + WAIT_LIMIT_MS;
 const before = (until: number) => Date.now() < until;
 
-// A tab opened during the click, so the browser doesn't block it as a popup once the checkout
-// page is ready. The desktop app opens links in the system browser instead, and gets null.
-function openBlankTab() {
-  const tab = window.open('', '_blank');
-  if (tab) tab.document.title = 'Opening checkout…';
-  return tab;
-}
+// The desktop app (its preload adds window.onebox) sends links to the system browser.
+const isDesktop = () => 'onebox' in window;
 
-function showCheckout(url: string, tab: Window | null) {
-  if (tab && !tab.closed) tab.location.href = url;
-  else window.open(url, '_blank', 'noopener');
+// Opens the checkout page in a new tab; false when the browser blocked it, as it can once the
+// click that started checkout is a few seconds old.
+function openCheckout(url: string) {
+  if (isDesktop()) {
+    window.open(url, '_blank');
+    return true;
+  }
+  const tab = window.open(url, '_blank');
+  if (!tab) return false;
+  tab.opener = null;
+  return true;
 }
 
 // Upgrading: pick a provider when there are several, pay in its checkout (Razorpay's window in
@@ -46,7 +49,6 @@ export function useCheckout() {
   );
   // Each checkout's number; cancelling moves it on, so an older flow knows to stop.
   const run = useRef(0);
-  const stripeTab = useRef<Window | null>(null);
 
   // Plain text, so the snackbar (v1) can show it too.
   const notify = (message: FlashInput & { header?: string; content: string }) => {
@@ -149,7 +151,6 @@ export function useCheckout() {
     const mine = ++run.current;
     const stopped = () => run.current !== mine;
     setBusy(plan);
-    stripeTab.current = provider === 'STRIPE' ? openBlankTab() : null;
     setStep({ kind: 'preparing', provider: provider ?? 'RAZORPAY', ...shown });
     try {
       const session = await paymentsApi.checkout(api, plan, interval, provider);
@@ -158,12 +159,14 @@ export function useCheckout() {
         await payWithRazorpay(session, shown.planName, interval, again);
         return;
       }
-      showCheckout(session.url, stripeTab.current);
-      setStep({ kind: 'waiting', url: session.url, ...shown });
+      setStep({
+        kind: openCheckout(session.url) ? 'waiting' : 'ready',
+        url: session.url,
+        ...shown,
+      });
       await waitForStripe(session.sessionId, shown.planName, stopped);
     } catch (error) {
       if (stopped()) return;
-      stripeTab.current?.close();
       notify({
         type: 'error',
         header: `Couldn't start ${shown.planName}.`,
@@ -172,7 +175,6 @@ export function useCheckout() {
       });
     } finally {
       if (!stopped()) {
-        stripeTab.current = null;
         setStep(null);
         setBusy(null);
       }
@@ -203,8 +205,7 @@ export function useCheckout() {
   const cancel = useCallback(() => {
     run.current++;
     setChoosing(null);
-    if (step?.kind === 'preparing') stripeTab.current?.close();
-    if (step?.kind === 'waiting') {
+    if (step?.kind === 'waiting' || step?.kind === 'ready') {
       notify({
         type: 'info',
         tone: 'burgundy',
@@ -220,7 +221,11 @@ export function useCheckout() {
     step,
     onCancel: cancel,
     onPick: pick,
-    onReopen: () => step?.kind === 'waiting' && window.open(step.url, '_blank', 'noopener'),
+    onOpen: () => {
+      if (step?.kind !== 'waiting' && step?.kind !== 'ready') return;
+      openCheckout(step.url);
+      setStep({ ...step, kind: 'waiting' });
+    },
   });
   return { upgrade, busy, notify, overlay };
 }

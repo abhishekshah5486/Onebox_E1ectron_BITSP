@@ -21,7 +21,7 @@ interface Purchase {
 export type CheckoutStep =
   | (Purchase & { kind: 'choose' })
   | (Purchase & { kind: 'preparing'; provider: PaymentProvider })
-  | (Purchase & { kind: 'waiting'; url: string });
+  | (Purchase & { kind: 'ready' | 'waiting'; url: string });
 
 export const PROVIDER_NAME: Record<PaymentProvider, string> = {
   RAZORPAY: 'Razorpay',
@@ -48,6 +48,12 @@ function copy(step: CheckoutStep) {
       detail: `Taking you to ${PROVIDER_NAME[step.provider]} to pay for ${what}.`,
     };
   }
+  if (step.kind === 'ready') {
+    return {
+      title: 'Checkout is ready',
+      detail: `Your browser held back the new tab. Open checkout to pay for ${what}.`,
+    };
+  }
   return {
     title: 'Finish paying in your browser',
     detail: `Checkout for ${what} opened in a new tab. This updates as soon as your payment goes through.`,
@@ -60,12 +66,12 @@ export function CheckoutOverlay({
   step,
   onCancel,
   onPick,
-  onReopen,
+  onOpen,
 }: {
   step: CheckoutStep | null;
   onCancel: () => void;
   onPick: (provider: PaymentProvider) => void;
-  onReopen: () => void;
+  onOpen: () => void;
 }) {
   const { version } = useUiVersion();
   const [picked, setPicked] = useState<PaymentProvider>('RAZORPAY');
@@ -98,8 +104,13 @@ export function CheckoutOverlay({
                 </Button>
               )}
               {step.kind === 'waiting' && (
-                <Button iconName="external" iconAlign="right" onClick={onReopen}>
+                <Button iconName="external" iconAlign="right" onClick={onOpen}>
                   Open checkout again
+                </Button>
+              )}
+              {step.kind === 'ready' && (
+                <Button variant="primary" iconName="external" iconAlign="right" onClick={onOpen}>
+                  Open checkout
                 </Button>
               )}
             </SpaceBetween>
@@ -117,6 +128,8 @@ export function CheckoutOverlay({
                 items={PROVIDER_OPTIONS}
               />
             </>
+          ) : step.kind === 'ready' ? (
+            <Box>{detail}</Box>
           ) : (
             <SpaceBetween direction="horizontal" size="s" alignItems="center">
               <Spinner size="big" />
@@ -139,10 +152,12 @@ export function CheckoutOverlay({
         aria-labelledby="checkout-overlay-title"
         className={styles.dialog}
       >
-        {step.kind !== 'choose' && <div className={styles.spinner} aria-hidden="true" />}
+        {(step.kind === 'preparing' || step.kind === 'waiting') && (
+          <div className={styles.spinner} aria-hidden="true" />
+        )}
         <h2
           id="checkout-overlay-title"
-          className={`${styles.title} ${step.kind === 'choose' ? styles.titleOnly : ''}`}
+          className={`${styles.title} ${step.kind === 'choose' || step.kind === 'ready' ? styles.titleOnly : ''}`}
         >
           {title}
         </h2>
@@ -172,13 +187,18 @@ export function CheckoutOverlay({
         </p>
         <div className={styles.actions}>
           {step.kind === 'waiting' && (
-            <button type="button" className={styles.cancel} onClick={onReopen}>
+            <button type="button" className={styles.cancel} onClick={onOpen}>
               Open checkout again
             </button>
           )}
           <button type="button" className={styles.cancel} onClick={onCancel}>
             Cancel
           </button>
+          {step.kind === 'ready' && (
+            <button type="button" className={styles.primary} onClick={onOpen}>
+              Open checkout
+            </button>
+          )}
         </div>
       </div>
     </div>,
