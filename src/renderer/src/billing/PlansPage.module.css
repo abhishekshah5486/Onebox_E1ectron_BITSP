@@ -1,14 +1,3 @@
-/* The Classic / Showcase switch above either layout. */
-.layoutBar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 24px 0;
-  color: var(--ob-text-muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-
 /* v1: a plan picker in the style of Google's (centred cards, big green price, pill buttons),
    keeping each plan's own colours. */
 .page {
@@ -303,21 +292,34 @@
   text-align: center;
 }
 
-/* v2: console cards with the plan's colour on the top half. */
+/* v2: console cards; a short band in the plan's colour holds its name and price. */
 .consoleCard {
   display: flex;
   flex-direction: column;
-  min-height: 600px;
+  height: 100%;
 }
 
 .consoleHead {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px;
+  gap: 6px;
+  padding: 20px 24px;
   /* Follows the container's rounded top corners. */
   border-radius: var(--border-radius-container-33hhdh, 16px)
     var(--border-radius-container-33hhdh, 16px) 0 0;
+}
+
+/* Muted text on each band, set outright so light mode keeps its contrast. */
+.free.consoleHead {
+  --band-muted: #33465f;
+}
+
+.standard.consoleHead {
+  --band-muted: #bdc1c6;
+}
+
+.pro.consoleHead {
+  --band-muted: #5c3b52;
 }
 
 .consoleTitle {
@@ -332,159 +334,82 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
+  line-height: 24px;
 }
 
-.consoleTagline,
-.consoleBilled {
+.consoleTagline {
   margin: 0;
-  opacity: 0.75;
+  color: var(--band-muted);
   font-size: 14px;
 }
 
 .consolePrice {
-  margin: 8px 0 0;
-  font-size: 40px;
+  margin: 10px 0 0;
+  font-size: 32px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 40px;
 }
 
 .consolePrice span {
   margin-left: 4px;
-  opacity: 0.7;
-  font-size: 15px;
+  color: var(--band-muted);
+  font-size: 14px;
   font-weight: 400;
+}
+
+.consoleBody {
+  flex: 1;
+  padding: 20px 24px 24px;
 }
 
 .consoleCredits {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--ob-border);
   border-radius: 12px;
-  background: rgb(255 255 255 / 70%);
-  color: #0f141a;
-  font-size: 15px;
-}
-
-.standard .consoleCredits {
-  background: #2d2e31;
-  color: #e8eaed;
-}
-
-/* Shaped like Cloudscape's buttons: rounded, bold, a 2px border. */
-.awsButton {
-  height: 36px;
-  border: 2px solid #006ce0;
-  border-radius: 20px;
-  background: #ffffff;
-  color: #006ce0;
-  font: inherit;
+  color: var(--ob-text);
   font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
 }
 
-.awsButton:hover:not(:disabled) {
-  border-color: #002b66;
-  background: #f0fbff;
-  color: #002b66;
+.consoleCredits svg {
+  flex: none;
+  color: #a35c00;
 }
 
-.awsPrimary {
-  border-color: #006ce0;
-  background: #006ce0;
-  color: #ffffff;
-}
-
-.awsPrimary:hover:not(:disabled) {
-  border-color: #004a9e;
-  background: #004a9e;
-  color: #ffffff;
-}
-
-.awsButton:disabled {
-  border-color: rgb(0 0 0 / 25%);
-  background: rgb(255 255 255 / 45%);
-  color: rgb(0 0 0 / 45%);
-  cursor: default;
-}
-
-.standard .awsButton:disabled {
-  border-color: rgb(255 255 255 / 30%);
-  background: transparent;
-  color: rgb(255 255 255 / 55%);
-}
-
-.awsButton:focus-visible,
-.consoleToggle button:focus-visible {
-  outline: 2px solid #006ce0;
-  outline-offset: 2px;
+:root[data-theme='dark'] .consoleCredits svg {
+  color: #fdd663;
 }
 
 .consoleFeatures {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   margin: 0;
-  padding: 20px 28px 28px;
+  padding: 4px 0 0;
   list-style: none;
   color: var(--ob-text);
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .consoleFeatures li {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-}
-
-/* Quiet grey checks, as on the first version of these cards. */
-.consoleFeatures li svg {
-  flex: none;
-  margin-top: 1px;
-  color: var(--ob-text-muted);
+  gap: 10px;
 }
 
 /* The bonus line and its coin in gold. */
 .consoleFeatures li.consoleBonus,
 .consoleFeatures li.consoleBonus svg {
-  color: #b06000;
-  font-weight: 500;
+  color: #a35c00;
+  font-weight: 600;
 }
 
 :root[data-theme='dark'] .consoleFeatures li.consoleBonus,
 :root[data-theme='dark'] .consoleFeatures li.consoleBonus svg {
   color: #fdd663;
-}
-
-/* The period switch, in a console look. */
-.consoleToggle {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--ob-border);
-  border-radius: 20px;
-}
-
-.consoleToggle button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 32px;
-  padding: 0 16px;
-  border: none;
-  border-radius: 16px;
-  background: transparent;
-  color: var(--ob-text-muted);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.consoleToggle .segmentOn {
-  background: var(--ob-surface-hover);
-  color: var(--ob-text);
 }

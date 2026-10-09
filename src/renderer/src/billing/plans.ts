@@ -1,4 +1,22 @@
 export type PlanId = 'FREE' | 'STANDARD' | 'PRO';
+
+// What a feature is about, so each interface can show its own icon for it.
+export type FeatureKind =
+  | 'inbox'
+  | 'storage'
+  | 'ai'
+  | 'draft'
+  | 'model'
+  | 'credit'
+  | 'automation'
+  | 'support'
+  | 'new'
+  | 'everything';
+
+export interface Feature {
+  text: string;
+  kind: FeatureKind;
+}
 export type BillingInterval = 'monthly' | 'annual';
 
 export interface Plan {
@@ -11,7 +29,7 @@ export interface Plan {
   // Credits each billing period (once, for Free).
   credits: number;
   bonusCredits: number;
-  features: string[];
+  features: Feature[];
 }
 
 // Starting numbers, to be confirmed: 1 credit is worth $0.01 of AI usage, billed at 2x cost.
@@ -25,9 +43,9 @@ export const PLANS: Plan[] = [
     credits: 20,
     bonusCredits: 0,
     features: [
-      'Unified inbox for all your accounts',
-      'Save attachments to cloud storage',
-      '20 AI credits to try sorting, once',
+      { text: 'Unified inbox for all your accounts', kind: 'inbox' },
+      { text: 'Save attachments to cloud storage', kind: 'storage' },
+      { text: '20 AI credits to try sorting, once', kind: 'credit' },
     ],
   },
   {
@@ -39,11 +57,11 @@ export const PLANS: Plan[] = [
     credits: 500,
     bonusCredits: 250,
     features: [
-      'AI sorting into your own labels',
-      'Suggestions you review before they apply',
-      'Summaries and reply drafts',
-      'Choose the AI model for each task',
-      'Buy extra credits when you need them',
+      { text: 'AI sorting into your own labels', kind: 'ai' },
+      { text: 'Suggestions you review before they apply', kind: 'ai' },
+      { text: 'Summaries and reply drafts', kind: 'draft' },
+      { text: 'Choose the AI model for each task', kind: 'model' },
+      { text: 'Buy extra credits when you need them', kind: 'credit' },
     ],
   },
   {
@@ -55,11 +73,11 @@ export const PLANS: Plan[] = [
     credits: 2_000,
     bonusCredits: 0,
     features: [
-      'Everything in Standard',
-      '4x the monthly credits',
-      'Automation rules and Slack alerts',
-      'Priority support',
-      'Early access to new AI features',
+      { text: 'Everything in Standard', kind: 'everything' },
+      { text: '4x the monthly credits', kind: 'credit' },
+      { text: 'Automation rules and Slack alerts', kind: 'automation' },
+      { text: 'Priority support', kind: 'support' },
+      { text: 'Early access to new AI features', kind: 'new' },
     ],
   },
 ];

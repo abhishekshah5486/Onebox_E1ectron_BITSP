@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/AuthProvider';
 import { fakeApi, testUser } from '../test/fake-api';
 import { renderPage } from '../test/render';
@@ -20,37 +20,39 @@ const render = (ui: React.ReactNode) =>
     api: fakeApi({ restoreSession: vi.fn(async () => testUser) }),
   });
 
-describe('PlansPage', () => {
+describe('PlansPage in v1 (showcase)', () => {
   it('shows monthly prices, then yearly ones with the saving', async () => {
     render(<PlansPage />);
     const standard = (await screen.findByRole('heading', { name: /Standard/ })).closest('article')!;
-    expect(within(standard).getByText('₹499', { exact: false })).toHaveTextContent('₹499/mo');
-    expect(within(standard).getByText(/Billed monthly/)).toBeInTheDocument();
+    expect(within(standard).getByText('₹499')).toBeInTheDocument();
+    expect(within(standard).getByText('Billed monthly')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('radio', { name: /Annually/ }));
-    expect(within(standard).getByText('₹415', { exact: false })).toHaveTextContent('₹415/mo');
+    expect(within(standard).getByText('₹415')).toBeInTheDocument();
     expect(within(standard).getByText('Save ₹1,008')).toBeInTheDocument();
   });
 
   it('marks the current plan and says payments are coming when upgrading', async () => {
     render(<PlansPage />);
     expect(await screen.findByRole('button', { name: 'Current plan' })).toBeDisabled();
-    const pro = screen.getByRole('heading', { name: /Pro/ }).closest('article')!;
-    await userEvent.click(within(pro).getByRole('button', { name: 'Subscribe' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Upgrade to Pro' }));
     expect(await screen.findByText(/Payments are coming soon/)).toBeInTheDocument();
   });
 });
 
-describe('Plans layout switch', () => {
-  it('switches to the original Showcase design and remembers it', async () => {
-    render(<PlansPage />);
-    await userEvent.click(await screen.findByRole('radio', { name: 'Showcase' }));
-    expect(await screen.findByRole('button', { name: 'Upgrade to Pro' })).toBeInTheDocument();
-    expect(localStorage.getItem('onebox.plans.layout')).toBe('showcase');
+describe('PlansPage in v2 (console)', () => {
+  beforeEach(() => localStorage.setItem('onebox.ui-version', 'v2'));
+  afterEach(() => localStorage.removeItem('onebox.ui-version'));
 
-    await userEvent.click(screen.getByRole('radio', { name: 'Classic' }));
-    expect(screen.queryByRole('button', { name: 'Upgrade to Pro' })).toBeNull();
-    localStorage.removeItem('onebox.plans.layout');
+  it('switches to yearly prices with the toggle and offers the plans as console buttons', async () => {
+    render(<PlansPage />);
+    expect(await screen.findByRole('heading', { name: 'Plans', level: 1 })).toBeInTheDocument();
+    expect(screen.getByText('₹499', { exact: false })).toHaveTextContent('₹499/month');
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Pay annually' }));
+    expect(screen.getByText('₹415', { exact: false })).toHaveTextContent('₹415/month');
+    expect(screen.getByRole('button', { name: 'Current plan' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Choose Pro' })).toBeEnabled();
   });
 });
 
