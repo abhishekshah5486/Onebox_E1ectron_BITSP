@@ -80,8 +80,8 @@ export function AttachmentViewer({ file, onClose }: { file: AttachmentFile; onCl
         <span className={styles.viewerSize}>{formatBytes(file.sizeBytes)}</span>
         <IconButton icon="download" label="Download" onClick={() => void download(file)} />
         <IconButton
-          icon="cloudUpload"
-          label="Save to Drive"
+          icon="addToDrive"
+          label="Add to Drive"
           disabled={drive.saving}
           onClick={() => void drive.save([file])}
         />

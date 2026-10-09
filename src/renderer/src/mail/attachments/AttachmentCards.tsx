@@ -1,3 +1,5 @@
+import Button from '@cloudscape-design/components/button';
+import SpaceBetween from '@cloudscape-design/components/space-between';
 import { useState, type CSSProperties } from 'react';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
@@ -64,11 +66,11 @@ function Card({
         <button
           type="button"
           className={styles.cardButton}
-          aria-label={`Save ${file.filename} to Drive`}
-          data-tooltip="Save to Drive"
+          aria-label={`Add ${file.filename} to Drive`}
+          data-tooltip="Add to Drive"
           onClick={onSaveToDrive}
         >
-          <Icon name="cloudUpload" size={20} />
+          <Icon name="addToDrive" size={20} />
         </button>
       </span>
       {/* The dog-ear stays on top, hovered or not. */}
@@ -77,36 +79,63 @@ function Card({
   );
 }
 
-// A message's files as cards, with Download all and Save all to Drive, like Gmail's reading pane.
-export function AttachmentCards({ files }: { files: AttachmentFile[] }) {
+// A message's files as cards, with Download all and Add all to Drive, like Gmail's reading pane.
+// The console shows the two as Cloudscape buttons.
+export function AttachmentCards({
+  files,
+  console = false,
+}: {
+  files: AttachmentFile[];
+  console?: boolean;
+}) {
   const download = useAttachmentDownload();
   const drive = useSaveToDrive();
   const [open, setOpen] = useState<AttachmentFile | null>(null);
   if (files.length === 0) return null;
+  const downloadAll = () => {
+    void (async () => {
+      for (const file of files) await download(file);
+    })();
+  };
+  const addAll = () => void drive.save(files);
+  const title = `${files.length} ${files.length === 1 ? 'Attachment' : 'Attachments'}`;
+
   return (
     <section className={styles.cards} aria-label="Attachments">
-      <div className={styles.cardsHeader}>
-        <b>
-          {files.length} {files.length === 1 ? 'Attachment' : 'Attachments'}
-        </b>
-        <IconButton
-          size="small"
-          icon="download"
-          label="Download all"
-          onClick={() => {
-            void (async () => {
-              for (const file of files) await download(file);
-            })();
-          }}
-        />
-        <IconButton
-          size="small"
-          icon="cloudUpload"
-          label="Save all to Drive"
-          disabled={drive.saving}
-          onClick={() => void drive.save(files)}
-        />
-      </div>
+      {console ? (
+        <div className={styles.cardsHeader}>
+          <b>{title}</b>
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button iconName="download" onClick={downloadAll}>
+              Download all
+            </Button>
+            <Button
+              iconSvg={<Icon name="addToDrive" size={16} />}
+              loading={drive.saving}
+              onClick={addAll}
+            >
+              Add all to Drive
+            </Button>
+          </SpaceBetween>
+        </div>
+      ) : (
+        <div className={styles.cardsHeader}>
+          <b>{title}</b>
+          <span className={styles.cardsDot} aria-hidden="true">
+            •
+          </span>
+          <IconButton size="small" icon="download" label="Download all" onClick={downloadAll} />
+          <button
+            type="button"
+            className={styles.drivePill}
+            disabled={drive.saving}
+            onClick={addAll}
+          >
+            <Icon name="addToDrive" size={20} />
+            {drive.saving ? 'Adding to Drive…' : 'Add all to Drive'}
+          </button>
+        </div>
+      )}
       <div className={styles.cardGrid}>
         {files.map((file) => (
           <Card

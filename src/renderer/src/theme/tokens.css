@@ -32,6 +32,8 @@
   --ob-snackbar-text: #f2f2f2;
   --ob-snackbar-action: #a8c7fa;
   --ob-chip-bg: #e1e3e1;
+  --ob-drive-pill: #e9eef6;
+  --ob-drive-pill-hover: #dde3ea;
   --ob-chip-text: #1f1f1f;
   --ob-text-unread: #1f1f1f;
   --ob-outline: #747775;
@@ -75,6 +77,8 @@
   --ob-snackbar-bg: #e3e3e3;
   --ob-snackbar-text: #1f1f1f;
   --ob-snackbar-action: #0b57d0;
+  --ob-drive-pill: #333b47;
+  --ob-drive-pill-hover: #3d4654;
   --ob-chip-bg: #e1e3e1;
   --ob-chip-text: #1f1f1f;
   --ob-text-unread: #ffffff;

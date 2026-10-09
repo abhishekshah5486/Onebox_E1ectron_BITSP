@@ -135,7 +135,7 @@ function ThreadMessage({
           ) : (
             <pre className={styles.text}>{message.textBody}</pre>
           )}
-          <AttachmentCards files={files} />
+          <AttachmentCards files={files} console />
         </div>
       )}
     </article>
