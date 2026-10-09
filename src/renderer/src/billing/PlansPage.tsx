@@ -240,14 +240,10 @@ function ConsolePlans() {
                             <StatusIndicator type="success">Current plan</StatusIndicator>
                           </span>
                         ) : plan.id === RECOMMENDED ? (
-                          // The same pill as Current plan, with a star in the same green.
-                          <span className={styles.consoleStatus}>
-                            <Box variant="span" color="text-status-success">
-                              <span className={styles.pillContent}>
-                                <CloudscapeIcon name="star-filled" variant="success" />
-                                Recommended
-                              </span>
-                            </Box>
+                          // Shaped like Current plan; Recommended is only ever on the dark Standard card.
+                          <span className={`${styles.consoleStatus} ${styles.recommended}`}>
+                            <Icon name="sparkle" size={16} />
+                            Recommended
                           </span>
                         ) : null}
                       </div>

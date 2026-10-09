@@ -401,11 +401,17 @@
   background: rgb(0 0 0 / 35%);
 }
 
-/* An icon and text, spaced like Cloudscape's status indicator. */
-.pillContent {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+/* Soft white text with a gold sparkle, the gold of the bonus credits. */
+.standard .recommended {
+  gap: 6px;
+  background: rgb(255 255 255 / 12%);
+  color: #e8eaed;
+  font-size: 14px;
+}
+
+.recommended svg {
+  flex: none;
+  color: #fdd663;
 }
 
 .consoleFeatures {
