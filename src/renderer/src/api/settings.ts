@@ -73,16 +73,25 @@ export interface StorageAccount {
   updatedAt: string;
 }
 
+// A sign-in that did not finish, kept by the server for a few minutes so the page can say why.
+export interface StorageSignInFailure {
+  provider: StorageProviderId;
+  reason: 'ACCESS_DENIED' | 'FAILED';
+  message: string;
+  at: string;
+}
+
 export interface StorageStatus {
   // Providers set up on this server.
   providers: StorageProviderId[];
   accounts: StorageAccount[];
+  failures: StorageSignInFailure[];
 }
 
 export const settingsApi = {
   storage: (api: ApiClient) => api.get<StorageStatus>('/settings/storage'),
   connectStorage: (api: ApiClient, provider: StorageProviderId) =>
-    api.post<{ url: string }>('/settings/storage/connect', { provider }),
+    api.post<{ url: string; expiresAt: string }>('/settings/storage/connect', { provider }),
   updateStorageAccount: (api: ApiClient, id: string, defaultPath: string) =>
     api.patch<StorageAccount>(`/settings/storage/${id}`, { defaultPath }),
   disconnectStorage: (api: ApiClient, id: string) => api.delete<void>(`/settings/storage/${id}`),

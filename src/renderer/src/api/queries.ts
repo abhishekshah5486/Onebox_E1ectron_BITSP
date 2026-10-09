@@ -139,13 +139,13 @@ export function useRemoveIntegration() {
   return useIntegrationMutation((id: string) => settingsApi.removeIntegration(api, id));
 }
 
-// Polls while a sign-in window is open, until the account shows up.
-export function useStorage(waiting = false) {
+// Polls (every `pollMs`) while a sign-in is under way, until the account shows up.
+export function useStorage(pollMs: number | false = false) {
   const api = useApi();
   return useQuery({
     queryKey: keys.storage,
     queryFn: () => settingsApi.storage(api),
-    refetchInterval: waiting ? 2000 : false,
+    refetchInterval: pollMs,
   });
 }
 
