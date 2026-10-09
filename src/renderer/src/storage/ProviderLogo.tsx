@@ -14,7 +14,7 @@ export function ProviderLogo({
       width={size}
       height={size}
       alt=""
-      style={{ flex: 'none', objectFit: 'contain', verticalAlign: 'middle' }}
+      style={{ display: 'block', flex: 'none', objectFit: 'contain' }}
     />
   );
 }

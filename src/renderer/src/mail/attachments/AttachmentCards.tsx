@@ -18,7 +18,7 @@ function Card({
 }: {
   file: AttachmentFile;
   onOpen: () => void;
-  storage: { label: string; icon: (size: number) => ReactElement };
+  storage: { label: string; allIcon: (size: number) => ReactElement };
   onSave: () => void;
 }) {
   const download = useAttachmentDownload();
@@ -65,12 +65,12 @@ function Card({
         </button>
         <button
           type="button"
-          className={`${styles.cardButton} ${styles.cardButtonLight}`}
+          className={styles.cardButton}
           aria-label={`${storage.label}: ${file.filename}`}
           data-tooltip={storage.label}
           onClick={onSave}
         >
-          {storage.icon(20)}
+          {storage.allIcon(22)}
         </button>
       </span>
       {/* The dog-ear stays on top, hovered or not. */}
