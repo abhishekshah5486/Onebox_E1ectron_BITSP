@@ -10,3 +10,9 @@
   border: none;
   border-top: 1px solid var(--ob-border);
 }
+
+.paidWith {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

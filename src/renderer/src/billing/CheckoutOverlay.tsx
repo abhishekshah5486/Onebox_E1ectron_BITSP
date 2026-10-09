@@ -4,12 +4,14 @@ import Modal from '@cloudscape-design/components/modal';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Spinner from '@cloudscape-design/components/spinner';
 import Tiles from '@cloudscape-design/components/tiles';
+import * as tokens from '@cloudscape-design/design-tokens';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { PaymentProvider } from '../api/payments';
 import { useUiVersion } from '../theme/UiVersionProvider';
 import { Icon } from '../ui/Icon';
 import styles from './CheckoutOverlay.module.css';
+import { ProviderLogo, ProviderLogos } from './ProviderLogo';
 
 interface Purchase {
   planName: string;
@@ -60,6 +62,24 @@ function copy(step: CheckoutStep) {
   };
 }
 
+// The provider this step is about; Stripe's is the only checkout that opens in a tab.
+const providerOf = (step: CheckoutStep): PaymentProvider | null =>
+  step.kind === 'choose' ? null : step.kind === 'preparing' ? step.provider : 'STRIPE';
+
+// Both logos while choosing, otherwise the one in use. Decorative: the title says it all.
+function Mark({ step, size, ring }: { step: CheckoutStep; size: number; ring: string }) {
+  const provider = providerOf(step);
+  return (
+    <span aria-hidden="true" className={styles.mark}>
+      {provider ? (
+        <ProviderLogo provider={provider} size={size} label={false} />
+      ) : (
+        <ProviderLogos size={size} ring={ring} />
+      )}
+    </span>
+  );
+}
+
 const SECURE = 'Payments are processed securely. OneBox never sees your card or UPI details.';
 
 export function CheckoutOverlay({
@@ -91,7 +111,12 @@ export function CheckoutOverlay({
       <Modal
         visible
         onDismiss={onCancel}
-        header={title}
+        header={
+          <span className={styles.modalHeader}>
+            <Mark step={step} size={28} ring={tokens.colorBackgroundContainerContent} />
+            {title}
+          </span>
+        }
         footer={
           <Box float="right">
             <SpaceBetween direction="horizontal" size="xs">
@@ -125,7 +150,10 @@ export function CheckoutOverlay({
                 ariaLabel="Payment provider"
                 value={picked}
                 onChange={({ detail: change }) => setPicked(change.value as PaymentProvider)}
-                items={PROVIDER_OPTIONS}
+                items={PROVIDER_OPTIONS.map((option) => ({
+                  ...option,
+                  image: <ProviderLogo provider={option.value} size={36} label={false} />,
+                }))}
               />
             </>
           ) : step.kind === 'ready' ? (
@@ -152,13 +180,16 @@ export function CheckoutOverlay({
         aria-labelledby="checkout-overlay-title"
         className={styles.dialog}
       >
-        {(step.kind === 'preparing' || step.kind === 'waiting') && (
-          <div className={styles.spinner} aria-hidden="true" />
+        {step.kind === 'preparing' || step.kind === 'waiting' ? (
+          // The provider's logo inside the progress ring.
+          <div className={styles.loading}>
+            <div className={styles.spinner} aria-hidden="true" />
+            <Mark step={step} size={28} ring="var(--ob-dialog-bg)" />
+          </div>
+        ) : (
+          <Mark step={step} size={44} ring="var(--ob-dialog-bg)" />
         )}
-        <h2
-          id="checkout-overlay-title"
-          className={`${styles.title} ${step.kind === 'choose' || step.kind === 'ready' ? styles.titleOnly : ''}`}
-        >
+        <h2 id="checkout-overlay-title" className={styles.title}>
           {title}
         </h2>
         <p className={styles.detail}>{detail}</p>
@@ -171,7 +202,8 @@ export function CheckoutOverlay({
                   className={styles.option}
                   onClick={() => onPick(option.value)}
                 >
-                  <span>
+                  <ProviderLogo provider={option.value} size={36} label={false} />
+                  <span className={styles.optionText}>
                     <b>{option.label}</b>
                     <small>{option.description}</small>
                   </span>

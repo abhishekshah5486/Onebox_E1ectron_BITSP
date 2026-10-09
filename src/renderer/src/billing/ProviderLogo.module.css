@@ -1,0 +1,16 @@
+.tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 28%;
+}
+
+.stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ring {
+  display: inline-flex;
+  border-radius: 28%;
+}

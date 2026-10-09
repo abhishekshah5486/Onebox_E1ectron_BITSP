@@ -67,8 +67,30 @@
   font-size: 12px;
 }
 
-.titleOnly {
-  margin-top: 0;
+.mark {
+  display: inline-flex;
+}
+
+.modalHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A 56px ring with the provider's logo centred in it. */
+.loading {
+  display: grid;
+  place-items: center;
+}
+
+.loading > * {
+  grid-area: 1 / 1;
+}
+
+.loading .spinner {
+  width: 56px;
+  height: 56px;
+  box-sizing: border-box;
 }
 
 /* Payment providers, as rows like the app's Gmail-style menus. */
@@ -98,8 +120,9 @@
   cursor: pointer;
 }
 
-.option span {
+.optionText {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
 }

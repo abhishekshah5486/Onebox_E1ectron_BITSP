@@ -24,6 +24,7 @@ import { useFlash } from '../settings/flash';
 import tableStyles from '../ui/DataTable.module.css';
 import styles from './BillingSection.module.css';
 import { PROVIDER_NAME } from './CheckoutOverlay';
+import { ProviderLogo } from './ProviderLogo';
 import { formatRupees, planById } from './plans';
 
 // Subscriptions that still hold a paid plan.
@@ -126,7 +127,10 @@ export function SubscriptionSection() {
             </div>
             <div>
               <Box variant="awsui-key-label">Paid with</Box>
-              <div>{PROVIDER_NAME[sub.provider]}</div>
+              <span className={styles.paidWith}>
+                <ProviderLogo provider={sub.provider} size={20} label={false} />
+                {PROVIDER_NAME[sub.provider]}
+              </span>
             </div>
           </ColumnLayout>
         ) : (
