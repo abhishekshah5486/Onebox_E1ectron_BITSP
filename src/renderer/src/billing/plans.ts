@@ -1,4 +1,22 @@
 export type PlanId = 'FREE' | 'STANDARD' | 'PRO';
+
+// What a feature is about, so each interface can show its own icon for it.
+export type FeatureKind =
+  | 'inbox'
+  | 'storage'
+  | 'ai'
+  | 'draft'
+  | 'model'
+  | 'credit'
+  | 'automation'
+  | 'support'
+  | 'new'
+  | 'everything';
+
+export interface Feature {
+  text: string;
+  kind: FeatureKind;
+}
 export type BillingInterval = 'monthly' | 'annual';
 
 export interface Plan {
@@ -11,7 +29,7 @@ export interface Plan {
   // Credits each billing period (once, for Free).
   credits: number;
   bonusCredits: number;
-  features: string[];
+  features: Feature[];
 }
 
 // Starting numbers, to be confirmed: 1 credit is worth $0.01 of AI usage, billed at 2x cost.
@@ -25,9 +43,9 @@ export const PLANS: Plan[] = [
     credits: 20,
     bonusCredits: 0,
     features: [
-      'Unified inbox for all your accounts',
-      'Save attachments to cloud storage',
-      '20 AI credits to try sorting, once',
+      { text: 'Unified inbox for all your accounts', kind: 'inbox' },
+      { text: 'Save attachments to cloud storage', kind: 'storage' },
+      { text: '20 AI credits to try sorting, once', kind: 'credit' },
     ],
   },
   {
@@ -39,11 +57,11 @@ export const PLANS: Plan[] = [
     credits: 500,
     bonusCredits: 250,
     features: [
-      'AI sorting into your own labels',
-      'Suggestions you review before they apply',
-      'Summaries and reply drafts',
-      'Choose the AI model for each task',
-      'Buy extra credits when you need them',
+      { text: 'AI sorting into your own labels', kind: 'ai' },
+      { text: 'Suggestions you review before they apply', kind: 'ai' },
+      { text: 'Summaries and reply drafts', kind: 'draft' },
+      { text: 'Choose the AI model for each task', kind: 'model' },
+      { text: 'Buy extra credits when you need them', kind: 'credit' },
     ],
   },
   {
@@ -55,16 +73,68 @@ export const PLANS: Plan[] = [
     credits: 2_000,
     bonusCredits: 0,
     features: [
-      'Everything in Standard',
-      '4x the monthly credits',
-      'Automation rules and Slack alerts',
-      'Priority support',
-      'Early access to new AI features',
+      { text: 'Everything in Standard', kind: 'everything' },
+      { text: '4x the monthly credits', kind: 'credit' },
+      { text: 'Automation rules and Slack alerts', kind: 'automation' },
+      { text: 'Priority support', kind: 'support' },
+      { text: 'Early access to new AI features', kind: 'new' },
     ],
   },
 ];
 
 export const ANNUAL_SAVING = '17%';
+
+// The plans side by side, row by row: true / false for included or not, or a short value.
+export interface ComparisonRow {
+  feature: string;
+  values: Record<PlanId, boolean | string>;
+}
+
+export const COMPARISON: ComparisonRow[] = [
+  {
+    feature: 'AI credits',
+    values: { FREE: '20, once', STANDARD: '500 a month', PRO: '2,000 a month' },
+  },
+  {
+    feature: 'Bonus credits',
+    values: { FREE: false, STANDARD: '250 in the first month', PRO: false },
+  },
+  {
+    feature: 'Unified inbox for all your accounts',
+    values: { FREE: true, STANDARD: true, PRO: true },
+  },
+  {
+    feature: 'Save attachments to cloud storage',
+    values: { FREE: true, STANDARD: true, PRO: true },
+  },
+  {
+    feature: 'AI sorting into your own labels',
+    values: { FREE: 'With free credits', STANDARD: true, PRO: true },
+  },
+  {
+    feature: 'Suggestions you review before they apply',
+    values: { FREE: false, STANDARD: true, PRO: true },
+  },
+  { feature: 'Summaries and reply drafts', values: { FREE: false, STANDARD: true, PRO: true } },
+  {
+    feature: 'Choose the AI model for each task',
+    values: { FREE: false, STANDARD: true, PRO: true },
+  },
+  { feature: 'Buy extra credits', values: { FREE: false, STANDARD: true, PRO: true } },
+  {
+    feature: 'Automation rules and Slack alerts',
+    values: { FREE: false, STANDARD: false, PRO: true },
+  },
+  { feature: 'Priority support', values: { FREE: false, STANDARD: false, PRO: true } },
+  {
+    feature: 'Early access to new AI features',
+    values: { FREE: false, STANDARD: false, PRO: true },
+  },
+];
+
+// Free has no yearly price, so yearly billing only lists the paid plans.
+export const plansFor = (interval: BillingInterval) =>
+  interval === 'annual' ? PLANS.filter((plan) => plan.monthlyPrice > 0) : PLANS;
 
 export const planById = (id: PlanId) => PLANS.find((plan) => plan.id === id)!;
 

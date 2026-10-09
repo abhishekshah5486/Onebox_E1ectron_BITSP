@@ -1,20 +1,24 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router';
 import { useOptionalFlash } from '../settings/flash';
 import { Icon, type IconName } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { useSnackbar } from '../ui/Snackbar';
 import { useBilling } from './billing';
 import {
   ANNUAL_SAVING,
   formatCredits,
   formatRupees,
-  PLANS,
+  plansFor,
   type BillingInterval,
   type Plan,
 } from './plans';
+import { GMAIL_FEATURE_ICON } from './featureIcons';
 import styles from './ShowcasePlans.module.css';
 
 const BADGE: Partial<Record<Plan['id'], IconName>> = { STANDARD: 'bolt', PRO: 'crown' };
+// The plan most people should pick gets the filled button.
+const RECOMMENDED: Plan['id'] = 'STANDARD';
 
 function PlanCard({
   plan,
@@ -31,6 +35,7 @@ function PlanCard({
   const price = interval === 'annual' ? plan.annualMonthlyPrice : plan.monthlyPrice;
   const yearlySaving = (plan.monthlyPrice - plan.annualMonthlyPrice) * 12;
   const badge = BADGE[plan.id];
+  const button = current ? styles.outlined : plan.id === RECOMMENDED ? styles.filled : styles.tonal;
 
   return (
     <article className={`${styles.plan} ${styles[plan.id.toLowerCase()]}`}>
@@ -58,31 +63,33 @@ function PlanCard({
         </p>
 
         <div className={styles.credits}>
-          <Icon name="credit" size={18} />
-          {plan.bonusCredits > 0 && (
-            <span className={styles.bonus}>{formatCredits(plan.bonusCredits)} bonus +</span>
-          )}
+          <Icon name="credit" size={20} />
           <span>
-            {formatCredits(plan.credits)} credits {free ? 'to start' : '/mo'}
+            {formatCredits(plan.credits)} credits {free ? 'to start' : 'every month'}
           </span>
         </div>
 
-        <button type="button" className={styles.choose} disabled={current} onClick={onChoose}>
-          {current ? 'Your current plan' : free ? 'Switch to Free' : `Upgrade to ${plan.name}`}
+        <button
+          type="button"
+          className={`${styles.choose} ${button}`}
+          disabled={current}
+          onClick={onChoose}
+        >
+          {current ? 'Current plan' : free ? 'Switch to Free' : `Upgrade to ${plan.name}`}
         </button>
       </div>
 
       <ul className={styles.features}>
         {plan.bonusCredits > 0 && (
           <li className={styles.bonusLine}>
-            <Icon name="credit" size={18} />
+            <Icon name="credit" size={20} />
             {formatCredits(plan.bonusCredits)} bonus credits in the first month
           </li>
         )}
         {plan.features.map((feature) => (
-          <li key={feature}>
-            <Icon name="check" size={18} />
-            {feature}
+          <li key={feature.text}>
+            <Icon name={GMAIL_FEATURE_ICON[feature.kind]} size={20} />
+            {feature.text}
           </li>
         ))}
       </ul>
@@ -90,8 +97,8 @@ function PlanCard({
   );
 }
 
-// The first plans design, in the style of app-builder pricing pages: bold cards with coloured
-// tops, credits up front and the features below.
+// The first plans design (bold cards with coloured tops, credits up front, features below),
+// with Gmail's type, Material buttons and segmented control. Used by the v1 interface.
 export function ShowcasePlans() {
   const navigate = useNavigate();
   const billing = useBilling();
@@ -108,29 +115,27 @@ export function ShowcasePlans() {
 
   return (
     <div className={styles.page}>
-      <button
-        type="button"
+      <IconButton
         className={styles.close}
-        aria-label="Close plans"
-        data-tooltip="Close"
+        icon="close"
+        label="Close plans"
         onClick={() => void navigate(-1)}
-      >
-        <Icon name="close" size={22} />
-      </button>
+      />
 
       <header className={styles.header}>
         <h1>Choose your plan</h1>
         <p>Pick the plan that suits you. Upgrade or downgrade at any time.</p>
-        <div className={styles.toggle} role="radiogroup" aria-label="Billing period">
+        <div className={styles.segmented} role="radiogroup" aria-label="Billing period">
           {(['monthly', 'annual'] as const).map((value) => (
             <button
               key={value}
               type="button"
               role="radio"
               aria-checked={interval === value}
-              className={interval === value ? styles.toggleOn : undefined}
+              className={interval === value ? styles.segmentOn : undefined}
               onClick={() => setBillingInterval(value)}
             >
+              {interval === value && <Icon name="check" size={18} />}
               {value === 'monthly' ? 'Monthly' : 'Annually'}
               {value === 'annual' && <span className={styles.saveTag}>Save {ANNUAL_SAVING}</span>}
             </button>
@@ -138,8 +143,11 @@ export function ShowcasePlans() {
         </div>
       </header>
 
-      <div className={styles.grid}>
-        {PLANS.map((plan) => (
+      <div
+        className={styles.grid}
+        style={{ '--plan-count': plansFor(interval).length } as CSSProperties}
+      >
+        {plansFor(interval).map((plan) => (
           <PlanCard
             key={plan.id}
             plan={plan}
