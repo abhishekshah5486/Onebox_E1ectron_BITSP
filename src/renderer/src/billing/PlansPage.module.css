@@ -383,9 +383,8 @@
   color: var(--ob-text);
 }
 
-/* Short pills on the coloured band: the current plan and the recommended one share a shape. */
-.consoleStatus,
-.recommendedPill {
+/* Short pills on the coloured band: Current plan and Recommended look the same. */
+.consoleStatus {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -402,17 +401,11 @@
   background: rgb(0 0 0 / 35%);
 }
 
-/* Hollow: an outline and text in green, no fill. */
-.recommendedPill {
-  border: 1px solid #037f0c;
-  color: #037f0c;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.standard .recommendedPill {
-  border-color: #6fd08c;
-  color: #6fd08c;
+/* An icon and text, spaced like Cloudscape's status indicator. */
+.pillContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .consoleFeatures {

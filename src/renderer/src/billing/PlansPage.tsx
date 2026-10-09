@@ -240,9 +240,14 @@ function ConsolePlans() {
                             <StatusIndicator type="success">Current plan</StatusIndicator>
                           </span>
                         ) : plan.id === RECOMMENDED ? (
-                          <span className={styles.recommendedPill}>
-                            <CloudscapeIcon name="star-filled" size="small" />
-                            Recommended
+                          // The same pill as Current plan, with a star in the same green.
+                          <span className={styles.consoleStatus}>
+                            <Box variant="span" color="text-status-success">
+                              <span className={styles.pillContent}>
+                                <CloudscapeIcon name="star-filled" variant="success" />
+                                Recommended
+                              </span>
+                            </Box>
                           </span>
                         ) : null}
                       </div>
