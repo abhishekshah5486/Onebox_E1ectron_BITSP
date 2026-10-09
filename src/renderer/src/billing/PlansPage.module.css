@@ -1,0 +1,447 @@
+/* v1: a plan picker in the style of Google's (centred cards, big green price, pill buttons),
+   keeping each plan's own colours. */
+.page {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 40px 24px 48px;
+  color: var(--ob-text);
+}
+
+.close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 36px;
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 400;
+}
+
+.header p {
+  margin: 0;
+  color: var(--ob-text-muted);
+  font-size: 16px;
+}
+
+/* Material segmented buttons. */
+.segmented {
+  display: inline-flex;
+  margin-top: 16px;
+  border: 1px solid var(--ob-outline);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  background: transparent;
+  color: var(--ob-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--ob-outline);
+}
+
+.saveTag {
+  color: #137333;
+  font-weight: 600;
+}
+
+:root[data-theme='dark'] .saveTag {
+  color: #81c995;
+}
+
+.segmented .segmentOn {
+  background: #c2e7ff;
+  color: #001d35;
+}
+
+:root[data-theme='dark'] .segmented .segmentOn {
+  background: #004a77;
+  color: #c2e7ff;
+}
+
+.grid {
+  display: grid;
+  /* Fixed-width cards, centred, so two plans (yearly) are not stretched across the page. */
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 360px));
+  justify-content: center;
+  align-items: stretch;
+  gap: 24px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ob-border);
+  border-radius: 24px;
+  background: var(--ob-surface-raised);
+  overflow: hidden;
+}
+
+/* The top half carries the plan's colour; the features sit on the plain card below. */
+.cardHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 36px 32px;
+  text-align: center;
+}
+
+.free {
+  background: linear-gradient(160deg, #e8f1fd 0%, #cfe2fb 55%, #a9cdf6 100%);
+  color: #10233f;
+}
+
+.standard {
+  background: #202124;
+  color: #e8eaed;
+}
+
+.pro {
+  background:
+    radial-gradient(circle at 85% 12%, rgb(255 255 255 / 55%), transparent 40%),
+    linear-gradient(135deg, #fde7c8 0%, #f8c9d9 50%, #d7e3fb 100%);
+  color: #2a1530;
+}
+
+/* The recommended plan gets a four-colour frame. */
+.recommended {
+  border: 3px solid transparent;
+  background:
+    linear-gradient(var(--ob-surface-raised), var(--ob-surface-raised)) padding-box,
+    conic-gradient(from 225deg, #4285f4, #34a853, #fbbc04, #ea4335, #4285f4) border-box;
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.tag {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 7%);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.standard .tag {
+  background: rgb(255 255 255 / 12%);
+}
+
+.tagline {
+  margin: 8px 0 0;
+  opacity: 0.75;
+  font-size: 14px;
+}
+
+.save,
+.saveSpace {
+  height: 26px;
+  margin-top: 16px;
+}
+
+.save {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: #c4eed0;
+  color: #0d652d;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.price {
+  margin: 8px 0 0;
+  color: #137333;
+  font-size: 56px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.price span {
+  font-size: 20px;
+}
+
+.standard .price {
+  color: #81c995;
+}
+
+.billed {
+  margin: 6px 0 0;
+  opacity: 0.8;
+  font-size: 15px;
+}
+
+.cta {
+  width: 100%;
+  height: 48px;
+  margin-top: 28px;
+  border: none;
+  border-radius: 24px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ctaPrimary {
+  background: #0b57d0;
+  color: #ffffff;
+}
+
+.ctaPrimary:hover {
+  background: #0842a0;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+}
+
+.ctaTonal {
+  background: #c2e7ff;
+  color: #001d35;
+}
+
+.ctaTonal:hover {
+  background: #b3dcf7;
+}
+
+.ctaCurrent {
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: default;
+}
+
+.cta:focus-visible,
+.segmented button:focus-visible {
+  outline: 2px solid var(--ob-accent);
+  outline-offset: 2px;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 28px 36px 32px;
+  list-style: none;
+  color: var(--ob-text);
+  font-size: 16px;
+}
+
+.features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.features li svg {
+  flex: none;
+}
+
+.bonus {
+  color: #b06000;
+  font-weight: 500;
+}
+
+:root[data-theme='dark'] .bonus {
+  color: #fdd663;
+}
+
+.note {
+  max-width: 760px;
+  margin: 32px auto 0;
+  color: var(--ob-text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* v2: console cards; a short band in the plan's colour holds its name and price. */
+.consoleCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.consoleHead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 24px;
+  /* Follows the container's rounded top corners. */
+  border-radius: var(--border-radius-container-33hhdh, 16px)
+    var(--border-radius-container-33hhdh, 16px) 0 0;
+}
+
+/* Muted text on each band, set outright so light mode keeps its contrast. */
+.free.consoleHead {
+  --band-muted: #33465f;
+}
+
+.standard.consoleHead {
+  --band-muted: #bdc1c6;
+}
+
+.pro.consoleHead {
+  --band-muted: #5c3b52;
+}
+
+.consoleTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.consoleTitle h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.consoleTagline {
+  margin: 0;
+  color: var(--band-muted);
+  font-size: 14px;
+}
+
+.consolePrice {
+  margin: 10px 0 0;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+}
+
+.consolePrice span {
+  margin-left: 4px;
+  color: var(--band-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.consoleBody {
+  flex: 1;
+  padding: 20px 24px 24px;
+}
+
+/* The credits for the period, with a white coin (dark text in light mode). */
+.consoleCredits {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--ob-border);
+  border-radius: 12px;
+  color: var(--ob-text);
+  font-size: 14px;
+}
+
+.consoleCredits svg {
+  flex: none;
+  color: var(--ob-text);
+}
+
+/* Short pills on the coloured band: Current plan and Recommended look the same. */
+.consoleStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.consoleStatus {
+  background: rgb(255 255 255 / 80%);
+}
+
+.standard .consoleStatus {
+  background: rgb(0 0 0 / 35%);
+}
+
+/* Soft white text with a gold sparkle, the gold of the bonus credits. */
+.standard .recommended {
+  gap: 6px;
+  background: rgb(255 255 255 / 12%);
+  color: #e8eaed;
+  font-size: 14px;
+}
+
+.recommended svg {
+  flex: none;
+  color: #fdd663;
+}
+
+.consoleFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 4px 0 0;
+  list-style: none;
+  color: var(--ob-text);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.consoleFeatures li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* The bonus line and its coin in gold. */
+.consoleFeatures li.consoleBonus,
+.consoleFeatures li.consoleBonus svg {
+  color: #a35c00;
+}
+
+:root[data-theme='dark'] .consoleFeatures li.consoleBonus,
+:root[data-theme='dark'] .consoleFeatures li.consoleBonus svg {
+  color: #fdd663;
+}
+
+/* Two plans (yearly) keep the width of a column in the three-plan layout, centred. */
+.consoleNarrow {
+  max-width: 66.67%;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .consoleNarrow {
+    max-width: none;
+  }
+}

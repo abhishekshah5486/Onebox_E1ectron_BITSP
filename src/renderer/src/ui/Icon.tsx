@@ -3,6 +3,16 @@ const PATHS = {
   menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z',
   check: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
   download: 'M5 20h14v-2H5v2zm14-11h-4V3H9v6H5l7 7 7-7z',
+  // Our own shapes for plans and credits.
+  bolt: 'M13 2L4 14h6l-1 8 9-12h-6l1-8z',
+  crown: 'M3 18h18v2H3v-2zm0-11l4.5 4L12 4l4.5 7L21 7v9H3V7z',
+  // A coin with a four-point star cut out (drawn with the even-odd rule).
+  cloudUpload:
+    'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z',
+  headset:
+    'M12 3a8 8 0 00-8 8v6a2 2 0 002 2h2v-7H6v-1a6 6 0 0112 0v1h-2v7h2a2 2 0 002-2v-6a8 8 0 00-8-8z',
+  credit:
+    'M12 2a10 10 0 100 20 10 10 0 000-20zM12 5.5c.5 3.3 3.2 6 6.5 6.5-3.3.5-6 3.2-6.5 6.5-.5-3.3-3.2-6-6.5-6.5 3.3-.5 6-3.2 6.5-6.5z',
   attachment:
     'M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z',
   info: 'M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z',
@@ -94,6 +104,9 @@ const STROKES = {
   ],
 } as const;
 
+// Icons with holes, which need the even-odd fill rule.
+const EVEN_ODD = new Set<string>(['credit']);
+
 export type IconName = keyof typeof PATHS | keyof typeof STROKES;
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
@@ -117,8 +130,18 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     );
   }
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d={PATHS[name as keyof typeof PATHS]} />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      {...(EVEN_ODD.has(name) && { 'data-ob-icon': 'solid' })}
+    >
+      <path
+        d={PATHS[name as keyof typeof PATHS]}
+        {...(EVEN_ODD.has(name) && { fillRule: 'evenodd' })}
+      />
     </svg>
   );
 }

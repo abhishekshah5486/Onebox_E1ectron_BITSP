@@ -110,3 +110,13 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Read-only tables (e.g. a plan comparison): rows don't light up on hover, so nothing looks
+   clickable. */
+.static tbody tr:hover > td {
+  background: var(--table-row-bg) !important;
+}
+
+:root[data-ui='v1'] .static tbody tr:hover {
+  box-shadow: none;
+}
