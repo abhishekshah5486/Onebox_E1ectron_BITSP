@@ -31,7 +31,10 @@ function setup(accounts: StorageAccount[], overrides: Partial<ApiClient> = {}) {
   const api = fakeApi({
     restoreSession: vi.fn(async () => testUser),
     get: routedGet({
-      '/settings/storage': () => ({ providers: ['GOOGLE_DRIVE', 'ONEDRIVE'], accounts }),
+      '/settings/storage': () => ({
+        providers: ['GOOGLE_DRIVE', 'ONEDRIVE', 'DROPBOX'],
+        accounts,
+      }),
     }),
     ...overrides,
   });
@@ -75,6 +78,17 @@ describe('StorageSection', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: /OneDrive/ }));
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/settings/storage/connect', { provider: 'ONEDRIVE' }),
+    );
+  });
+
+  it('connects Dropbox from the Connect storage menu', async () => {
+    vi.spyOn(window, 'open').mockReturnValue(null);
+    const post = vi.fn(async () => ({ url: 'https://www.dropbox.com/oauth2/authorize?x=1' }));
+    setup([], { post: post as ApiClient['post'] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Connect storage' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Dropbox/ }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/settings/storage/connect', { provider: 'DROPBOX' }),
     );
   });
 

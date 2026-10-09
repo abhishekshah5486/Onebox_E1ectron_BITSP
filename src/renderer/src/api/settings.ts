@@ -60,9 +60,9 @@ export interface IntegrationTestResult {
   integration: Integration;
 }
 
-export type StorageProviderId = 'GOOGLE_DRIVE' | 'ONEDRIVE';
+export type StorageProviderId = 'GOOGLE_DRIVE' | 'ONEDRIVE' | 'DROPBOX';
 
-// A connected cloud storage account (Google Drive or OneDrive; Dropbox later).
+// A connected cloud storage account: Google Drive, OneDrive or Dropbox.
 export interface StorageAccount {
   id: string;
   provider: StorageProviderId;
