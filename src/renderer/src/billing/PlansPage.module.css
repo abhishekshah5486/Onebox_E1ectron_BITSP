@@ -304,6 +304,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 24px;
+  /* Follows the container's rounded top corners. */
+  border-radius: var(--border-radius-container-33hhdh, 16px)
+    var(--border-radius-container-33hhdh, 16px) 0 0;
 }
 
 .consoleTitle {
