@@ -17,6 +17,7 @@ import {
 import type { DriveAccount } from '../api/settings';
 import { describeError } from '../auth/errors';
 import { drivePathLabel } from '../mail/attachments/drivePath';
+import tableStyles from '../ui/DataTable.module.css';
 import { useFlash } from './flash';
 
 const WAIT_MS = 3 * 60_000;
@@ -90,14 +91,15 @@ export function GoogleDriveCard() {
   const connect = useConnectGoogleDrive();
   const disconnect = useDisconnectGoogleDrive();
   const flash = useFlash();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editing, setEditing] = useState<DriveAccount | null>(null);
   const [confirm, setConfirm] = useState(false);
   const announced = useRef<number | null>(null);
 
   const accounts = status.data?.accounts ?? [];
   const configured = status.data?.configured ?? false;
-  const current = accounts.find((account) => account.id === selectedId) ?? null;
+  const current = accounts.filter((account) => selectedIds.includes(account.id));
+  const only = current.length === 1 ? current[0]! : null;
   const fail = (error: unknown) => flash({ type: 'error', content: describeError(error) });
 
   // Stops waiting once the sign-in shows up in the list, or after a few minutes.
@@ -127,20 +129,22 @@ export function GoogleDriveCard() {
     });
 
   return (
-    <>
+    <div className={tableStyles.table}>
       <Table
         variant="container"
         loading={status.isLoading}
         loadingText="Loading Google accounts"
-        selectionType="single"
-        selectedItems={current ? [current] : []}
-        onSelectionChange={({ detail }) => setSelectedId(detail.selectedItems[0]?.id ?? null)}
+        selectionType="multi"
+        selectedItems={current}
+        onSelectionChange={({ detail }) =>
+          setSelectedIds(detail.selectedItems.map((item) => item.id))
+        }
         trackBy="id"
         items={accounts}
         ariaLabels={{
           selectionGroupLabel: 'Google Drive accounts',
           itemSelectionLabel: (_, item) => item.email,
-          allItemsSelectionLabel: () => 'all',
+          allItemsSelectionLabel: () => 'Select all Google accounts',
         }}
         header={
           <Header
@@ -149,10 +153,16 @@ export function GoogleDriveCard() {
             description="Save attachments to Drive and attach Drive files to your mail. OneBox only sees files it creates or you pick."
             actions={
               <SpaceBetween direction="horizontal" size="xs">
-                <Button disabled={!current} onClick={() => setEditing(current)}>
+                <Button
+                  iconName="refresh"
+                  ariaLabel="Reload Google accounts"
+                  loading={status.isFetching && !status.isLoading}
+                  onClick={() => void status.refetch()}
+                />
+                <Button disabled={!only} onClick={() => setEditing(only)}>
                   Edit folder
                 </Button>
-                <Button disabled={!current} onClick={() => setConfirm(true)}>
+                <Button disabled={current.length === 0} onClick={() => setConfirm(true)}>
                   Disconnect
                 </Button>
                 <Button
@@ -207,9 +217,9 @@ export function GoogleDriveCard() {
       {editing && <FolderModal account={editing} onDismiss={() => setEditing(null)} />}
 
       <Modal
-        visible={confirm && current !== null}
+        visible={confirm && current.length > 0}
         onDismiss={() => setConfirm(false)}
-        header="Disconnect Google account"
+        header={current.length > 1 ? 'Disconnect Google accounts' : 'Disconnect Google account'}
         footer={
           <Box float="right">
             <SpaceBetween direction="horizontal" size="xs">
@@ -219,17 +229,17 @@ export function GoogleDriveCard() {
               <Button
                 variant="primary"
                 loading={disconnect.isPending}
-                onClick={() =>
-                  current &&
-                  disconnect.mutate(current.id, {
-                    onSuccess: () => {
-                      flash({ type: 'success', content: `Disconnected ${current.email}.` });
-                      setSelectedId(null);
-                      setConfirm(false);
-                    },
-                    onError: fail,
-                  })
-                }
+                onClick={() => {
+                  for (const account of current) {
+                    disconnect.mutate(account.id, {
+                      onSuccess: () =>
+                        flash({ type: 'success', content: `Disconnected ${account.email}.` }),
+                      onError: fail,
+                    });
+                  }
+                  setSelectedIds([]);
+                  setConfirm(false);
+                }}
               >
                 Disconnect
               </Button>
@@ -237,8 +247,17 @@ export function GoogleDriveCard() {
           </Box>
         }
       >
-        Disconnect <b>{current?.email}</b>? Files already saved stay in that Drive.
+        {only ? (
+          <>
+            Disconnect <b>{only.email}</b>? Files already saved stay in that Drive.
+          </>
+        ) : (
+          <>
+            Disconnect <b>{current.length} Google accounts</b>? Files already saved stay in their
+            Drives.
+          </>
+        )}
       </Modal>
-    </>
+    </div>
   );
 }

@@ -63,7 +63,7 @@ describe('GoogleDriveCard', () => {
     expect(await table.findByText('My Drive / OneBox')).toBeInTheDocument();
     expect(table.getByText('My Drive')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', { name: 'work@gmail.com' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'work@gmail.com' }));
     await userEvent.click(screen.getByRole('button', { name: 'Edit folder' }));
     const dialog = within(await screen.findByRole('dialog', { name: 'Default folder' }));
     await userEvent.type(dialog.getByRole('textbox'), 'Work/Receipts');
@@ -78,7 +78,7 @@ describe('GoogleDriveCard', () => {
   it('asks before disconnecting an account', async () => {
     const remove = vi.fn(async () => undefined);
     setup([account()], { delete: remove as ApiClient['delete'] });
-    await userEvent.click(await screen.findByRole('radio', { name: 'me@gmail.com' }));
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'me@gmail.com' }));
     await userEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
     const dialog = await screen.findByRole('dialog', { name: 'Disconnect Google account' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
