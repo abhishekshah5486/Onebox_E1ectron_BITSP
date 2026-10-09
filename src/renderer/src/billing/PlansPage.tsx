@@ -1,7 +1,18 @@
+import Badge from '@cloudscape-design/components/badge';
+import Box from '@cloudscape-design/components/box';
+import Button from '@cloudscape-design/components/button';
+import ColumnLayout from '@cloudscape-design/components/column-layout';
+import Container from '@cloudscape-design/components/container';
+import ContentLayout from '@cloudscape-design/components/content-layout';
+import Header from '@cloudscape-design/components/header';
+import SegmentedControl from '@cloudscape-design/components/segmented-control';
+import SpaceBetween from '@cloudscape-design/components/space-between';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useOptionalFlash } from '../settings/flash';
+import { useUiVersion } from '../theme/UiVersionProvider';
 import { Icon, type IconName } from '../ui/Icon';
+import { IconButton } from '../ui/IconButton';
 import { useSnackbar } from '../ui/Snackbar';
 import { useBilling } from './billing';
 import {
@@ -15,146 +26,263 @@ import {
 import styles from './PlansPage.module.css';
 
 const BADGE: Partial<Record<Plan['id'], IconName>> = { STANDARD: 'bolt', PRO: 'crown' };
+// The plan most people should pick, shown with emphasis.
+const RECOMMENDED: Plan['id'] = 'STANDARD';
+const NOTE =
+  "Credits pay for AI features such as sorting, summaries and drafts. Each action uses credits based on the AI model's cost; mail, labels and cloud storage are always free.";
 
-function PlanCard({
-  plan,
-  interval,
-  current,
-  onChoose,
-}: {
-  plan: Plan;
-  interval: BillingInterval;
-  current: boolean;
-  onChoose: () => void;
-}) {
-  const free = plan.monthlyPrice === 0;
-  const price = interval === 'annual' ? plan.annualMonthlyPrice : plan.monthlyPrice;
-  const yearlySaving = (plan.monthlyPrice - plan.annualMonthlyPrice) * 12;
-  const badge = BADGE[plan.id];
+// Each plan's colour, also the strip on top of its card in the console.
+const PLAN_STRIP: Record<Plan['id'], string> = {
+  FREE: 'linear-gradient(160deg, #e8f1fd, #a9cdf6)',
+  STANDARD: '#202124',
+  PRO: 'linear-gradient(135deg, #fde7c8, #f8c9d9, #d7e3fb)',
+};
 
-  return (
-    <article className={`${styles.plan} ${styles[plan.id.toLowerCase()]}`}>
-      <div className={styles.head}>
-        <h2 className={styles.name}>
-          {plan.name}
-          {badge && <Icon name={badge} size={20} />}
-          {current && <span className={styles.current}>Current plan</span>}
-        </h2>
-        <p className={styles.tagline}>{plan.tagline}</p>
+const featureIcon = (feature: string): IconName =>
+  /AI|credit|Suggestion|Summar|draft|model/i.test(feature) ? 'sparkle' : 'check';
 
-        <div className={styles.priceRow}>
-          <span className={styles.price}>{free ? '₹0' : formatRupees(price)}</span>
-          <span className={styles.per}>{free ? 'forever' : '/mo'}</span>
-          {!free && interval === 'annual' && (
-            <span className={styles.save}>Save {formatRupees(yearlySaving)}</span>
-          )}
-        </div>
-        <p className={styles.billed}>
-          {free
-            ? 'No card needed'
-            : interval === 'annual'
-              ? `${formatRupees(plan.annualMonthlyPrice * 12)} billed yearly`
-              : 'Billed monthly'}
-        </p>
-
-        <div className={styles.credits}>
-          <Icon name="credit" size={18} />
-          {plan.bonusCredits > 0 && (
-            <span className={styles.bonus}>{formatCredits(plan.bonusCredits)} bonus +</span>
-          )}
-          <span>
-            {formatCredits(plan.credits)} credits {free ? 'to start' : '/mo'}
-          </span>
-        </div>
-
-        <button type="button" className={styles.choose} disabled={current} onClick={onChoose}>
-          {current ? 'Your current plan' : free ? 'Switch to Free' : `Upgrade to ${plan.name}`}
-        </button>
-      </div>
-
-      <ul className={styles.features}>
-        {plan.bonusCredits > 0 && (
-          <li className={styles.bonusLine}>
-            <Icon name="credit" size={18} />
-            {formatCredits(plan.bonusCredits)} bonus credits in the first month
-          </li>
-        )}
-        {plan.features.map((feature) => (
-          <li key={feature}>
-            <Icon name="check" size={18} />
-            {feature}
-          </li>
-        ))}
-      </ul>
-    </article>
-  );
-}
-
-// Plans, like a pricing page: monthly or yearly prices, credits and what each plan includes.
-export function PlansPage() {
-  const navigate = useNavigate();
+function usePlansState() {
   const billing = useBilling();
   const flash = useOptionalFlash();
   const snackbar = useSnackbar();
   const [interval, setBillingInterval] = useState<BillingInterval>('monthly');
-  const currentPlan = billing.data?.subscription.plan;
-
   const choose = (plan: Plan) => {
     const text = `Payments are coming soon. You'll be able to move to ${plan.name} here.`;
     if (flash) flash({ type: 'info', content: text });
     else snackbar({ text });
   };
+  return { interval, setBillingInterval, current: billing.data?.subscription.plan, choose };
+}
+
+const priceOf = (plan: Plan, interval: BillingInterval) =>
+  interval === 'annual' ? plan.annualMonthlyPrice : plan.monthlyPrice;
+
+const billedLine = (plan: Plan, interval: BillingInterval) =>
+  plan.monthlyPrice === 0
+    ? 'Free forever, no card needed'
+    : interval === 'annual'
+      ? `${formatRupees(plan.annualMonthlyPrice * 12)} billed yearly`
+      : 'Billed monthly, cancel anytime';
+
+const yearlySaving = (plan: Plan) => (plan.monthlyPrice - plan.annualMonthlyPrice) * 12;
+
+// v1: like Google's plan picker, centred cards with a large price and pill buttons.
+function GmailPlans() {
+  const navigate = useNavigate();
+  const { interval, setBillingInterval, current, choose } = usePlansState();
 
   return (
     <div className={styles.page}>
-      <button
-        type="button"
+      <IconButton
         className={styles.close}
-        aria-label="Close plans"
-        data-tooltip="Close"
+        icon="close"
+        label="Close plans"
         onClick={() => void navigate(-1)}
-      >
-        <Icon name="close" size={22} />
-      </button>
-
+      />
       <header className={styles.header}>
         <h1>Choose your plan</h1>
         <p>Pick the plan that suits you. Upgrade or downgrade at any time.</p>
-        <div className={styles.toggle} role="radiogroup" aria-label="Billing period">
+        <div className={styles.segmented} role="radiogroup" aria-label="Billing period">
           {(['monthly', 'annual'] as const).map((value) => (
             <button
               key={value}
               type="button"
               role="radio"
               aria-checked={interval === value}
-              className={interval === value ? styles.toggleOn : undefined}
+              className={interval === value ? styles.segmentOn : undefined}
               onClick={() => setBillingInterval(value)}
             >
-              {value === 'monthly' ? 'Monthly' : 'Annually'}
-              {value === 'annual' && <span className={styles.saveTag}>Save {ANNUAL_SAVING}</span>}
+              {interval === value && <Icon name="check" size={18} />}
+              {value === 'monthly' ? 'Monthly' : `Annually · save ${ANNUAL_SAVING}`}
             </button>
           ))}
         </div>
       </header>
 
       <div className={styles.grid}>
-        {PLANS.map((plan) => (
-          <PlanCard
-            key={plan.id}
-            plan={plan}
-            interval={interval}
-            current={plan.id === currentPlan}
-            onChoose={() => choose(plan)}
-          />
-        ))}
-      </div>
+        {PLANS.map((plan) => {
+          const isCurrent = plan.id === current;
+          const recommended = plan.id === RECOMMENDED;
+          const badge = BADGE[plan.id];
+          return (
+            <article
+              key={plan.id}
+              className={`${styles.card} ${styles[plan.id.toLowerCase()]} ${recommended ? styles.recommended : ''}`}
+            >
+              <h2 className={styles.name}>
+                {plan.name}
+                {badge && <Icon name={badge} size={22} />}
+                <span className={styles.tag}>
+                  {formatCredits(plan.credits)} credits{plan.monthlyPrice ? '/mo' : ''}
+                </span>
+              </h2>
+              <p className={styles.tagline}>{plan.tagline}</p>
+              {interval === 'annual' && plan.monthlyPrice > 0 ? (
+                <span className={styles.save}>Save {formatRupees(yearlySaving(plan))}</span>
+              ) : (
+                <span className={styles.saveSpace} />
+              )}
+              <p className={styles.price}>
+                {formatRupees(priceOf(plan, interval))}
+                <span>/mo</span>
+              </p>
+              <p className={styles.billed}>{billedLine(plan, interval)}</p>
 
-      <p className={styles.note}>
-        Credits pay for AI features such as sorting, summaries and drafts. Each action uses credits
-        based on the AI model's cost; mail, labels and cloud storage are always free.
-      </p>
+              <button
+                type="button"
+                className={`${styles.cta} ${isCurrent ? styles.ctaCurrent : recommended ? styles.ctaPrimary : styles.ctaTonal}`}
+                disabled={isCurrent}
+                onClick={() => choose(plan)}
+              >
+                {isCurrent ? 'Current plan' : plan.monthlyPrice ? 'Subscribe' : 'Switch to Free'}
+              </button>
+
+              <ul className={styles.features}>
+                {plan.bonusCredits > 0 && (
+                  <li className={styles.bonus}>
+                    <Icon name="credit" size={22} />
+                    {formatCredits(plan.bonusCredits)} bonus credits in the first month
+                  </li>
+                )}
+                {plan.features.map((feature) => (
+                  <li key={feature}>
+                    <Icon name={featureIcon(feature)} size={22} />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          );
+        })}
+      </div>
+      <p className={styles.note}>{NOTE}</p>
     </div>
   );
+}
+
+// v2: the AWS console way, a page header with the period switch and one container per plan.
+function ConsolePlans() {
+  const { interval, setBillingInterval, current, choose } = usePlansState();
+
+  return (
+    <ContentLayout
+      header={
+        <Header
+          variant="h1"
+          description="Pick the plan that suits you. Upgrade or downgrade at any time."
+          actions={
+            <SegmentedControl
+              label="Billing period"
+              selectedId={interval}
+              onChange={({ detail }) => setBillingInterval(detail.selectedId as BillingInterval)}
+              options={[
+                { id: 'monthly', text: 'Monthly' },
+                { id: 'annual', text: `Annually (save ${ANNUAL_SAVING})` },
+              ]}
+            />
+          }
+        >
+          Plans
+        </Header>
+      }
+    >
+      <SpaceBetween size="l">
+        <ColumnLayout columns={3}>
+          {PLANS.map((plan) => {
+            const isCurrent = plan.id === current;
+            const badge = BADGE[plan.id];
+            return (
+              <Container
+                key={plan.id}
+                fitHeight
+                media={{
+                  content: (
+                    <div
+                      className={styles.strip}
+                      style={{ background: PLAN_STRIP[plan.id] }}
+                      aria-hidden="true"
+                    />
+                  ),
+                  position: 'top',
+                  height: '8px',
+                }}
+                header={
+                  <Header
+                    variant="h2"
+                    description={plan.tagline}
+                    actions={
+                      isCurrent ? (
+                        <Badge color="blue">Current plan</Badge>
+                      ) : plan.id === RECOMMENDED ? (
+                        <Badge color="green">Recommended</Badge>
+                      ) : undefined
+                    }
+                  >
+                    <span className={styles.consoleName}>
+                      {plan.name}
+                      {badge && <Icon name={badge} size={18} />}
+                    </span>
+                  </Header>
+                }
+              >
+                <SpaceBetween size="m">
+                  <div>
+                    <Box variant="awsui-value-large">
+                      {formatRupees(priceOf(plan, interval))}
+                      <Box variant="span" color="text-body-secondary" fontSize="body-m">
+                        {' '}
+                        /month
+                      </Box>
+                    </Box>
+                    <Box color="text-body-secondary" fontSize="body-s">
+                      {billedLine(plan, interval)}
+                      {interval === 'annual' && plan.monthlyPrice > 0 && (
+                        <> · saves {formatRupees(yearlySaving(plan))} a year</>
+                      )}
+                    </Box>
+                  </div>
+                  <div className={styles.consoleCredits}>
+                    <Icon name="credit" size={16} />
+                    <span>
+                      <b>{formatCredits(plan.credits)}</b> credits{' '}
+                      {plan.monthlyPrice ? 'per month' : 'to start'}
+                      {plan.bonusCredits > 0 && (
+                        <> + {formatCredits(plan.bonusCredits)} bonus in the first month</>
+                      )}
+                    </span>
+                  </div>
+                  <Button
+                    fullWidth
+                    variant={!isCurrent && plan.id === RECOMMENDED ? 'primary' : 'normal'}
+                    disabled={isCurrent}
+                    onClick={() => choose(plan)}
+                  >
+                    {isCurrent ? 'Current plan' : `Choose ${plan.name}`}
+                  </Button>
+                  <ul className={styles.consoleFeatures}>
+                    {plan.features.map((feature) => (
+                      <li key={feature}>
+                        <Icon name="check" size={16} />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </SpaceBetween>
+              </Container>
+            );
+          })}
+        </ColumnLayout>
+        <Box color="text-body-secondary" fontSize="body-s" textAlign="center">
+          {NOTE}
+        </Box>
+      </SpaceBetween>
+    </ContentLayout>
+  );
+}
+
+export function PlansPage() {
+  const { version } = useUiVersion();
+  return version === 'v2' ? <ConsolePlans /> : <GmailPlans />;
 }
 
 export default PlansPage;
