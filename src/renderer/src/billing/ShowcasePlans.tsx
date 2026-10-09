@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router';
 import { useOptionalFlash } from '../settings/flash';
 import { Icon, type IconName } from '../ui/Icon';
@@ -143,7 +143,10 @@ export function ShowcasePlans() {
         </div>
       </header>
 
-      <div className={styles.grid}>
+      <div
+        className={styles.grid}
+        style={{ '--plan-count': plansFor(interval).length } as CSSProperties}
+      >
         {plansFor(interval).map((plan) => (
           <PlanCard
             key={plan.id}
