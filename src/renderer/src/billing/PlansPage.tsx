@@ -297,7 +297,7 @@ function ConsolePlans() {
             })}
           </ColumnLayout>
         </div>
-        <div id="compare-plans" className={tableStyles.table}>
+        <div id="compare-plans" className={`${tableStyles.table} ${tableStyles.static}`}>
           <Table
             variant="container"
             header={
@@ -308,7 +308,7 @@ function ConsolePlans() {
             trackBy="feature"
             items={COMPARISON}
             columnDefinitions={[
-              { id: 'feature', header: 'Feature', cell: (row) => row.feature, isRowHeader: true },
+              { id: 'feature', header: 'Feature', cell: (row) => row.feature },
               ...plansFor(interval).map((plan) => ({
                 id: plan.id,
                 header: plan.name,
