@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '../api/client';
-import type { StorageAccount } from '../api/settings';
+import type { StorageAccount, StorageSignInFailure } from '../api/settings';
 import { useAuth } from '../auth/AuthProvider';
 import { fakeApi, routedGet, testUser } from '../test/fake-api';
 import { renderPage } from '../test/render';
@@ -27,13 +27,18 @@ const account = (overrides: Partial<StorageAccount> = {}): StorageAccount => ({
   ...overrides,
 });
 
+// What the server reports; tests change `failures` to stand in for a refused sign-in.
+const server: { failures: StorageSignInFailure[] } = { failures: [] };
+
 function setup(accounts: StorageAccount[], overrides: Partial<ApiClient> = {}) {
+  server.failures = [];
   const api = fakeApi({
     restoreSession: vi.fn(async () => testUser),
     get: routedGet({
       '/settings/storage': () => ({
         providers: ['GOOGLE_DRIVE', 'ONEDRIVE', 'DROPBOX'],
         accounts,
+        failures: server.failures,
       }),
     }),
     ...overrides,
@@ -45,7 +50,10 @@ function setup(accounts: StorageAccount[], overrides: Partial<ApiClient> = {}) {
 describe('StorageSection', () => {
   it('connects Google Drive from the Connect storage menu', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
-    const post = vi.fn(async () => ({ url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1' }));
+    const post = vi.fn(async () => ({
+      url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1',
+      expiresAt: new Date(Date.now() + 600_000).toISOString(),
+    }));
     setup([account()], { post: post as ApiClient['post'] });
     await userEvent.click(await screen.findByRole('button', { name: 'Connect storage' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: /Google Drive/ }));
@@ -92,23 +100,57 @@ describe('StorageSection', () => {
     );
   });
 
-  it('stops waiting and says so when the sign-in window is closed early', async () => {
+  async function startOneDrive() {
     const popup = { closed: false, close: vi.fn() };
     vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
-    const post = vi.fn(async () => ({ url: 'https://login.microsoftonline.com/x' }));
+    const post = vi.fn(async () => ({
+      url: 'https://login.microsoftonline.com/x',
+      expiresAt: new Date(Date.now() + 600_000).toISOString(),
+    }));
     setup([account()], { post: post as ApiClient['post'] });
     await userEvent.click(await screen.findByRole('button', { name: 'Connect storage' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: /OneDrive/ }));
-    expect(
-      await screen.findByText('Sign in to OneDrive in the window that opened.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Waiting for OneDrive sign-in…')).toBeInTheDocument();
+    return popup;
+  }
 
+  it('says the sign-in failed when its window is closed early', async () => {
+    const popup = await startOneDrive();
     popup.closed = true;
     expect(
-      await screen.findByText(/OneDrive was not connected/, {}, { timeout: 4000 }),
+      await screen.findByText(
+        /sign-in window was closed before it finished/,
+        {},
+        { timeout: 4000 },
+      ),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Sign in to OneDrive in the window that opened.')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Connect storage' })).toBeEnabled();
+    expect(screen.getByText("Couldn't connect OneDrive.")).toBeInTheDocument();
+    expect(screen.queryByText('Waiting for OneDrive sign-in…')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('says when access was not given', async () => {
+    const popup = await startOneDrive();
+    server.failures = [
+      {
+        provider: 'ONEDRIVE',
+        reason: 'ACCESS_DENIED',
+        message: 'OneBox was not given access to OneDrive.',
+        at: new Date().toISOString(),
+      },
+    ];
+    popup.closed = true;
+    expect(
+      await screen.findByText(/OneBox needs permission to save files/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
+  });
+
+  it('confirms a cancelled sign-in and closes its window', async () => {
+    const popup = await startOneDrive();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByText('OneDrive connection cancelled.')).toBeInTheDocument();
+    expect(popup.close).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Connect again' })).toBeInTheDocument();
   });
 
   it('lists accounts with their folders and edits one', async () => {

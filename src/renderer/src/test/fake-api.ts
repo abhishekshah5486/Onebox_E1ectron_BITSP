@@ -23,7 +23,8 @@ export const defaultPreferences = {
 const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/accounts' || path === '/settings/integrations') return { items: [] };
   if (path === '/settings/preferences') return defaultPreferences;
-  if (path === '/settings/storage') return { providers: ['GOOGLE_DRIVE'], accounts: [] };
+  if (path === '/settings/storage')
+    return { providers: ['GOOGLE_DRIVE'], accounts: [], failures: [] };
   if (path.startsWith('/mail/threads?') || /^\/mail\/accounts\/[^/]+\/threads/.test(path)) {
     return { items: [], page: 1, pageSize: 50, total: 0 };
   }

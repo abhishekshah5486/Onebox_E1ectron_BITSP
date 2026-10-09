@@ -15,21 +15,20 @@ import {
   useStorage,
   useUpdateStorageAccount,
 } from '../api/queries';
-import type { StorageAccount, StorageProviderId } from '../api/settings';
+import type {
+  StorageAccount,
+  StorageProviderId,
+  StorageSignInFailure,
+  StorageStatus,
+} from '../api/settings';
 import { describeError } from '../auth/errors';
 import { ProviderLogo } from '../storage/ProviderLogo';
 import { PLANNED_PROVIDERS, STORAGE_PROVIDERS, storagePathLabel } from '../storage/providers';
 import tableStyles from '../ui/DataTable.module.css';
 import { useFlash } from './flash';
 
-const WAIT_MS = 3 * 60_000;
-
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-
-// Changes whenever an account is added or connected again.
-const signature = (accounts: StorageAccount[] | undefined) =>
-  (accounts ?? []).map((account) => `${account.id}:${account.updatedAt}`).join(',');
 
 function FolderModal({ account, onDismiss }: { account: StorageAccount; onDismiss: () => void }) {
   const update = useUpdateStorageAccount();
@@ -88,20 +87,47 @@ function FolderModal({ account, onDismiss }: { account: StorageAccount; onDismis
   );
 }
 
+// After this long the spinner gives way to a "still waiting" notice; the wait itself lasts
+// until the sign-in link expires (the server says when).
+const SLOW_AFTER_MS = 3 * 60_000;
+
 interface Waiting {
   id: number;
   provider: StorageProviderId;
+  startedAt: number;
+  expiresAt: number;
   // The accounts before the sign-in, to tell when a new or refreshed one shows up.
-  before: string;
+  before: StorageAccount[];
   // The popup in the web app; Electron opens the system browser and returns none.
   popup: Window | null;
+  slow: boolean;
 }
+
+type Outcome =
+  | { kind: 'connected'; account: StorageAccount; again: boolean }
+  | { kind: 'failed'; failure: StorageSignInFailure }
+  | { kind: 'closed' | 'expired' | 'cancelled' };
 
 let nextConnect = 0;
 
+// What changed since the sign-in started: a new account, or one connected again.
+function connectedSince(wait: Waiting, data: StorageStatus | undefined): Outcome | null {
+  for (const account of data?.accounts ?? []) {
+    if (account.provider !== wait.provider) continue;
+    const old = wait.before.find((a) => a.id === account.id);
+    if (!old || old.updatedAt !== account.updatedAt) {
+      return { kind: 'connected', account, again: Boolean(old) };
+    }
+  }
+  const failure = data?.failures.find(
+    (f) => f.provider === wait.provider && Date.parse(f.at) >= wait.startedAt,
+  );
+  return failure ? { kind: 'failed', failure } : null;
+}
+
 export function StorageSection() {
   const [waiting, setWaiting] = useState<Waiting | null>(null);
-  const status = useStorage(waiting !== null);
+  const status = useStorage(waiting ? (waiting.slow ? 15_000 : 2_000) : false);
   const connect = useConnectStorage();
   const disconnect = useDisconnectStorage();
   const flash = useFlash();
@@ -110,6 +136,7 @@ export function StorageSection() {
   const [confirm, setConfirm] = useState(false);
   const [reloading, setReloading] = useState(false);
   const finished = useRef<number | null>(null);
+  const startRef = useRef<(provider: StorageProviderId) => void>(() => {});
 
   const accounts = status.data?.accounts ?? [];
   const available = status.data?.providers ?? [];
@@ -119,71 +146,157 @@ export function StorageSection() {
 
   // Reports how a sign-in ended (once) and stops waiting.
   const finish = useCallback(
-    (wait: Waiting, outcome: 'connected' | 'closed' | 'timeout' | 'cancelled') => {
+    (wait: Waiting, outcome: Outcome) => {
       if (finished.current === wait.id) return;
       finished.current = wait.id;
       const name = STORAGE_PROVIDERS[wait.provider].name;
       const id = `storage-connect-${wait.id}`;
-      if (outcome === 'connected') {
-        flash({ id, type: 'success', content: `${name} connected.` });
-      } else if (outcome === 'closed') {
-        flash({
-          id,
-          type: 'warning',
-          content: `${name} was not connected. The sign-in window was closed before it finished.`,
-        });
-      } else if (outcome === 'timeout') {
-        flash({ id, type: 'warning', content: `Stopped waiting for the ${name} sign-in.` });
-      } else {
-        flash({ id, type: 'info', content: `Cancelled connecting ${name}.` });
+      const tryAgain = { label: 'Try again', onClick: () => startRef.current(wait.provider) };
+      switch (outcome.kind) {
+        case 'connected':
+          flash({
+            id,
+            type: 'success',
+            header: outcome.again ? `${name} reconnected.` : `${name} connected.`,
+            content: outcome.again
+              ? `${outcome.account.email} is up to date.`
+              : `${outcome.account.email} is ready.`,
+            ...(!outcome.again && {
+              action: { label: 'Set default folder', onClick: () => setEditing(outcome.account) },
+            }),
+          });
+          break;
+        case 'failed':
+          flash({
+            id,
+            type: 'error',
+            header: `Couldn't connect ${name}.`,
+            content:
+              outcome.failure.reason === 'ACCESS_DENIED'
+                ? 'OneBox needs permission to save files. Please try again and allow access.'
+                : `${outcome.failure.message} Please try again.`,
+            action: tryAgain,
+          });
+          break;
+        case 'closed':
+          flash({
+            id,
+            type: 'error',
+            header: `Couldn't connect ${name}.`,
+            content: 'The sign-in window was closed before it finished. Please try again.',
+            action: tryAgain,
+          });
+          break;
+        case 'expired':
+          flash({
+            id,
+            type: 'warning',
+            tone: 'amber',
+            header: `${name} sign-in timed out.`,
+            content: 'The sign-in link expired after 10 minutes. Please try again.',
+            action: tryAgain,
+          });
+          break;
+        case 'cancelled':
+          wait.popup?.close();
+          flash({
+            id,
+            type: 'info',
+            tone: 'burgundy',
+            content: `${name} connection cancelled.`,
+            action: { label: 'Connect again', onClick: () => startRef.current(wait.provider) },
+          });
+          break;
       }
-      if (outcome === 'cancelled') wait.popup?.close();
       setWaiting(null);
     },
     [flash],
   );
 
-  // Done as soon as the sign-in shows up in the list.
-  const now = signature(status.data?.accounts);
-  useEffect(() => {
-    if (waiting && now !== waiting.before) finish(waiting, 'connected');
-  }, [waiting, now, finish]);
-
-  // A closed popup ends the wait: one last look decides whether the sign-in went through.
+  // Done as soon as the account (or a failure) shows up.
   useEffect(() => {
     if (!waiting) return;
-    const deadline = setTimeout(() => finish(waiting, 'timeout'), WAIT_MS);
+    const outcome = connectedSince(waiting, status.data);
+    if (outcome) finish(waiting, outcome);
+  }, [waiting, status.data, finish]);
+
+  // Timers for the wait: a closed popup ends it after one last look, a slow one turns into a
+  // notice, and the link's expiry ends it for good.
+  useEffect(() => {
+    if (!waiting) return;
+    const name = STORAGE_PROVIDERS[waiting.provider].name;
+    const expire = setTimeout(
+      () => finish(waiting, { kind: 'expired' }),
+      waiting.expiresAt - Date.now(),
+    );
+    const slow = waiting.slow
+      ? undefined
+      : setTimeout(
+          () => {
+            setWaiting({ ...waiting, slow: true });
+            flash({
+              id: `storage-connect-${waiting.id}`,
+              type: 'warning',
+              header: `Still waiting for ${name} sign-in.`,
+              content: 'If you finish signing in, it will show up here automatically.',
+              action: { label: 'Cancel', onClick: () => finish(waiting, { kind: 'cancelled' }) },
+            });
+          },
+          waiting.startedAt + SLOW_AFTER_MS - Date.now(),
+        );
     const watch = setInterval(() => {
       if (!waiting.popup?.closed) return;
       clearInterval(watch);
       void status.refetch().then(({ data }) => {
-        finish(waiting, signature(data?.accounts) !== waiting.before ? 'connected' : 'closed');
+        finish(waiting, connectedSince(waiting, data) ?? { kind: 'closed' });
       });
     }, 500);
     return () => {
-      clearTimeout(deadline);
+      clearTimeout(expire);
+      clearTimeout(slow);
       clearInterval(watch);
     };
     // status.refetch is stable; the wait is what matters here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [waiting, finish]);
+  }, [waiting, finish, flash]);
 
-  const start = (provider: StorageProviderId) =>
+  const start = (provider: StorageProviderId) => {
+    const name = STORAGE_PROVIDERS[provider].name;
     connect.mutate(provider, {
-      onSuccess: ({ url }) => {
+      onSuccess: ({ url, expiresAt }) => {
         const popup = window.open(url, 'onebox-storage', 'width=520,height=680');
-        const wait = { id: nextConnect++, provider, before: now, popup };
+        const wait: Waiting = {
+          id: nextConnect++,
+          provider,
+          startedAt: Date.now(),
+          expiresAt: Date.parse(expiresAt),
+          before: accounts,
+          popup,
+          slow: false,
+        };
         setWaiting(wait);
         flash({
           id: `storage-connect-${wait.id}`,
           type: 'info',
           loading: true,
-          content: `Sign in to ${STORAGE_PROVIDERS[provider].name} in the window that opened.`,
-          action: { label: 'Cancel', onClick: () => finish(wait, 'cancelled') },
+          header: `Waiting for ${name} sign-in…`,
+          content: 'Finish signing in in the window that opened.',
+          action: { label: 'Cancel', onClick: () => finish(wait, { kind: 'cancelled' }) },
         });
       },
-      onError: fail,
+      onError: () =>
+        flash({
+          type: 'error',
+          header: `Couldn't start ${name} sign-in.`,
+          content: 'Check your connection and try again.',
+          action: { label: 'Try again', onClick: () => startRef.current(provider) },
+        }),
     });
+  };
+  // Banners outlive this render, so their buttons reach start through a ref.
+  useEffect(() => {
+    startRef.current = start;
+  });
 
   const reload = () => {
     setReloading(true);
