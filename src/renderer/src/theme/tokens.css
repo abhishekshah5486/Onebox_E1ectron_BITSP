@@ -113,3 +113,10 @@ body {
 :root[data-ui='v2'] {
   --ob-font: 'Open Sans', 'Helvetica Neue', Roboto, Arial, sans-serif;
 }
+
+/* Solid icons with cut-outs (the credit coin) stay filled inside Cloudscape, which draws the icons
+   it is given as outlines. */
+svg[data-ob-icon='solid'] path {
+  fill: currentColor !important;
+  stroke: none !important;
+}
