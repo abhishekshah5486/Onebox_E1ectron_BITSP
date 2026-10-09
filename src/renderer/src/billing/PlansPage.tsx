@@ -1,11 +1,9 @@
 import Badge from '@cloudscape-design/components/badge';
 import Box from '@cloudscape-design/components/box';
-import Button from '@cloudscape-design/components/button';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Container from '@cloudscape-design/components/container';
 import ContentLayout from '@cloudscape-design/components/content-layout';
 import Header from '@cloudscape-design/components/header';
-import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -30,13 +28,6 @@ const BADGE: Partial<Record<Plan['id'], IconName>> = { STANDARD: 'bolt', PRO: 'c
 const RECOMMENDED: Plan['id'] = 'STANDARD';
 const NOTE =
   "Credits pay for AI features such as sorting, summaries and drafts. Each action uses credits based on the AI model's cost; mail, labels and cloud storage are always free.";
-
-// Each plan's colour, also the strip on top of its card in the console.
-const PLAN_STRIP: Record<Plan['id'], string> = {
-  FREE: 'linear-gradient(160deg, #e8f1fd, #a9cdf6)',
-  STANDARD: '#202124',
-  PRO: 'linear-gradient(135deg, #fde7c8, #f8c9d9, #d7e3fb)',
-};
 
 const featureIcon = (feature: string): IconName =>
   /AI|credit|Suggestion|Summar|draft|model/i.test(feature) ? 'sparkle' : 'check';
@@ -66,6 +57,40 @@ const billedLine = (plan: Plan, interval: BillingInterval) =>
 
 const yearlySaving = (plan: Plan) => (plan.monthlyPrice - plan.annualMonthlyPrice) * 12;
 
+// Monthly or yearly prices; `look` picks the Gmail (v1) or console (v2) styling.
+function PeriodToggle({
+  interval,
+  onChange,
+  look,
+}: {
+  interval: BillingInterval;
+  onChange: (value: BillingInterval) => void;
+  look: 'gmail' | 'console';
+}) {
+  return (
+    <div
+      className={look === 'gmail' ? styles.segmented : styles.consoleToggle}
+      role="radiogroup"
+      aria-label="Billing period"
+    >
+      {(['monthly', 'annual'] as const).map((value) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={interval === value}
+          className={interval === value ? styles.segmentOn : undefined}
+          onClick={() => onChange(value)}
+        >
+          {look === 'gmail' && interval === value && <Icon name="check" size={18} />}
+          {value === 'monthly' ? 'Monthly' : 'Annually'}
+          {value === 'annual' && <span className={styles.saveTag}>Save {ANNUAL_SAVING}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // v1: like Google's plan picker, centred cards with a large price and pill buttons.
 function GmailPlans() {
   const navigate = useNavigate();
@@ -82,21 +107,7 @@ function GmailPlans() {
       <header className={styles.header}>
         <h1>Choose your plan</h1>
         <p>Pick the plan that suits you. Upgrade or downgrade at any time.</p>
-        <div className={styles.segmented} role="radiogroup" aria-label="Billing period">
-          {(['monthly', 'annual'] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={interval === value}
-              className={interval === value ? styles.segmentOn : undefined}
-              onClick={() => setBillingInterval(value)}
-            >
-              {interval === value && <Icon name="check" size={18} />}
-              {value === 'monthly' ? 'Monthly' : `Annually · save ${ANNUAL_SAVING}`}
-            </button>
-          ))}
-        </div>
+        <PeriodToggle interval={interval} onChange={setBillingInterval} look="gmail" />
       </header>
 
       <div className={styles.grid}>
@@ -107,46 +118,48 @@ function GmailPlans() {
           return (
             <article
               key={plan.id}
-              className={`${styles.card} ${styles[plan.id.toLowerCase()]} ${recommended ? styles.recommended : ''}`}
+              className={`${styles.card} ${recommended ? styles.recommended : ''}`}
             >
-              <h2 className={styles.name}>
-                {plan.name}
-                {badge && <Icon name={badge} size={22} />}
-                <span className={styles.tag}>
-                  {formatCredits(plan.credits)} credits{plan.monthlyPrice ? '/mo' : ''}
-                </span>
-              </h2>
-              <p className={styles.tagline}>{plan.tagline}</p>
-              {interval === 'annual' && plan.monthlyPrice > 0 ? (
-                <span className={styles.save}>Save {formatRupees(yearlySaving(plan))}</span>
-              ) : (
-                <span className={styles.saveSpace} />
-              )}
-              <p className={styles.price}>
-                {formatRupees(priceOf(plan, interval))}
-                <span>/mo</span>
-              </p>
-              <p className={styles.billed}>{billedLine(plan, interval)}</p>
+              <div className={`${styles.cardHead} ${styles[plan.id.toLowerCase()]}`}>
+                <h2 className={styles.name}>
+                  {plan.name}
+                  {badge && <Icon name={badge} size={22} />}
+                  <span className={styles.tag}>
+                    {formatCredits(plan.credits)} credits{plan.monthlyPrice ? '/mo' : ''}
+                  </span>
+                </h2>
+                <p className={styles.tagline}>{plan.tagline}</p>
+                {interval === 'annual' && plan.monthlyPrice > 0 ? (
+                  <span className={styles.save}>Save {formatRupees(yearlySaving(plan))}</span>
+                ) : (
+                  <span className={styles.saveSpace} />
+                )}
+                <p className={styles.price}>
+                  {formatRupees(priceOf(plan, interval))}
+                  <span>/mo</span>
+                </p>
+                <p className={styles.billed}>{billedLine(plan, interval)}</p>
 
-              <button
-                type="button"
-                className={`${styles.cta} ${isCurrent ? styles.ctaCurrent : recommended ? styles.ctaPrimary : styles.ctaTonal}`}
-                disabled={isCurrent}
-                onClick={() => choose(plan)}
-              >
-                {isCurrent ? 'Current plan' : plan.monthlyPrice ? 'Subscribe' : 'Switch to Free'}
-              </button>
+                <button
+                  type="button"
+                  className={`${styles.cta} ${isCurrent ? styles.ctaCurrent : recommended ? styles.ctaPrimary : styles.ctaTonal}`}
+                  disabled={isCurrent}
+                  onClick={() => choose(plan)}
+                >
+                  {isCurrent ? 'Current plan' : plan.monthlyPrice ? 'Subscribe' : 'Switch to Free'}
+                </button>
+              </div>
 
               <ul className={styles.features}>
                 {plan.bonusCredits > 0 && (
                   <li className={styles.bonus}>
-                    <Icon name="credit" size={22} />
+                    <Icon name="credit" size={20} />
                     {formatCredits(plan.bonusCredits)} bonus credits in the first month
                   </li>
                 )}
                 {plan.features.map((feature) => (
                   <li key={feature}>
-                    <Icon name={featureIcon(feature)} size={22} />
+                    <Icon name={featureIcon(feature)} size={20} />
                     {feature}
                   </li>
                 ))}
@@ -160,7 +173,8 @@ function GmailPlans() {
   );
 }
 
-// v2: the AWS console way, a page header with the period switch and one container per plan.
+// v2: the AWS console way: a page header with the period switch and one container per plan,
+// its top half in the plan's colour.
 function ConsolePlans() {
   const { interval, setBillingInterval, current, choose } = usePlansState();
 
@@ -171,15 +185,7 @@ function ConsolePlans() {
           variant="h1"
           description="Pick the plan that suits you. Upgrade or downgrade at any time."
           actions={
-            <SegmentedControl
-              label="Billing period"
-              selectedId={interval}
-              onChange={({ detail }) => setBillingInterval(detail.selectedId as BillingInterval)}
-              options={[
-                { id: 'monthly', text: 'Monthly' },
-                { id: 'annual', text: `Annually (save ${ANNUAL_SAVING})` },
-              ]}
-            />
+            <PeriodToggle interval={interval} onChange={setBillingInterval} look="console" />
           }
         >
           Plans
@@ -192,82 +198,63 @@ function ConsolePlans() {
             const isCurrent = plan.id === current;
             const badge = BADGE[plan.id];
             return (
-              <Container
-                key={plan.id}
-                fitHeight
-                media={{
-                  content: (
-                    <div
-                      className={styles.strip}
-                      style={{ background: PLAN_STRIP[plan.id] }}
-                      aria-hidden="true"
-                    />
-                  ),
-                  position: 'top',
-                  height: '8px',
-                }}
-                header={
-                  <Header
-                    variant="h2"
-                    description={plan.tagline}
-                    actions={
-                      isCurrent ? (
+              <Container key={plan.id} fitHeight disableContentPaddings>
+                <div className={styles.consoleCard}>
+                  <div className={`${styles.consoleHead} ${styles[plan.id.toLowerCase()]}`}>
+                    <div className={styles.consoleTitle}>
+                      <h2>
+                        {plan.name}
+                        {badge && <Icon name={badge} size={20} />}
+                      </h2>
+                      {isCurrent ? (
                         <Badge color="blue">Current plan</Badge>
                       ) : plan.id === RECOMMENDED ? (
                         <Badge color="green">Recommended</Badge>
-                      ) : undefined
-                    }
-                  >
-                    <span className={styles.consoleName}>
-                      {plan.name}
-                      {badge && <Icon name={badge} size={18} />}
-                    </span>
-                  </Header>
-                }
-              >
-                <SpaceBetween size="m">
-                  <div>
-                    <Box variant="awsui-value-large">
+                      ) : null}
+                    </div>
+                    <p className={styles.consoleTagline}>{plan.tagline}</p>
+                    <p className={styles.consolePrice}>
                       {formatRupees(priceOf(plan, interval))}
-                      <Box variant="span" color="text-body-secondary" fontSize="body-m">
-                        {' '}
-                        /month
-                      </Box>
-                    </Box>
-                    <Box color="text-body-secondary" fontSize="body-s">
+                      <span>/month</span>
+                    </p>
+                    <p className={styles.consoleBilled}>
                       {billedLine(plan, interval)}
                       {interval === 'annual' && plan.monthlyPrice > 0 && (
                         <> · saves {formatRupees(yearlySaving(plan))} a year</>
                       )}
-                    </Box>
+                    </p>
+                    <div className={styles.consoleCredits}>
+                      <Icon name="credit" size={22} />
+                      <span>
+                        <b>{formatCredits(plan.credits)}</b> credits{' '}
+                        {plan.monthlyPrice ? 'per month' : 'to start'}
+                      </span>
+                    </div>
+                    {/* Our own AWS-style button, so it reads well on each plan's colour. */}
+                    <button
+                      type="button"
+                      className={`${styles.awsButton} ${!isCurrent && plan.id === RECOMMENDED ? styles.awsPrimary : ''}`}
+                      disabled={isCurrent}
+                      onClick={() => choose(plan)}
+                    >
+                      {isCurrent ? 'Current plan' : `Choose ${plan.name}`}
+                    </button>
                   </div>
-                  <div className={styles.consoleCredits}>
-                    <Icon name="credit" size={16} />
-                    <span>
-                      <b>{formatCredits(plan.credits)}</b> credits{' '}
-                      {plan.monthlyPrice ? 'per month' : 'to start'}
-                      {plan.bonusCredits > 0 && (
-                        <> + {formatCredits(plan.bonusCredits)} bonus in the first month</>
-                      )}
-                    </span>
-                  </div>
-                  <Button
-                    fullWidth
-                    variant={!isCurrent && plan.id === RECOMMENDED ? 'primary' : 'normal'}
-                    disabled={isCurrent}
-                    onClick={() => choose(plan)}
-                  >
-                    {isCurrent ? 'Current plan' : `Choose ${plan.name}`}
-                  </Button>
                   <ul className={styles.consoleFeatures}>
+                    {plan.bonusCredits > 0 && (
+                      <li className={styles.consoleBonus}>
+                        <Icon name="credit" size={18} />
+                        {formatCredits(plan.bonusCredits)} bonus credits in the first month
+                      </li>
+                    )}
                     {plan.features.map((feature) => (
                       <li key={feature}>
-                        <Icon name="check" size={16} />
+                        <Icon name="check" size={18} />
                         {feature}
                       </li>
                     ))}
                   </ul>
-                </SpaceBetween>
+                </div>
               </Container>
             );
           })}

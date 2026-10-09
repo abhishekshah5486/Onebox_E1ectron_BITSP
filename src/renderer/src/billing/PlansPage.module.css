@@ -63,19 +63,37 @@
   border-left: 1px solid var(--ob-outline);
 }
 
+.saveTag {
+  color: #137333;
+  font-weight: 600;
+}
+
+:root[data-theme='dark'] .saveTag {
+  color: #81c995;
+}
+
 .segmented .segmentOn {
   background: #c2e7ff;
   color: #001d35;
 }
 
-:root[data-theme='dark'] .segmented .segmentOn {
+:root[data-theme='dark'] .saveTag {
+  color: #137333;
+  font-weight: 600;
+}
+
+:root[data-theme='dark'] .saveTag {
+  color: #81c995;
+}
+
+.segmented .segmentOn {
   background: #004a77;
   color: #c2e7ff;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   align-items: stretch;
   gap: 24px;
   max-width: 1180px;
@@ -85,10 +103,18 @@
 .card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 32px 36px 36px;
   border: 1px solid var(--ob-border);
   border-radius: 24px;
+  background: var(--ob-surface-raised);
+  overflow: hidden;
+}
+
+/* The top half carries the plan's colour; the features sit on the plain card below. */
+.cardHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 36px 32px;
   text-align: center;
 }
 
@@ -113,7 +139,7 @@
 .recommended {
   border: 3px solid transparent;
   background:
-    linear-gradient(#202124, #202124) padding-box,
+    linear-gradient(var(--ob-surface-raised), var(--ob-surface-raised)) padding-box,
     conic-gradient(from 225deg, #4285f4, #34a853, #fbbc04, #ea4335, #4285f4) border-box;
 }
 
@@ -232,12 +258,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  align-self: stretch;
-  margin: 32px 0 0;
-  padding: 0;
+  margin: 0;
+  padding: 28px 36px 32px;
   list-style: none;
+  color: var(--ob-text);
   font-size: 16px;
-  text-align: left;
 }
 
 .features li {
@@ -255,7 +280,7 @@
   font-weight: 500;
 }
 
-.standard .bonus {
+:root[data-theme='dark'] .bonus {
   color: #fdd663;
 }
 
@@ -267,40 +292,137 @@
   text-align: center;
 }
 
-/* v2 pieces. */
-.strip {
-  width: 100%;
-  height: 8px;
+/* v2: console cards with the plan's colour on the top half. */
+.consoleCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
 }
 
-.consoleName {
+.consoleHead {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+}
+
+.consoleTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.consoleTitle h2 {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.consoleTagline,
+.consoleBilled {
+  margin: 0;
+  opacity: 0.75;
+  font-size: 14px;
+}
+
+.consolePrice {
+  margin: 8px 0 0;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.consolePrice span {
+  margin-left: 4px;
+  opacity: 0.7;
+  font-size: 15px;
+  font-weight: 400;
 }
 
 .consoleCredits {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid var(--ob-border);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 70%);
+  color: #0f141a;
+  font-size: 15px;
+}
+
+.standard .consoleCredits {
+  background: #2d2e31;
+  color: #e8eaed;
+}
+
+/* Shaped like Cloudscape's buttons: rounded, bold, a 2px border. */
+.awsButton {
+  height: 36px;
+  border: 2px solid #006ce0;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #006ce0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.awsButton:hover:not(:disabled) {
+  border-color: #002b66;
+  background: #f0fbff;
+  color: #002b66;
+}
+
+.awsPrimary {
+  border-color: #006ce0;
+  background: #006ce0;
+  color: #ffffff;
+}
+
+.awsPrimary:hover:not(:disabled) {
+  border-color: #004a9e;
+  background: #004a9e;
+  color: #ffffff;
+}
+
+.awsButton:disabled {
+  border-color: rgb(0 0 0 / 25%);
+  background: rgb(255 255 255 / 45%);
+  color: rgb(0 0 0 / 45%);
+  cursor: default;
+}
+
+.standard .awsButton:disabled {
+  border-color: rgb(255 255 255 / 30%);
+  background: transparent;
+  color: rgb(255 255 255 / 55%);
+}
+
+.awsButton:focus-visible,
+.consoleToggle button:focus-visible {
+  outline: 2px solid #006ce0;
+  outline-offset: 2px;
 }
 
 .consoleFeatures {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
-  padding: 0;
+  padding: 20px 24px 24px;
   list-style: none;
+  color: var(--ob-text);
 }
 
 .consoleFeatures li {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
 }
 
 .consoleFeatures li svg {
@@ -311,4 +433,47 @@
 
 :root[data-theme='dark'] .consoleFeatures li svg {
   color: #2bb534;
+}
+
+.consoleFeatures .consoleBonus {
+  color: #b06000;
+  font-weight: 600;
+}
+
+.consoleFeatures .consoleBonus svg {
+  color: inherit;
+}
+
+:root[data-theme='dark'] .consoleFeatures .consoleBonus {
+  color: #fdd663;
+}
+
+/* The period switch, in a console look. */
+.consoleToggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--ob-border);
+  border-radius: 20px;
+}
+
+.consoleToggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ob-text-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.consoleToggle .segmentOn {
+  background: var(--ob-surface-hover);
+  color: var(--ob-text);
 }
