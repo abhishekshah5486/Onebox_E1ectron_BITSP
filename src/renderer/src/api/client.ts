@@ -40,6 +40,8 @@ export function createApiClient({
   // Access token lives only in memory; the refresh token is an HttpOnly cookie.
   let accessToken: string | null = null;
   let refreshing: Promise<Session | null> | null = null;
+  // Bumped on sign-out, so a refresh that was already under way cannot sign the user back in.
+  let generation = 0;
 
   async function send(method: Method, path: string, body?: unknown): Promise<Response> {
     return fetchImpl(`${baseUrl}${path}`, {
@@ -73,8 +75,10 @@ export function createApiClient({
 
   function refreshSession(): Promise<Session | null> {
     refreshing ??= (async () => {
+      const started = generation;
       try {
         const session = await parse<Session>(await send('POST', '/auth/refresh'));
+        if (started !== generation) return null;
         accessToken = session.tokens.accessToken;
         return session;
       } catch {
@@ -126,6 +130,7 @@ export function createApiClient({
       startSession('/auth/register', input),
     restoreSession: async () => (await refreshSession())?.user ?? null,
     async logout() {
+      generation++;
       try {
         await request<void>('POST', '/auth/logout');
       } finally {

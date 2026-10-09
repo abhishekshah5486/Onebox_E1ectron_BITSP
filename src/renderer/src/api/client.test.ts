@@ -118,4 +118,30 @@ describe('api client', () => {
 
     expect(requests()[2]?.auth).toBeUndefined();
   });
+
+  it('ignores a refresh that finishes after sign-out', async () => {
+    let finishRefresh: ((response: Response) => void) | undefined;
+    fetchImpl.mockImplementation(async (url) => {
+      const path = (url as string | undefined) ?? '';
+      if (path.endsWith('/auth/login')) return json(200, session('t1'));
+      // The first refresh hangs until the test lets it finish; later ones find no session.
+      if (path.endsWith('/auth/refresh')) {
+        if (finishRefresh) return json(401, { error: { code: 'MISSING_REFRESH_TOKEN' } });
+        return new Promise<Response>((resolve) => (finishRefresh = resolve));
+      }
+      if (path.endsWith('/auth/logout')) return new Response(null, { status: 204 });
+      return json(401, { error: { code: 'TOKEN_EXPIRED' } });
+    });
+    const api = createApiClient({ fetchImpl });
+    await api.login('a@onebox.dev', 'pw');
+
+    const pending = api.get('/accounts').catch(() => null);
+    await vi.waitFor(() => expect(finishRefresh).toBeDefined());
+    await api.logout();
+    finishRefresh!(json(200, session('late')));
+    await pending;
+    await api.get('/public').catch(() => null);
+
+    expect(requests().some((r) => r.auth === 'Bearer late')).toBe(false);
+  });
 });
