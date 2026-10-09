@@ -77,16 +77,7 @@
   color: #001d35;
 }
 
-:root[data-theme='dark'] .saveTag {
-  color: #137333;
-  font-weight: 600;
-}
-
-:root[data-theme='dark'] .saveTag {
-  color: #81c995;
-}
-
-.segmented .segmentOn {
+:root[data-theme='dark'] .segmented .segmentOn {
   background: #004a77;
   color: #c2e7ff;
 }
@@ -366,6 +357,7 @@
   padding: 20px 24px 24px;
 }
 
+/* The credits for the period, with a white coin (dark text in light mode). */
 .consoleCredits {
   display: flex;
   align-items: center;
@@ -379,10 +371,37 @@
 
 .consoleCredits svg {
   flex: none;
-  color: #a35c00;
+  color: var(--ob-text);
 }
 
-:root[data-theme='dark'] .consoleCredits svg {
+/* Short pills on the coloured band: Current plan and Recommended look the same. */
+.consoleStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.consoleStatus {
+  background: rgb(255 255 255 / 80%);
+}
+
+.standard .consoleStatus {
+  background: rgb(0 0 0 / 35%);
+}
+
+/* Soft white text with a gold sparkle, the gold of the bonus credits. */
+.standard .recommended {
+  gap: 6px;
+  background: rgb(255 255 255 / 12%);
+  color: #e8eaed;
+  font-size: 14px;
+}
+
+.recommended svg {
+  flex: none;
   color: #fdd663;
 }
 
@@ -408,7 +427,6 @@
 .consoleFeatures li.consoleBonus,
 .consoleFeatures li.consoleBonus svg {
   color: #a35c00;
-  font-weight: 600;
 }
 
 :root[data-theme='dark'] .consoleFeatures li.consoleBonus,

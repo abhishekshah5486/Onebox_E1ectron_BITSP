@@ -51,10 +51,14 @@ describe('PlansPage in v2 (console)', () => {
     expect(await screen.findByRole('heading', { name: 'Plans', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('₹499', { exact: false })).toHaveTextContent('₹499/month');
 
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Pay annually' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /Pay annually/ }));
     expect(screen.getByText('₹415', { exact: false })).toHaveTextContent('₹415/month');
     expect(screen.queryByRole('button', { name: 'Current plan' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Choose Pro' })).toBeEnabled();
+    // The comparison follows the cards, without Free when billing yearly.
+    const compare = within(screen.getByRole('table'));
+    expect(compare.getByText('Priority support')).toBeInTheDocument();
+    expect(compare.queryByRole('columnheader', { name: 'Free' })).toBeNull();
   });
 });
 
@@ -62,12 +66,14 @@ describe('BillingSection', () => {
   it('shows the plan, the credits left and the history', async () => {
     render(<BillingSection />);
     expect(await screen.findByText('Billing preview')).toBeInTheDocument();
-    expect(await screen.findByText(/of 20 used/)).toBeInTheDocument();
+    expect(await screen.findByText('Credits and usage')).toBeInTheDocument();
+    expect(await screen.findByText(/of 20 credits/)).toBeInTheDocument();
     expect(screen.getAllByText('Free').length).toBeGreaterThan(0);
     // Newest first, ten to a page: the sign-up grant is on the second page.
     expect(screen.getAllByText('Sorted an email into labels').length).toBeGreaterThan(0);
     await userEvent.click(screen.getByRole('button', { name: /page 2/i }));
     expect(await screen.findByText('Free plan credits')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Upgrade plan' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Actions' })).toBeEnabled();
+    expect(screen.getByRole('link', { name: 'View all plans' })).toBeInTheDocument();
   });
 });

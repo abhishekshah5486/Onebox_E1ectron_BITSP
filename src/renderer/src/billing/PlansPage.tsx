@@ -1,5 +1,4 @@
 import Alert from '@cloudscape-design/components/alert';
-import Badge from '@cloudscape-design/components/badge';
 import BreadcrumbGroup from '@cloudscape-design/components/breadcrumb-group';
 import Button from '@cloudscape-design/components/button';
 import Box from '@cloudscape-design/components/box';
@@ -8,7 +7,12 @@ import Container from '@cloudscape-design/components/container';
 import ContentLayout from '@cloudscape-design/components/content-layout';
 import Header from '@cloudscape-design/components/header';
 import SpaceBetween from '@cloudscape-design/components/space-between';
+import Link from '@cloudscape-design/components/link';
+import Popover from '@cloudscape-design/components/popover';
+import StatusIndicator from '@cloudscape-design/components/status-indicator';
+import Table from '@cloudscape-design/components/table';
 import Toggle from '@cloudscape-design/components/toggle';
+import CloudscapeIcon from '@cloudscape-design/components/icon';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useOptionalFlash } from '../settings/flash';
@@ -21,11 +25,14 @@ import {
   ANNUAL_SAVING,
   formatCredits,
   formatRupees,
+  COMPARISON,
   plansFor,
+  type ComparisonRow,
   type BillingInterval,
   type Plan,
 } from './plans';
 import { ConsoleFeatureIcon, GMAIL_FEATURE_ICON } from './featureIcons';
+import tableStyles from '../ui/DataTable.module.css';
 import styles from './PlansPage.module.css';
 import { ShowcasePlans } from './ShowcasePlans';
 
@@ -197,17 +204,15 @@ function ConsolePlans() {
       header={
         <Header
           variant="h1"
+          info={<CreditsInfo />}
           description="Pick the plan that suits you. Upgrade or downgrade at any time."
           actions={
-            <SpaceBetween direction="horizontal" size="xs" alignItems="center">
-              <Toggle
-                checked={interval === 'annual'}
-                onChange={({ detail }) => setBillingInterval(detail.checked ? 'annual' : 'monthly')}
-              >
-                Pay annually
-              </Toggle>
-              <Badge color="green">Save {ANNUAL_SAVING}</Badge>
-            </SpaceBetween>
+            <Toggle
+              checked={interval === 'annual'}
+              onChange={({ detail }) => setBillingInterval(detail.checked ? 'annual' : 'monthly')}
+            >
+              Pay annually (save {ANNUAL_SAVING})
+            </Toggle>
           }
         >
           Plans
@@ -215,6 +220,7 @@ function ConsolePlans() {
       }
     >
       <SpaceBetween size="l">
+        <Alert type="info">{NOTE}</Alert>
         <div className={interval === 'annual' ? styles.consoleNarrow : undefined}>
           <ColumnLayout columns={plansFor(interval).length}>
             {plansFor(interval).map((plan) => {
@@ -230,9 +236,15 @@ function ConsolePlans() {
                           {badge && <Icon name={badge} size={20} />}
                         </h2>
                         {isCurrent ? (
-                          <Badge color="blue">Current plan</Badge>
+                          <span className={styles.consoleStatus}>
+                            <StatusIndicator type="success">Current plan</StatusIndicator>
+                          </span>
                         ) : plan.id === RECOMMENDED ? (
-                          <Badge color="green">Recommended</Badge>
+                          // Shaped like Current plan; Recommended is only ever on the dark Standard card.
+                          <span className={`${styles.consoleStatus} ${styles.recommended}`}>
+                            <Icon name="sparkle" size={16} />
+                            Recommended
+                          </span>
                         ) : null}
                       </div>
                       <p className={styles.consoleTagline}>{plan.tagline}</p>
@@ -286,9 +298,56 @@ function ConsolePlans() {
             })}
           </ColumnLayout>
         </div>
-        <Alert type="info">{NOTE}</Alert>
+        <div id="compare-plans" className={`${tableStyles.table} ${tableStyles.static}`}>
+          <Table
+            variant="container"
+            header={
+              <Header variant="h2" description="What each plan includes, side by side.">
+                Compare plans
+              </Header>
+            }
+            trackBy="feature"
+            items={COMPARISON}
+            columnDefinitions={[
+              { id: 'feature', header: 'Feature', cell: (row) => row.feature },
+              ...plansFor(interval).map((plan) => ({
+                id: plan.id,
+                header: plan.name,
+                cell: (row: ComparisonRow) => <ComparisonValue value={row.values[plan.id]} />,
+              })),
+            ]}
+          />
+        </div>
       </SpaceBetween>
     </ContentLayout>
+  );
+}
+
+// Included, not included, or a short value, the way AWS tables show them.
+function ComparisonValue({ value }: { value: boolean | string }) {
+  if (value === true) return <CloudscapeIcon name="check" variant="success" ariaLabel="Included" />;
+  if (value === false) {
+    return (
+      <Box color="text-status-inactive">
+        <span aria-label="Not included">–</span>
+      </Box>
+    );
+  }
+  return <>{value}</>;
+}
+
+// The Info link next to the title: what credits are and what they pay for.
+function CreditsInfo() {
+  return (
+    <Popover
+      header="How credits work"
+      content={NOTE}
+      triggerType="custom"
+      dismissButton={false}
+      size="medium"
+    >
+      <Link variant="info">Info</Link>
+    </Popover>
   );
 }
 

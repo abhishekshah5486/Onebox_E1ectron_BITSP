@@ -1,17 +1,20 @@
 import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
-import Button from '@cloudscape-design/components/button';
+import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
+import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Container from '@cloudscape-design/components/container';
 import Header from '@cloudscape-design/components/header';
-import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
+import Link from '@cloudscape-design/components/link';
 import Pagination from '@cloudscape-design/components/pagination';
-import ProgressBar from '@cloudscape-design/components/progress-bar';
+import Popover from '@cloudscape-design/components/popover';
 import SpaceBetween from '@cloudscape-design/components/space-between';
+import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Table from '@cloudscape-design/components/table';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import tableStyles from '../ui/DataTable.module.css';
 import { IS_BILLING_PREVIEW, useBilling, type LedgerEntry } from './billing';
+import styles from './BillingSection.module.css';
 import { formatCredits, formatRupees, planById } from './plans';
 
 const PAGE = 10;
@@ -44,6 +47,8 @@ export function BillingSection() {
   const ledger = data?.ledger ?? [];
   const pages = Math.max(1, Math.ceil(ledger.length / PAGE));
   const used = data ? Math.max(0, data.periodCredits - data.balance) : 0;
+  const low = data ? data.balance <= data.periodCredits * 0.2 : false;
+  const lastUse = ledger.find((entry) => entry.kind === 'charge');
 
   return (
     <SpaceBetween size="l">
@@ -58,57 +63,124 @@ export function BillingSection() {
         header={
           <Header
             variant="h2"
-            description="Credits pay for AI features such as sorting, summaries and drafts."
+            info={
+              <Popover
+                header="How credits work"
+                triggerType="custom"
+                dismissButton={false}
+                size="medium"
+                content="Credits pay for AI features such as sorting, summaries and drafts. Each action uses credits based on the AI model's cost; mail, labels and cloud storage are always free."
+              >
+                <Link variant="info">Info</Link>
+              </Popover>
+            }
+            description="Credits pay for AI features. AI sorting, summaries and drafts stop when your credits run out."
             actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button disabled>Buy credits</Button>
-                <Button variant="primary" onClick={() => void navigate('/plans')}>
-                  {data?.subscription.plan === 'FREE' ? 'Upgrade plan' : 'Change plan'}
-                </Button>
-              </SpaceBetween>
+              <ButtonDropdown
+                items={[
+                  {
+                    id: 'plans',
+                    text: data?.subscription.plan === 'FREE' ? 'Upgrade plan' : 'Change plan',
+                  },
+                  { id: 'buy', text: 'Buy credits', disabled: true, disabledReason: 'Coming soon' },
+                ]}
+                onItemClick={({ detail }) => detail.id === 'plans' && void navigate('/plans')}
+              >
+                Actions
+              </ButtonDropdown>
             }
           >
-            Plan and credits
+            Credits and usage
           </Header>
+        }
+        footer={
+          <Box textAlign="center">
+            <Link
+              href="/plans"
+              onFollow={(event) => {
+                event.preventDefault();
+                void navigate('/plans');
+              }}
+            >
+              View all plans
+            </Link>
+          </Box>
         }
       >
         {data && plan && (
           <SpaceBetween size="l">
-            <KeyValuePairs
-              columns={4}
-              items={[
-                { label: 'Plan', value: <Box fontWeight="bold">{plan.name}</Box> },
-                {
-                  label: 'Price',
-                  value:
-                    plan.monthlyPrice === 0
-                      ? 'Free'
-                      : `${formatRupees(
+            <ColumnLayout columns={3} variant="text-grid">
+              <div>
+                <Box variant="awsui-key-label">Credits left</Box>
+                <span className={styles.valueRow}>
+                  <Box
+                    variant="awsui-value-large"
+                    color={data.balance <= 0 ? 'text-status-error' : 'text-status-info'}
+                  >
+                    {formatCredits(data.balance)}
+                  </Box>
+                  <Box variant="span" color="text-body-secondary">
+                    credits
+                  </Box>
+                </span>
+              </div>
+              <div>
+                <Box variant="awsui-key-label">Plan</Box>
+                <span className={styles.valueRow}>
+                  <Box variant="awsui-value-large">{plan.name}</Box>
+                  <Box variant="span" color="text-body-secondary">
+                    {plan.monthlyPrice === 0
+                      ? '(free)'
+                      : `(${formatRupees(
                           data.subscription.interval === 'annual'
                             ? plan.annualMonthlyPrice
                             : plan.monthlyPrice,
-                        )}/mo`,
-                },
-                {
-                  label: plan.monthlyPrice === 0 ? 'Credits' : 'Credits reset on',
-                  value: data.subscription.renewsAt
-                    ? new Date(data.subscription.renewsAt).toLocaleDateString()
-                    : `${formatCredits(plan.credits)} once, at sign-up`,
-                },
-                { label: 'Credits left', value: formatCredits(data.balance) },
-              ]}
-            />
-            <ProgressBar
-              label="Credits used"
-              value={data.periodCredits ? (used / data.periodCredits) * 100 : 0}
-              additionalInfo={`${formatCredits(used)} of ${formatCredits(data.periodCredits)} used`}
-              description={
-                data.balance <= 0
-                  ? 'You are out of credits. Upgrade to keep using AI features.'
-                  : undefined
-              }
-              status={data.balance <= 0 ? 'error' : 'in-progress'}
-            />
+                        )}/month)`}
+                  </Box>
+                </span>
+              </div>
+              <div>
+                <Box variant="awsui-key-label">Credits reset</Box>
+                <span className={styles.valueRow}>
+                  <Box variant="awsui-value-large">
+                    {data.subscription.renewsAt
+                      ? new Date(data.subscription.renewsAt).toLocaleDateString(undefined, {
+                          day: 'numeric',
+                          month: 'short',
+                        })
+                      : 'Never'}
+                  </Box>
+                  <Box variant="span" color="text-body-secondary">
+                    {data.subscription.renewsAt ? '(with your plan)' : '(given once, at sign-up)'}
+                  </Box>
+                </span>
+              </div>
+            </ColumnLayout>
+            <hr className={styles.divider} />
+            <ColumnLayout columns={3} variant="text-grid">
+              <div>
+                <Box variant="awsui-key-label">Used so far</Box>
+                <div>
+                  {formatCredits(used)} of {formatCredits(data.periodCredits)} credits
+                </div>
+              </div>
+              <div>
+                <Box variant="awsui-key-label">Last used</Box>
+                <div>
+                  {lastUse ? `${formatWhen(lastUse.at)} · ${lastUse.description}` : 'Not yet'}
+                </div>
+              </div>
+              <div>
+                <Box variant="awsui-key-label">Status</Box>
+                <StatusIndicator type={data.balance <= 0 ? 'error' : low ? 'warning' : 'success'}>
+                  {data.balance <= 0
+                    ? 'Out of credits'
+                    : low
+                      ? 'Running low'
+                      : 'AI features available'}
+                </StatusIndicator>
+              </div>
+            </ColumnLayout>
           </SpaceBetween>
         )}
       </Container>

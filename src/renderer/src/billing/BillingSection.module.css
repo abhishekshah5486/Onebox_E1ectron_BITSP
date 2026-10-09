@@ -1,0 +1,12 @@
+/* A large figure with a small note after it, e.g. "12.2 credits". */
+.valueRow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.divider {
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--ob-border);
+}
