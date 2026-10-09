@@ -6,8 +6,9 @@ const PATHS = {
   // Our own shapes for plans and credits.
   bolt: 'M13 2L4 14h6l-1 8 9-12h-6l1-8z',
   crown: 'M3 18h18v2H3v-2zm0-11l4.5 4L12 4l4.5 7L21 7v9H3V7z',
+  // A coin with a four-point star cut out (drawn with the even-odd rule).
   credit:
-    'M12 2a10 10 0 100 20 10 10 0 000-20zm0 2a8 8 0 110 16 8 8 0 010-16zm0 3l2.2 4.8L19 12l-4.8 2.2L12 19l-2.2-4.8L5 12l4.8-2.2L12 7z',
+    'M12 2a10 10 0 100 20 10 10 0 000-20zM12 5.5c.5 3.3 3.2 6 6.5 6.5-3.3.5-6 3.2-6.5 6.5-.5-3.3-3.2-6-6.5-6.5 3.3-.5 6-3.2 6.5-6.5z',
   attachment:
     'M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z',
   info: 'M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z',
@@ -99,6 +100,9 @@ const STROKES = {
   ],
 } as const;
 
+// Icons with holes, which need the even-odd fill rule.
+const EVEN_ODD = new Set<string>(['credit']);
+
 export type IconName = keyof typeof PATHS | keyof typeof STROKES;
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
@@ -123,7 +127,10 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d={PATHS[name as keyof typeof PATHS]} />
+      <path
+        d={PATHS[name as keyof typeof PATHS]}
+        {...(EVEN_ODD.has(name) && { fillRule: 'evenodd' })}
+      />
     </svg>
   );
 }

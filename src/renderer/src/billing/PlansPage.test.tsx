@@ -24,18 +24,19 @@ describe('PlansPage', () => {
   it('shows monthly prices, then yearly ones with the saving', async () => {
     render(<PlansPage />);
     const standard = (await screen.findByRole('heading', { name: /Standard/ })).closest('article')!;
-    expect(within(standard).getByText('₹499')).toBeInTheDocument();
-    expect(within(standard).getByText('Billed monthly')).toBeInTheDocument();
+    expect(within(standard).getByText('₹499', { exact: false })).toHaveTextContent('₹499/mo');
+    expect(within(standard).getByText(/Billed monthly/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('radio', { name: /Annually/ }));
-    expect(within(standard).getByText('₹415')).toBeInTheDocument();
+    expect(within(standard).getByText('₹415', { exact: false })).toHaveTextContent('₹415/mo');
     expect(within(standard).getByText('Save ₹1,008')).toBeInTheDocument();
   });
 
   it('marks the current plan and says payments are coming when upgrading', async () => {
     render(<PlansPage />);
-    expect(await screen.findByRole('button', { name: 'Your current plan' })).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Upgrade to Pro' }));
+    expect(await screen.findByRole('button', { name: 'Current plan' })).toBeDisabled();
+    const pro = screen.getByRole('heading', { name: /Pro/ }).closest('article')!;
+    await userEvent.click(within(pro).getByRole('button', { name: 'Subscribe' }));
     expect(await screen.findByText(/Payments are coming soon/)).toBeInTheDocument();
   });
 });
