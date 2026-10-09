@@ -2,23 +2,24 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '../api/client';
-import type { DriveAccount } from '../api/settings';
+import type { StorageAccount } from '../api/settings';
 import { useAuth } from '../auth/AuthProvider';
 import { fakeApi, routedGet, testUser } from '../test/fake-api';
 import { renderPage } from '../test/render';
 import { FlashProvider } from './flash';
-import { GoogleDriveCard } from './GoogleDriveCard';
+import { StorageSection } from './StorageSection';
 
 function Card() {
   return useAuth().state.status === 'authenticated' ? (
     <FlashProvider>
-      <GoogleDriveCard />
+      <StorageSection />
     </FlashProvider>
   ) : null;
 }
 
-const account = (overrides: Partial<DriveAccount> = {}): DriveAccount => ({
+const account = (overrides: Partial<StorageAccount> = {}): StorageAccount => ({
   id: 'g1',
+  provider: 'GOOGLE_DRIVE',
   email: 'me@gmail.com',
   defaultPath: 'OneBox',
   connectedAt: '2026-10-09T00:00:00Z',
@@ -26,22 +27,25 @@ const account = (overrides: Partial<DriveAccount> = {}): DriveAccount => ({
   ...overrides,
 });
 
-function setup(accounts: DriveAccount[], overrides: Partial<ApiClient> = {}) {
+function setup(accounts: StorageAccount[], overrides: Partial<ApiClient> = {}) {
   const api = fakeApi({
     restoreSession: vi.fn(async () => testUser),
-    get: routedGet({ '/settings/integrations/google': () => ({ configured: true, accounts }) }),
+    get: routedGet({
+      '/settings/storage': () => ({ providers: ['GOOGLE_DRIVE'], accounts }),
+    }),
     ...overrides,
   });
   renderPage(<Card />, { path: '/settings', api });
   return api;
 }
 
-describe('GoogleDriveCard', () => {
-  it('opens Google sign-in to connect another account', async () => {
+describe('StorageSection', () => {
+  it('connects Google Drive from the Connect storage menu', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
     const post = vi.fn(async () => ({ url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1' }));
     setup([account()], { post: post as ApiClient['post'] });
-    await userEvent.click(await screen.findByRole('button', { name: 'Connect another account' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Connect storage' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Google Drive/ }));
     await waitFor(() =>
       expect(open).toHaveBeenCalledWith(
         'https://accounts.google.com/o/oauth2/v2/auth?x=1',
@@ -49,7 +53,7 @@ describe('GoogleDriveCard', () => {
         expect.any(String),
       ),
     );
-    expect(post).toHaveBeenCalledWith('/settings/integrations/google/connect');
+    expect(post).toHaveBeenCalledWith('/settings/storage/connect', { provider: 'GOOGLE_DRIVE' });
   });
 
   it('lists accounts with their folders and edits one', async () => {
@@ -69,7 +73,7 @@ describe('GoogleDriveCard', () => {
     await userEvent.type(dialog.getByRole('textbox'), 'Work/Receipts');
     await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('/settings/integrations/google/g2', {
+      expect(patch).toHaveBeenCalledWith('/settings/storage/g2', {
         defaultPath: 'Work/Receipts',
       }),
     );
@@ -80,8 +84,8 @@ describe('GoogleDriveCard', () => {
     setup([account()], { delete: remove as ApiClient['delete'] });
     await userEvent.click(await screen.findByRole('checkbox', { name: 'me@gmail.com' }));
     await userEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Disconnect Google account' });
+    const dialog = await screen.findByRole('dialog', { name: 'Disconnect storage account' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
-    await waitFor(() => expect(remove).toHaveBeenCalledWith('/settings/integrations/google/g1'));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('/settings/storage/g1'));
   });
 });

@@ -2,7 +2,8 @@
   position: fixed;
   left: 24px;
   bottom: 24px;
-  z-index: 950;
+  /* Above the attachment viewer and dialogs. */
+  z-index: 3200;
 }
 
 .snackbar {
@@ -52,4 +53,10 @@
 .action:hover,
 .close:hover {
   background: rgb(255 255 255 / 10%);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }

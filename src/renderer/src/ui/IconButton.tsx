@@ -1,9 +1,10 @@
-import type { ButtonHTMLAttributes, MouseEvent } from 'react';
+import type { ButtonHTMLAttributes, MouseEvent, ReactElement } from 'react';
 import { Icon, type IconName } from './Icon';
 import styles from './IconButton.module.css';
 
 type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> & {
-  icon: IconName;
+  // A Material icon by name, or an image such as a provider logo.
+  icon: IconName | ReactElement;
   label: string;
   // Tooltip, when it should differ from the accessible name.
   tooltip?: string;
@@ -21,7 +22,7 @@ export function IconButton({ icon, label, tooltip, size = 'normal', className, .
       className={`${styles.button} ${styles[size]} ${className ?? ''}`}
       {...rest}
     >
-      <Icon name={icon} size={size === 'small' ? 18 : 20} />
+      {typeof icon === 'string' ? <Icon name={icon} size={size === 'small' ? 18 : 20} /> : icon}
     </button>
   );
 }

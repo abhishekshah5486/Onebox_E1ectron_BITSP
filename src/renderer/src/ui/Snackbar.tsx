@@ -12,6 +12,8 @@ import styles from './Snackbar.module.css';
 
 export interface SnackbarMessage {
   text: string;
+  // A small logo before the text, e.g. the storage service a file went to.
+  icon?: string;
   action?: { label: string; onClick: () => void };
 }
 
@@ -42,6 +44,7 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
       <div className={styles.region} role="status" aria-live="polite">
         {current && (
           <div key={current.id} className={styles.snackbar}>
+            {current.icon && <img className={styles.icon} src={current.icon} alt="" />}
             <span>{current.text}</span>
             {current.action && (
               <button

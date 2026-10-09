@@ -103,3 +103,10 @@
   table-layout: fixed;
   width: 100%;
 }
+
+/* A logo before a cell's text, e.g. a storage provider. */
+.withLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

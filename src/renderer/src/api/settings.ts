@@ -60,28 +60,32 @@ export interface IntegrationTestResult {
   integration: Integration;
 }
 
-export interface DriveAccount {
+export type StorageProviderId = 'GOOGLE_DRIVE';
+
+// A connected cloud storage account (Google Drive now; OneDrive and Dropbox later).
+export interface StorageAccount {
   id: string;
+  provider: StorageProviderId;
   email: string;
-  // Folder path under My Drive, e.g. "OneBox/Receipts"; empty means the top level.
+  // Folder path from the top of the storage, e.g. "OneBox/Receipts"; empty means the top.
   defaultPath: string;
   connectedAt: string;
   updatedAt: string;
 }
 
-export interface GoogleDriveStatus {
-  configured: boolean;
-  accounts: DriveAccount[];
+export interface StorageStatus {
+  // Providers set up on this server.
+  providers: StorageProviderId[];
+  accounts: StorageAccount[];
 }
 
 export const settingsApi = {
-  googleDrive: (api: ApiClient) => api.get<GoogleDriveStatus>('/settings/integrations/google'),
-  connectGoogleDrive: (api: ApiClient) =>
-    api.post<{ url: string }>('/settings/integrations/google/connect'),
-  updateDriveAccount: (api: ApiClient, id: string, defaultPath: string) =>
-    api.patch<DriveAccount>(`/settings/integrations/google/${id}`, { defaultPath }),
-  disconnectGoogleDrive: (api: ApiClient, id: string) =>
-    api.delete<void>(`/settings/integrations/google/${id}`),
+  storage: (api: ApiClient) => api.get<StorageStatus>('/settings/storage'),
+  connectStorage: (api: ApiClient, provider: StorageProviderId) =>
+    api.post<{ url: string }>('/settings/storage/connect', { provider }),
+  updateStorageAccount: (api: ApiClient, id: string, defaultPath: string) =>
+    api.patch<StorageAccount>(`/settings/storage/${id}`, { defaultPath }),
+  disconnectStorage: (api: ApiClient, id: string) => api.delete<void>(`/settings/storage/${id}`),
   getPreferences: (api: ApiClient) => api.get<Preferences>('/settings/preferences'),
   updatePreferences: (api: ApiClient, changes: Partial<Omit<Preferences, 'updatedAt'>>) =>
     api.patch<Preferences>('/settings/preferences', changes),

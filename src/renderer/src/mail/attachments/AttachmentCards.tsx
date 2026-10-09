@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type ReactElement } from 'react';
 import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import { formatBytes } from '../format';
@@ -6,18 +6,20 @@ import { AttachmentViewer } from './AttachmentViewer';
 import styles from './Attachments.module.css';
 import { FileBadge, fileColor } from './FileBadge';
 import { useAttachmentDownload, useAttachmentUrl, type AttachmentFile } from './useAttachment';
-import { useSaveToDrive } from './useSaveToDrive';
+import { useSaveToStorage } from './useSaveToStorage';
 
 const THUMBNAIL = /^image\/(png|jpeg|gif|webp|bmp|avif)$/;
 
 function Card({
   file,
   onOpen,
-  onSaveToDrive,
+  storage,
+  onSave,
 }: {
   file: AttachmentFile;
   onOpen: () => void;
-  onSaveToDrive: () => void;
+  storage: { label: string; icon: (size: number) => ReactElement };
+  onSave: () => void;
 }) {
   const download = useAttachmentDownload();
   const { url } = useAttachmentUrl(THUMBNAIL.test(file.contentType.toLowerCase()) ? file : null);
@@ -63,12 +65,12 @@ function Card({
         </button>
         <button
           type="button"
-          className={styles.cardButton}
-          aria-label={`Add ${file.filename} to Drive`}
-          data-tooltip="Add to Drive"
-          onClick={onSaveToDrive}
+          className={`${styles.cardButton} ${styles.cardButtonLight}`}
+          aria-label={`${storage.label}: ${file.filename}`}
+          data-tooltip={storage.label}
+          onClick={onSave}
         >
-          <Icon name="addToDrive" size={22} />
+          {storage.icon(20)}
         </button>
       </span>
       {/* The dog-ear stays on top, hovered or not. */}
@@ -77,7 +79,8 @@ function Card({
   );
 }
 
-// A message's files as cards, with Download all and Add all to Drive, like Gmail's reading pane.
+// A message's files as cards, with Download all and Add all to cloud storage, like Gmail's
+// reading pane.
 // The console shows the two as Cloudscape buttons.
 export function AttachmentCards({
   files,
@@ -87,7 +90,7 @@ export function AttachmentCards({
   console?: boolean;
 }) {
   const download = useAttachmentDownload();
-  const drive = useSaveToDrive();
+  const storage = useSaveToStorage();
   const [open, setOpen] = useState<AttachmentFile | null>(null);
   if (files.length === 0) return null;
   const downloadAll = () => {
@@ -95,7 +98,7 @@ export function AttachmentCards({
       for (const file of files) await download(file);
     })();
   };
-  const addAll = () => void drive.save(files);
+  const addAll = () => void storage.save(files);
   const title = `${files.length} ${files.length === 1 ? 'Attachment' : 'Attachments'}`;
 
   return (
@@ -111,11 +114,11 @@ export function AttachmentCards({
             <button
               type="button"
               className={styles.awsPill}
-              disabled={drive.saving}
+              disabled={storage.saving}
               onClick={addAll}
             >
-              <Icon name="addToDrive" size={22} />
-              {drive.saving ? 'Adding to Drive…' : 'Add all to Drive'}
+              {storage.button.icon(20)}
+              {storage.saving ? 'Saving…' : storage.button.allLabel}
             </button>
           </span>
         </div>
@@ -128,12 +131,12 @@ export function AttachmentCards({
           <IconButton size="small" icon="download" label="Download all" onClick={downloadAll} />
           <button
             type="button"
-            className={styles.drivePill}
-            disabled={drive.saving}
+            className={styles.storagePill}
+            disabled={storage.saving}
             onClick={addAll}
           >
-            <Icon name="addToDrive" size={24} />
-            {drive.saving ? 'Adding to Drive…' : 'Add all to Drive'}
+            {storage.button.icon(22)}
+            {storage.saving ? 'Saving…' : storage.button.allLabel}
           </button>
         </div>
       )}
@@ -143,12 +146,13 @@ export function AttachmentCards({
             key={`${file.messageId}:${file.index}`}
             file={file}
             onOpen={() => setOpen(file)}
-            onSaveToDrive={() => void drive.save([file])}
+            storage={storage.button}
+            onSave={() => void storage.save([file])}
           />
         ))}
       </div>
       {open && <AttachmentViewer file={open} onClose={() => setOpen(null)} />}
-      {drive.dialog}
+      {storage.dialog}
     </section>
   );
 }

@@ -6,6 +6,7 @@ import {
   settingsApi,
   type CreateIntegrationInput,
   type Preferences,
+  type StorageProviderId,
   type UpdateIntegrationInput,
 } from './settings';
 
@@ -26,7 +27,7 @@ export const keys = {
   accounts: ['accounts'] as const,
   preferences: ['preferences'] as const,
   integrations: ['integrations'] as const,
-  googleDrive: ['google-drive'] as const,
+  storage: ['storage'] as const,
 };
 
 function useApi() {
@@ -138,36 +139,38 @@ export function useRemoveIntegration() {
   return useIntegrationMutation((id: string) => settingsApi.removeIntegration(api, id));
 }
 
-// Polls while the Google sign-in window is open, until the account shows up.
-export function useGoogleDrive(waiting = false) {
+// Polls while a sign-in window is open, until the account shows up.
+export function useStorage(waiting = false) {
   const api = useApi();
   return useQuery({
-    queryKey: keys.googleDrive,
-    queryFn: () => settingsApi.googleDrive(api),
+    queryKey: keys.storage,
+    queryFn: () => settingsApi.storage(api),
     refetchInterval: waiting ? 2000 : false,
   });
 }
 
-export function useConnectGoogleDrive() {
+export function useConnectStorage() {
   const api = useApi();
-  return useMutation({ mutationFn: () => settingsApi.connectGoogleDrive(api) });
+  return useMutation({
+    mutationFn: (provider: StorageProviderId) => settingsApi.connectStorage(api, provider),
+  });
 }
 
-export function useUpdateDriveAccount() {
+export function useUpdateStorageAccount() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, defaultPath }: { id: string; defaultPath: string }) =>
-      settingsApi.updateDriveAccount(api, id, defaultPath),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.googleDrive }),
+      settingsApi.updateStorageAccount(api, id, defaultPath),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.storage }),
   });
 }
 
-export function useDisconnectGoogleDrive() {
+export function useDisconnectStorage() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => settingsApi.disconnectGoogleDrive(api, id),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.googleDrive }),
+    mutationFn: (id: string) => settingsApi.disconnectStorage(api, id),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.storage }),
   });
 }

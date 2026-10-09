@@ -12,7 +12,7 @@ import { useUiVersion, type UiVersion } from '../theme/UiVersionProvider';
 import { AccountsSection } from './AccountsSection';
 import { AiSection } from './AiSection';
 import { FlashProvider } from './flash';
-import { GoogleDriveCard } from './GoogleDriveCard';
+import { StorageSection } from './StorageSection';
 import { IntegrationsSection } from './IntegrationsSection';
 import { LabelsSection } from './LabelsSection';
 import { PreferencesSection } from './PreferencesSection';
@@ -28,7 +28,7 @@ const TABS = [
     label: 'Integrations',
     content: (
       <SpaceBetween size="l">
-        <GoogleDriveCard />
+        <StorageSection />
         <IntegrationsSection />
       </SpaceBetween>
     ),

@@ -20,8 +20,22 @@ const files = [
 ];
 
 const accounts = [
-  { id: 'g1', email: 'me@gmail.com', defaultPath: 'OneBox', connectedAt: '', updatedAt: '' },
-  { id: 'g2', email: 'work@gmail.com', defaultPath: 'Work', connectedAt: '', updatedAt: '' },
+  {
+    id: 'g1',
+    provider: 'GOOGLE_DRIVE',
+    email: 'me@gmail.com',
+    defaultPath: 'OneBox',
+    connectedAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'g2',
+    provider: 'GOOGLE_DRIVE',
+    email: 'work@gmail.com',
+    defaultPath: 'Work',
+    connectedAt: '',
+    updatedAt: '',
+  },
 ];
 
 function Cards() {
@@ -38,7 +52,7 @@ function setup(connected = accounts, post = vi.fn()) {
     api: fakeApi({
       restoreSession: vi.fn(async () => testUser),
       get: routedGet({
-        '/settings/integrations/google': () => ({ configured: true, accounts: connected }),
+        '/settings/storage': () => ({ providers: ['GOOGLE_DRIVE'], accounts: connected }),
       }),
       post: post as ApiClient['post'],
     }),
@@ -46,24 +60,24 @@ function setup(connected = accounts, post = vi.fn()) {
   return post;
 }
 
-describe('Add to Drive', () => {
+describe('Save to cloud storage', () => {
   it('asks for the account and folder, starting from that account’s default', async () => {
     const post = setup(
       accounts,
       vi.fn(async () => ({ files: [{ index: 0, name: 'marks.pdf', link: 'https://x' }] })),
     );
     await userEvent.click(await screen.findByRole('button', { name: /Add all to Drive/ }));
-    const dialog = within(await screen.findByRole('dialog', { name: 'Add to Drive' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Save to Google Drive' }));
     const folder = dialog.getByRole('textbox', { name: 'Folder' });
     expect(folder).toHaveValue('OneBox');
 
-    await userEvent.click(dialog.getByRole('radio', { name: 'work@gmail.com' }));
+    await userEvent.click(dialog.getByRole('radio', { name: /work@gmail\.com/ }));
     expect(folder).toHaveValue('Work');
     await userEvent.type(folder, '/2026');
-    await userEvent.click(dialog.getByRole('button', { name: 'Add to Drive' }));
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
 
     await waitFor(() =>
-      expect(post).toHaveBeenCalledWith('/mail/messages/m1/attachments/drive', {
+      expect(post).toHaveBeenCalledWith('/mail/messages/m1/attachments/save', {
         indexes: [0, 1],
         accountId: 'g2',
         path: 'Work/2026',
@@ -75,7 +89,7 @@ describe('Add to Drive', () => {
     const post = setup([]);
     await userEvent.click(await screen.findByRole('button', { name: /Add all to Drive/ }));
     expect(
-      await screen.findByText('Connect Google Drive to save files there.'),
+      await screen.findByText('Connect cloud storage to save files there.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(post).not.toHaveBeenCalled();

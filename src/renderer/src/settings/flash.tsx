@@ -7,6 +7,10 @@ export interface FlashInput {
   header?: ReactNode;
   // A button on the banner, e.g. Undo.
   action?: { label: string; onClick: () => void };
+  // A later banner with the same id replaces this one, e.g. "Saving…" then "Saved".
+  id?: string;
+  // Shows a spinner and stays until replaced.
+  loading?: boolean;
 }
 
 type Push = (flash: FlashInput) => void;
@@ -20,8 +24,8 @@ function useFlashItems() {
     [],
   );
   const push = useCallback<Push>(
-    ({ action, type, ...flash }) => {
-      const id = `flash-${nextId++}`;
+    ({ action, type, id: given, ...flash }) => {
+      const id = given ?? `flash-${nextId++}`;
       setItems((current) => [
         {
           ...flash,
@@ -37,9 +41,9 @@ function useFlashItems() {
             },
           }),
         },
-        ...current.slice(0, 2),
+        ...current.filter((item) => item.id !== id).slice(0, 2),
       ]);
-      if (type === 'success' || type === 'info')
+      if ((type === 'success' || type === 'info') && !flash.loading)
         setTimeout(() => dismiss(id), action ? 8000 : 5000);
     },
     [dismiss],
