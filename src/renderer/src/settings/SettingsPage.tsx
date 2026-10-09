@@ -9,6 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import { useCurrentUser } from '../auth/AuthProvider';
 import { useTheme, type ThemePreference } from '../theme/ThemeProvider';
 import { useUiVersion, type UiVersion } from '../theme/UiVersionProvider';
+import { BillingSection } from '../billing/BillingSection';
 import { AccountsSection } from './AccountsSection';
 import { AiSection } from './AiSection';
 import { FlashProvider } from './flash';
@@ -33,6 +34,7 @@ const TABS = [
       </SpaceBetween>
     ),
   },
+  { id: 'billing', label: 'Billing', content: <BillingSection /> },
   { id: 'appearance', label: 'Appearance', content: <Appearance /> },
 ];
 
