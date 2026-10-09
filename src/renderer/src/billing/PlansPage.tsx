@@ -8,7 +8,12 @@ import Container from '@cloudscape-design/components/container';
 import ContentLayout from '@cloudscape-design/components/content-layout';
 import Header from '@cloudscape-design/components/header';
 import SpaceBetween from '@cloudscape-design/components/space-between';
+import Link from '@cloudscape-design/components/link';
+import Popover from '@cloudscape-design/components/popover';
+import StatusIndicator from '@cloudscape-design/components/status-indicator';
+import Table from '@cloudscape-design/components/table';
 import Toggle from '@cloudscape-design/components/toggle';
+import CloudscapeIcon from '@cloudscape-design/components/icon';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useOptionalFlash } from '../settings/flash';
@@ -21,7 +26,9 @@ import {
   ANNUAL_SAVING,
   formatCredits,
   formatRupees,
+  COMPARISON,
   plansFor,
+  type ComparisonRow,
   type BillingInterval,
   type Plan,
 } from './plans';
@@ -180,6 +187,8 @@ function ConsolePlans() {
     event.preventDefault();
     void navigate(event.detail.href);
   };
+  const showComparison = () =>
+    document.getElementById('compare-plans')?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <ContentLayout
@@ -197,17 +206,15 @@ function ConsolePlans() {
       header={
         <Header
           variant="h1"
+          info={<CreditsInfo />}
           description="Pick the plan that suits you. Upgrade or downgrade at any time."
           actions={
-            <SpaceBetween direction="horizontal" size="xs" alignItems="center">
-              <Toggle
-                checked={interval === 'annual'}
-                onChange={({ detail }) => setBillingInterval(detail.checked ? 'annual' : 'monthly')}
-              >
-                Pay annually
-              </Toggle>
-              <Badge color="green">Save {ANNUAL_SAVING}</Badge>
-            </SpaceBetween>
+            <Toggle
+              checked={interval === 'annual'}
+              onChange={({ detail }) => setBillingInterval(detail.checked ? 'annual' : 'monthly')}
+            >
+              Pay annually (save {ANNUAL_SAVING})
+            </Toggle>
           }
         >
           Plans
@@ -221,7 +228,16 @@ function ConsolePlans() {
               const isCurrent = plan.id === current;
               const badge = BADGE[plan.id];
               return (
-                <Container key={plan.id} fitHeight disableContentPaddings>
+                <Container
+                  key={plan.id}
+                  fitHeight
+                  disableContentPaddings
+                  footer={
+                    <Box textAlign="center">
+                      <Link onFollow={showComparison}>Compare plans</Link>
+                    </Box>
+                  }
+                >
                   <div className={styles.consoleCard}>
                     <div className={`${styles.consoleHead} ${styles[plan.id.toLowerCase()]}`}>
                       <div className={styles.consoleTitle}>
@@ -230,7 +246,9 @@ function ConsolePlans() {
                           {badge && <Icon name={badge} size={20} />}
                         </h2>
                         {isCurrent ? (
-                          <Badge color="blue">Current plan</Badge>
+                          <span className={styles.consoleStatus}>
+                            <StatusIndicator type="success">Current plan</StatusIndicator>
+                          </span>
                         ) : plan.id === RECOMMENDED ? (
                           <Badge color="green">Recommended</Badge>
                         ) : null}
@@ -249,12 +267,15 @@ function ConsolePlans() {
                             <> · saves {formatRupees(yearlySaving(plan))} a year</>
                           )}
                         </Box>
-                        <div className={styles.consoleCredits}>
-                          <Icon name="credit" size={22} />
-                          <span>
-                            <b>{formatCredits(plan.credits)}</b> credits{' '}
-                            {plan.monthlyPrice ? 'per month' : 'to start'}
-                          </span>
+                        <div>
+                          <Box variant="awsui-key-label">Credits</Box>
+                          <div className={styles.consoleCreditValue}>
+                            <Icon name="credit" size={22} />
+                            <span>
+                              <b>{formatCredits(plan.credits)}</b>{' '}
+                              {plan.monthlyPrice ? 'per month' : 'to start'}
+                            </span>
+                          </div>
                         </div>
                         <Button
                           fullWidth
@@ -286,9 +307,57 @@ function ConsolePlans() {
             })}
           </ColumnLayout>
         </div>
+        <div id="compare-plans">
+          <Table
+            variant="container"
+            header={
+              <Header variant="h2" description="What each plan includes, side by side.">
+                Compare plans
+              </Header>
+            }
+            trackBy="feature"
+            items={COMPARISON}
+            columnDefinitions={[
+              { id: 'feature', header: 'Feature', cell: (row) => row.feature, isRowHeader: true },
+              ...plansFor(interval).map((plan) => ({
+                id: plan.id,
+                header: plan.name,
+                cell: (row: ComparisonRow) => <ComparisonValue value={row.values[plan.id]} />,
+              })),
+            ]}
+          />
+        </div>
         <Alert type="info">{NOTE}</Alert>
       </SpaceBetween>
     </ContentLayout>
+  );
+}
+
+// Included, not included, or a short value, the way AWS tables show them.
+function ComparisonValue({ value }: { value: boolean | string }) {
+  if (value === true) return <CloudscapeIcon name="check" variant="success" ariaLabel="Included" />;
+  if (value === false) {
+    return (
+      <Box color="text-status-inactive">
+        <span aria-label="Not included">–</span>
+      </Box>
+    );
+  }
+  return <>{value}</>;
+}
+
+// The Info link next to the title: what credits are and what they pay for.
+function CreditsInfo() {
+  return (
+    <Popover
+      header="How credits work"
+      content={NOTE}
+      triggerType="custom"
+      dismissButton={false}
+      size="medium"
+    >
+      <Link variant="info">Info</Link>
+    </Popover>
   );
 }
 

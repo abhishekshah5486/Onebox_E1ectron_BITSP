@@ -366,24 +366,34 @@
   padding: 20px 24px 24px;
 }
 
-.consoleCredits {
+/* A key-value pair, as AWS shows figures: label above, value below. */
+.consoleCreditValue {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border: 1px solid var(--ob-border);
-  border-radius: 12px;
+  gap: 8px;
+  margin-top: 2px;
   color: var(--ob-text);
-  font-size: 14px;
+  font-size: 16px;
 }
 
-.consoleCredits svg {
+.consoleCreditValue svg {
   flex: none;
   color: #a35c00;
 }
 
-:root[data-theme='dark'] .consoleCredits svg {
+:root[data-theme='dark'] .consoleCreditValue svg {
   color: #fdd663;
+}
+
+/* The status reads on the light bands as well as the dark one. */
+.consoleStatus {
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 80%);
+}
+
+.standard .consoleStatus {
+  background: rgb(0 0 0 / 35%);
 }
 
 .consoleFeatures {

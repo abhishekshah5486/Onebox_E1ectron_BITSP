@@ -84,6 +84,54 @@ export const PLANS: Plan[] = [
 
 export const ANNUAL_SAVING = '17%';
 
+// The plans side by side, row by row: true / false for included or not, or a short value.
+export interface ComparisonRow {
+  feature: string;
+  values: Record<PlanId, boolean | string>;
+}
+
+export const COMPARISON: ComparisonRow[] = [
+  {
+    feature: 'AI credits',
+    values: { FREE: '20, once', STANDARD: '500 a month', PRO: '2,000 a month' },
+  },
+  {
+    feature: 'Bonus credits',
+    values: { FREE: false, STANDARD: '250 in the first month', PRO: false },
+  },
+  {
+    feature: 'Unified inbox for all your accounts',
+    values: { FREE: true, STANDARD: true, PRO: true },
+  },
+  {
+    feature: 'Save attachments to cloud storage',
+    values: { FREE: true, STANDARD: true, PRO: true },
+  },
+  {
+    feature: 'AI sorting into your own labels',
+    values: { FREE: 'With free credits', STANDARD: true, PRO: true },
+  },
+  {
+    feature: 'Suggestions you review before they apply',
+    values: { FREE: false, STANDARD: true, PRO: true },
+  },
+  { feature: 'Summaries and reply drafts', values: { FREE: false, STANDARD: true, PRO: true } },
+  {
+    feature: 'Choose the AI model for each task',
+    values: { FREE: false, STANDARD: true, PRO: true },
+  },
+  { feature: 'Buy extra credits', values: { FREE: false, STANDARD: true, PRO: true } },
+  {
+    feature: 'Automation rules and Slack alerts',
+    values: { FREE: false, STANDARD: false, PRO: true },
+  },
+  { feature: 'Priority support', values: { FREE: false, STANDARD: false, PRO: true } },
+  {
+    feature: 'Early access to new AI features',
+    values: { FREE: false, STANDARD: false, PRO: true },
+  },
+];
+
 // Free has no yearly price, so yearly billing only lists the paid plans.
 export const plansFor = (interval: BillingInterval) =>
   interval === 'annual' ? PLANS.filter((plan) => plan.monthlyPrice > 0) : PLANS;
