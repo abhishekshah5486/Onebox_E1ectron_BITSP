@@ -6,6 +6,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-top: auto;
   margin-bottom: calc(-1 * var(--reading-end, 0px));
   padding: 16px 0 calc(20px + var(--reading-end, 0px)) 56px;
   background: var(--ob-surface-raised);

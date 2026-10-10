@@ -70,6 +70,9 @@
   --ob-scroll-thumb: #c4c7c5;
   --ob-star: #f4b400;
 
+  /* A column, so Reply and Forward sit at the bottom even under a short email. */
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow-y: scroll;
@@ -78,6 +81,10 @@
   padding: 12px 24px var(--reading-end) 0;
   background: #ffffff;
   color: var(--ob-text);
+}
+
+.body > * {
+  flex: none;
 }
 
 .body::-webkit-scrollbar {
@@ -237,8 +244,8 @@
   top: 22px;
   left: -8px;
   z-index: 30;
-  min-width: 360px;
-  max-width: min(640px, 70vw);
+  min-width: 300px;
+  max-width: min(420px, 70vw);
   padding: 12px 20px 12px 8px;
   border: 1px solid var(--ob-border);
   background: var(--ob-surface-raised);
