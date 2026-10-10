@@ -346,27 +346,31 @@ function MailTable({
             )
           }
           header={
-            <Header
-              variant="awsui-h1-sticky"
-              counter={counter}
-              description={description}
-              actions={
-                <SpaceBetween direction="horizontal" size="xs">
-                  <Button iconName="refresh" ariaLabel="Refresh" onClick={onRefresh} />
-                  <ConsoleActions
-                    view={view}
-                    folders={folders ?? soleFolders}
-                    selected={selected}
-                    onAction={(request) => run(selected, request)}
-                  />
-                  <Button variant="primary" iconName="edit" onClick={() => compose.open()}>
-                    Compose email
-                  </Button>
-                </SpaceBetween>
-              }
-            >
-              {title}
-            </Header>
+            // The tabs get a row of their own, so the filter and pages below never reflow.
+            <SpaceBetween size="m">
+              <Header
+                variant="awsui-h1-sticky"
+                counter={counter}
+                description={description}
+                actions={
+                  <SpaceBetween direction="horizontal" size="xs">
+                    <Button iconName="refresh" ariaLabel="Refresh" onClick={onRefresh} />
+                    <ConsoleActions
+                      view={view}
+                      folders={folders ?? soleFolders}
+                      selected={selected}
+                      onAction={(request) => run(selected, request)}
+                    />
+                    <Button variant="primary" iconName="edit" onClick={() => compose.open()}>
+                      Compose email
+                    </Button>
+                  </SpaceBetween>
+                }
+              >
+                {title}
+              </Header>
+              {tabs}
+            </SpaceBetween>
           }
           filter={
             <div className={styles.filters}>
@@ -377,7 +381,6 @@ function MailTable({
                 onChange={({ detail }) => setFilter(detail.filteringText)}
                 countText={filter ? `${items.length} matches` : undefined}
               />
-              {tabs}
             </div>
           }
           pagination={
@@ -519,12 +522,16 @@ export function ConsoleUnifiedMailbox({
               ? 'No starred conversations'
               : folder && folder !== 'inbox'
                 ? `Nothing in ${FOLDER_LABEL[folder]}`
-                : 'Your inbox is empty'
+                : tabbed && category !== 'primary'
+                  ? `Nothing in ${CATEGORY_LABEL[category]}`
+                  : 'Your inbox is empty'
           }
           body={
-            hasAccounts
-              ? 'New mail from your connected accounts appears here automatically.'
-              : 'Connect a Gmail, Outlook or IMAP account to get started.'
+            !hasAccounts
+              ? 'Connect a Gmail, Outlook or IMAP account to get started.'
+              : tabbed && category !== 'primary'
+                ? `Mail Gmail files under ${CATEGORY_LABEL[category]} appears here.`
+                : 'New mail from your connected accounts appears here automatically.'
           }
           action={
             !hasAccounts && (
@@ -649,13 +656,21 @@ function AccountTable({ accountId, view }: { accountId: string; view: MailboxVie
       }
       empty={
         <EmptyMessage
-          title={inbox ? 'No mail yet' : `Nothing in ${label}`}
+          title={
+            tabbed && category !== 'primary'
+              ? `Nothing in ${CATEGORY_LABEL[category]}`
+              : inbox
+                ? 'No mail yet'
+                : `Nothing in ${label}`
+          }
           body={
-            inbox
-              ? 'OneBox is syncing the newest messages from this account.'
-              : server === null
-                ? 'OneBox has not found this folder on the server yet. It checks every couple of minutes.'
-                : 'This folder is empty.'
+            tabbed && category !== 'primary'
+              ? `Mail Gmail files under ${CATEGORY_LABEL[category]} appears here.`
+              : inbox
+                ? 'OneBox is syncing the newest messages from this account.'
+                : server === null
+                  ? 'OneBox has not found this folder on the server yet. It checks every couple of minutes.'
+                  : 'This folder is empty.'
           }
         />
       }

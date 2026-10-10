@@ -168,7 +168,7 @@ describe('v2 console', () => {
         '/mail/threads?': pageOf(threads(1)),
       }),
     );
-    renderConsole('/inbox', fakeApi({ ...restore, get }));
+    renderConsole('/inbox', fakeApi({ ...restore, get: get as ApiClient['get'] }));
 
     const tabs = within(await screen.findByRole('tablist', { name: 'Inbox categories' }));
     expect(tabs.getByRole('tab', { name: 'Primary' })).toHaveAttribute('aria-selected', 'true');
