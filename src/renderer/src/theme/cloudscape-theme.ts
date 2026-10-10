@@ -35,6 +35,17 @@ export const consoleTheme: Theme = {
   // background, as their consoles do).
   tokens: {
     colorBackgroundLayoutPanelContent: { light: '#ffffff', dark: '#0f1319' },
+    // AWS's console: page and cards on the same dark, cards set apart by their borders.
+    colorBackgroundLayoutMain: { dark: '#131920' },
+    colorBackgroundContainerContent: { dark: '#131920' },
+    colorBackgroundContainerHeader: { dark: '#131920' },
+    // AWS's orange call-to-action buttons (e.g. "Add widgets"), with dark text.
+    colorBackgroundButtonPrimaryDefault: { light: '#ff9900', dark: '#ff9900' },
+    colorBackgroundButtonPrimaryHover: { light: '#ec7211', dark: '#ffac31' },
+    colorBackgroundButtonPrimaryActive: { light: '#eb5f07', dark: '#ec7211' },
+    colorTextButtonPrimaryDefault: { light: '#0f141a', dark: '#0f141a' },
+    colorTextButtonPrimaryHover: { light: '#0f141a', dark: '#0f141a' },
+    colorTextButtonPrimaryActive: { light: '#0f141a', dark: '#0f141a' },
   },
   contexts: {
     'top-navigation': {
