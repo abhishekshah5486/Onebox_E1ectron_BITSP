@@ -29,6 +29,19 @@
   background: #ffffff;
   color: #1f1f1f;
   /* Light colours for what sits on the white page, such as attachment cards. */
+  /* A reply written inside the white page uses compose's light colours. */
+  --ob-compose-bg: #ffffff;
+  --ob-compose-header: #f2f6fc;
+  --ob-compose-title: #041e49;
+  --ob-compose-text: #1f1f1f;
+  --ob-compose-muted: #5e5e5e;
+  --ob-compose-placeholder: #757575;
+  --ob-compose-line: #e0e3e7;
+  --ob-compose-bar: #edf2fa;
+  --ob-compose-hover: rgb(68 71 70 / 8%);
+  --ob-compose-pressed: #d3e3fd;
+  --ob-compose-menu: #ffffff;
+  --ob-compose-chip-line: #747775;
   --ob-text: #1f1f1f;
   --ob-storage-pill: #e9eef6;
   --ob-storage-pill-hover: #dde3ea;
@@ -255,6 +268,40 @@
 .unsubscribe:disabled {
   opacity: 0.6;
   cursor: progress;
+}
+
+/* Reply and Forward, kept in view at the bottom of the white page. */
+.replyBar {
+  position: sticky;
+  bottom: -28px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  margin: 16px -28px -28px;
+  padding: 12px 28px 20px;
+  border-top: 1px solid #e9ebed;
+  background: #ffffff;
+}
+
+.replyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 18px 4px 14px;
+  border: 2px solid #006ce0;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #006ce0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.replyButton:hover {
+  background: #f0fbff;
+  border-color: #002b66;
+  color: #002b66;
 }
 
 .unsubscribed {

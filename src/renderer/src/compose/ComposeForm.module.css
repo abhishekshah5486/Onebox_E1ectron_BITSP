@@ -4,62 +4,134 @@
   flex-direction: column;
   min-height: 0;
   padding: 0 16px;
+  color: var(--ob-compose-text);
 }
 
 .dragging {
-  outline: 2px dashed var(--ob-accent);
+  outline: 2px dashed var(--ob-compose-send);
   outline-offset: -6px;
+}
+
+/* One line under all the recipient rows, as in Gmail. */
+.recipients {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--ob-compose-line);
+}
+
+.label {
+  flex: none;
+  min-width: 22px;
+  color: var(--ob-compose-muted);
+  font-size: 14px;
 }
 
 .from {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
-  border-bottom: 1px solid var(--ob-border);
-  color: var(--ob-text-muted);
-  font-size: 14px;
+  min-height: 40px;
 }
 
-.from select {
-  flex: 1;
+.fromValue {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--ob-compose-muted);
+}
+
+.fromValue select {
+  appearance: none;
+  max-width: 100%;
+  padding-right: 22px;
   border: none;
   outline: none;
   background: transparent;
-  color: var(--ob-text);
-  font: inherit;
-}
-
-.link {
-  flex: none;
-  padding: 0 4px;
-  border: none;
-  background: transparent;
-  color: var(--ob-text-muted);
+  color: var(--ob-compose-text);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 
-.link:hover {
+.fromValue select option {
+  background: var(--ob-compose-menu);
+  color: var(--ob-compose-text);
+}
+
+.fromValue svg {
+  position: absolute;
+  right: 0;
+  pointer-events: none;
+}
+
+.copyLinks {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.copyLinks button {
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--ob-compose-muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.copyLinks button:hover {
+  color: var(--ob-compose-text);
   text-decoration: underline;
 }
 
-.subject {
-  min-height: 36px;
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0;
+  overflow: hidden;
   border: none;
-  border-bottom: 1px solid var(--ob-border);
+  background: transparent;
+  color: var(--ob-compose-text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.summary small {
+  color: var(--ob-compose-muted);
+}
+
+.placeholder {
+  color: var(--ob-compose-placeholder);
+}
+
+.subject {
+  min-height: 40px;
+  border: none;
+  border-bottom: 1px solid var(--ob-compose-line);
   outline: none;
   background: transparent;
-  color: inherit;
+  color: var(--ob-compose-text);
   font: inherit;
   font-size: 14px;
 }
 
+.subject::placeholder {
+  color: var(--ob-compose-placeholder);
+}
+
+/* Gmail lists attachments as grey bars: name, size, and a remove button. */
 .attachments {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   margin: 0 0 8px;
   padding: 0;
   list-style: none;
@@ -69,77 +141,151 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  max-width: 100%;
-  padding: 2px 2px 2px 10px;
-  border-radius: 8px;
-  background: var(--ob-surface-hover);
+  max-width: 440px;
+  height: 32px;
+  padding: 0 4px 0 10px;
+  border-radius: 4px;
+  background: var(--ob-compose-bar);
   font-size: 13px;
 }
 
 .name {
   overflow: hidden;
-  max-width: 220px;
+  color: #1a73e8;
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .attachments small {
-  color: var(--ob-text-muted);
+  color: var(--ob-compose-muted);
 }
 
-.uploading {
-  padding-right: 10px !important;
-}
-
-.spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--ob-border);
-  border-top-color: var(--ob-accent);
+.attachments button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  animation: spin 800ms linear infinite;
+  background: transparent;
+  color: var(--ob-compose-muted);
+  cursor: pointer;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.attachments button:hover {
+  background: var(--ob-compose-hover);
+}
+
+.progress {
+  width: 140px;
+  height: 14px;
+  margin-left: auto;
+  padding: 2px;
+  border: 1px solid var(--ob-compose-chip-line);
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: #7b8fe0;
+  transition: width 150ms linear;
 }
 
 .footer {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 0 12px;
+  gap: 2px;
+  padding: 10px 0 14px;
 }
 
-.send {
-  height: 36px;
+/* Send and its options, joined into one pill. */
+.sendGroup {
+  display: inline-flex;
   margin-right: 8px;
-  padding: 0 24px;
+}
+
+.send,
+.sendMore {
+  height: 40px;
   border: none;
-  border-radius: 18px;
-  background: var(--ob-accent);
-  color: var(--ob-accent-contrast);
+  background: var(--ob-compose-send);
+  color: var(--ob-compose-on-send);
   font: inherit;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
 
-.send:hover:not(:disabled) {
-  background: var(--ob-accent-hover);
-  box-shadow: var(--ob-row-hover-shadow);
+.send {
+  padding: 0 24px;
+  border-radius: 20px 0 0 20px;
 }
 
-.send:disabled {
+.sendMore {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  padding: 0 4px 0 0;
+  border-left: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 0 20px 20px 0;
+}
+
+.send:hover:not(:disabled),
+.sendMore:hover:not(:disabled) {
+  background: var(--ob-compose-send-hover);
+}
+
+.send:disabled,
+.sendMore:disabled {
   opacity: 0.7;
   cursor: progress;
 }
 
+.footerButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ob-compose-muted);
+  cursor: pointer;
+}
+
+.footerButton:hover {
+  background: var(--ob-compose-hover);
+  color: var(--ob-compose-text);
+}
+
+.footerButton[aria-pressed='true'] {
+  background: var(--ob-compose-pressed);
+  color: var(--ob-compose-text);
+}
+
 .status {
   flex: 1;
-  color: var(--ob-text-muted);
+  padding-left: 8px;
+  color: var(--ob-compose-muted);
   font-size: 12px;
+}
+
+.popupRoot {
+  position: relative;
+  display: inline-flex;
+}
+
+.schedule,
+.emoji {
+  overflow: hidden;
+}
+
+.emojiLoading {
+  display: block;
+  padding: 16px;
+  color: var(--ob-compose-muted);
+  font-size: 13px;
 }

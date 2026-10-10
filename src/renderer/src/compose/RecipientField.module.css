@@ -3,13 +3,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
-  border-bottom: 1px solid var(--ob-border);
+  min-height: 40px;
 }
 
 .label {
   flex: none;
-  color: var(--ob-text-muted);
+  min-width: 22px;
+  color: var(--ob-compose-muted);
   font-size: 14px;
 }
 
@@ -26,54 +26,80 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  max-width: 260px;
-  height: 24px;
-  padding: 0 4px 0 10px;
-  border: 1px solid var(--ob-border);
-  border-radius: 12px;
-  font-size: 13px;
+  gap: 6px;
+  max-width: 300px;
+  height: 32px;
+  padding: 0 4px 0 2px;
+  border: 1px solid var(--ob-compose-chip-line);
+  border-radius: 16px;
+  color: var(--ob-compose-text);
+  font-size: 14px;
   white-space: nowrap;
 }
 
 .chip button {
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--ob-text-muted);
+  color: var(--ob-compose-muted);
   cursor: pointer;
 }
 
 .chip button:hover {
-  background: var(--ob-surface-hover);
+  background: var(--ob-compose-hover);
 }
 
 .input {
   flex: 1;
   min-width: 120px;
+  height: 28px;
   border: none;
   outline: none;
   background: transparent;
-  color: inherit;
+  color: var(--ob-compose-text);
   font: inherit;
   font-size: 14px;
+}
+
+.avatar,
+.avatarLarge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+}
+
+.avatarLarge {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
 }
 
 .suggestions {
   position: absolute;
   top: 100%;
   left: 24px;
-  z-index: 5;
-  min-width: 300px;
+  z-index: 30;
+  width: min(560px, calc(100% - 24px));
+  max-height: 360px;
+  overflow-y: auto;
   margin: 0;
-  padding: 6px 0;
+  padding: 8px 0;
   border-radius: 8px;
-  background: var(--ob-surface-raised);
+  background: var(--ob-compose-menu);
   box-shadow: var(--ob-shadow);
   list-style: none;
 }
@@ -81,34 +107,36 @@
 .suggestions li {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
+  gap: 14px;
+  padding: 8px 16px;
+  color: var(--ob-compose-text);
   cursor: pointer;
 }
 
 .suggestions li span:last-child {
   display: flex;
   flex-direction: column;
-  font-size: 13px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.suggestions b {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .suggestions small {
-  color: var(--ob-text-muted);
+  overflow: hidden;
+  color: var(--ob-compose-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .suggestions li:hover,
 .active {
-  background: var(--ob-surface-hover);
-}
-
-.avatar {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--ob-accent);
-  color: var(--ob-accent-contrast);
-  font-size: 13px;
+  background: var(--ob-compose-hover);
 }

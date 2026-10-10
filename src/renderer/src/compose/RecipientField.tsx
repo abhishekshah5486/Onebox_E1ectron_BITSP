@@ -2,8 +2,20 @@ import { useState } from 'react';
 import type { Recipient } from '../api/compose';
 import { useContacts } from '../api/compose';
 import { Icon } from '../ui/Icon';
-import { parseRecipients, recipientLabel } from './model';
+import { avatarColor, parseRecipients, recipientLabel } from './model';
 import styles from './RecipientField.module.css';
+
+function Avatar({ recipient, large = false }: { recipient: Recipient; large?: boolean }) {
+  return (
+    <span
+      className={large ? styles.avatarLarge : styles.avatar}
+      style={{ background: avatarColor(recipient.address) }}
+      aria-hidden="true"
+    >
+      {recipientLabel(recipient).charAt(0).toUpperCase()}
+    </span>
+  );
+}
 
 // A Gmail-style recipients line: chips for addresses, suggestions as you type.
 export function RecipientField({
@@ -49,6 +61,7 @@ export function RecipientField({
       <div className={styles.chips}>
         {value.map((recipient) => (
           <span key={recipient.address} className={styles.chip} title={recipient.address}>
+            <Avatar recipient={recipient} />
             {recipientLabel(recipient)}
             <button
               type="button"
@@ -119,11 +132,9 @@ export function RecipientField({
                 setText('');
               }}
             >
-              <span className={styles.avatar} aria-hidden="true">
-                {recipientLabel(contact).charAt(0).toUpperCase()}
-              </span>
+              <Avatar recipient={contact} large />
               <span>
-                {contact.name && <b>{contact.name}</b>}
+                <b>{contact.name ?? contact.address}</b>
                 <small>{contact.address}</small>
               </span>
             </li>

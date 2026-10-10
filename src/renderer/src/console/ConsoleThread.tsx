@@ -308,6 +308,36 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
                 defaultExpanded={index === all.length - 1 || !message.isRead}
               />
             ))}
+            <div className={styles.replyBar}>
+              <button
+                type="button"
+                className={styles.replyButton}
+                onClick={() => replyWith('reply')}
+              >
+                <OneboxIcon name="reply" size={18} />
+                Reply
+              </button>
+              {(query.data.messages.at(-1)?.to.length ?? 0) +
+                (query.data.messages.at(-1)?.cc.length ?? 0) >
+                1 && (
+                <button
+                  type="button"
+                  className={styles.replyButton}
+                  onClick={() => replyWith('replyAll')}
+                >
+                  <OneboxIcon name="replyAll" size={18} />
+                  Reply all
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.replyButton}
+                onClick={() => replyWith('forward')}
+              >
+                <OneboxIcon name="forward" size={18} />
+                Forward
+              </button>
+            </div>
           </>
         )}
       </div>

@@ -16,7 +16,8 @@ import type { AttachmentFile } from './useAttachment';
 
 const LAST_ACCOUNT = 'onebox.storage.lastAccount';
 
-const lastAccount = () => {
+// The storage account used last, offered first next time (also by compose).
+export const lastAccount = () => {
   try {
     return localStorage.getItem(LAST_ACCOUNT) ?? undefined;
   } catch {
@@ -24,7 +25,7 @@ const lastAccount = () => {
   }
 };
 
-const rememberAccount = (id: string) => {
+export const rememberAccount = (id: string) => {
   try {
     localStorage.setItem(LAST_ACCOUNT, id);
   } catch {

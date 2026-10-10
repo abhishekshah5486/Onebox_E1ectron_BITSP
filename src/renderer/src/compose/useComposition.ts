@@ -6,7 +6,7 @@ import { describeError } from '../auth/errors';
 import { useNotify } from '../ui/useNotify';
 import type { ComposeRequest } from './ComposeProvider';
 import { useCompose } from './ComposeProvider';
-import { hasContent, MAX_ATTACHMENT_BYTES } from './model';
+import { hasContent, MAX_ATTACHMENT_BYTES, sharedFileHtml } from './model';
 
 const SAVE_AFTER_MS = 1_500;
 
@@ -14,6 +14,8 @@ export interface Upload {
   id: string;
   filename: string;
   sizeBytes: number;
+  // 0 to 1, as it goes up.
+  progress: number;
 }
 
 export type SaveState = 'unsaved' | 'saving' | 'saved' | 'error';
@@ -27,6 +29,8 @@ export function useComposition(request: ComposeRequest) {
   const notify = useNotify();
   const [composition, setComposition] = useState<Composition>(request.composition);
   const [uploads, setUploads] = useState<Upload[]>([]);
+  // Files over the 25 MB limit, waiting for the person to agree to share them by link.
+  const [tooLarge, setTooLarge] = useState<File[]>([]);
   const [saveState, setSaveState] = useState<SaveState>(request.draftId ? 'saved' : 'unsaved');
   const [sending, setSending] = useState(false);
   const draftId = useRef(request.draftId ?? crypto.randomUUID());
@@ -71,37 +75,77 @@ export function useComposition(request: ComposeRequest) {
     return () => clearTimeout(timer);
   }, [composition, save]);
 
-  const addFiles = useCallback(
-    async (files: File[]) => {
-      const used = latest.current.attachments.reduce((sum, a) => sum + a.sizeBytes, 0);
-      const adding = files.reduce((sum, file) => sum + file.size, 0);
-      if (used + adding > MAX_ATTACHMENT_BYTES) {
+  // Runs one upload, showing its progress until it finishes either way.
+  const track = useCallback(
+    async <T>(file: File, upload: (onProgress: (fraction: number) => void) => Promise<T>) => {
+      const id = crypto.randomUUID();
+      const progress = (fraction: number) =>
+        setUploads((current) =>
+          current.map((u) => (u.id === id ? { ...u, progress: fraction } : u)),
+        );
+      setUploads((current) => [
+        ...current,
+        { id, filename: file.name, sizeBytes: file.size, progress: 0 },
+      ]);
+      try {
+        return await upload(progress);
+      } catch (error) {
         notify({
           type: 'error',
-          content: 'Attachments can be up to 25 MB in total. Share bigger files with a link.',
+          header: `Couldn't attach ${file.name}.`,
+          content: describeError(error),
         });
-        return;
+        return null;
+      } finally {
+        setUploads((current) => current.filter((u) => u.id !== id));
       }
+    },
+    [notify],
+  );
+
+  // Attaches what fits in 25 MB; anything beyond waits to be shared from cloud storage.
+  const addFiles = useCallback(
+    async (files: File[]) => {
+      let room =
+        MAX_ATTACHMENT_BYTES - latest.current.attachments.reduce((sum, a) => sum + a.sizeBytes, 0);
+      const attach: File[] = [];
+      const large: File[] = [];
+      for (const file of files) {
+        if (file.size <= room) {
+          attach.push(file);
+          room -= file.size;
+        } else {
+          large.push(file);
+        }
+      }
+      if (large.length) setTooLarge((current) => [...current, ...large]);
       await Promise.all(
-        files.map(async (file) => {
-          const id = crypto.randomUUID();
-          setUploads((current) => [...current, { id, filename: file.name, sizeBytes: file.size }]);
-          try {
-            const attachment = await composeApi.upload(api, file);
+        attach.map(async (file) => {
+          const attachment = await track(file, (onProgress) =>
+            composeApi.upload(api, file, onProgress),
+          );
+          if (attachment)
             update((current) => ({ attachments: [...current.attachments, attachment] }));
-          } catch (error) {
-            notify({
-              type: 'error',
-              header: `Couldn't attach ${file.name}.`,
-              content: describeError(error),
-            });
-          } finally {
-            setUploads((current) => current.filter((upload) => upload.id !== id));
-          }
         }),
       );
     },
-    [api, notify, update],
+    [api, track, update],
+  );
+
+  // The person agreed: the large files go to their cloud storage, and links to them go in the
+  // message (inserted by the editor where the caret is).
+  const shareTooLarge = useCallback(
+    async (storageAccountId: string, insert: (html: string) => void) => {
+      const files = tooLarge;
+      setTooLarge([]);
+      for (const file of files) {
+        const shared = await track(file, (onProgress) =>
+          composeApi.uploadToCloud(api, file, storageAccountId, onProgress),
+        );
+        if (shared) insert(sharedFileHtml(shared));
+      }
+    },
+    [api, track, tooLarge],
   );
 
   const removeAttachment = useCallback(
@@ -122,18 +166,25 @@ export function useComposition(request: ComposeRequest) {
           ? 'Wait for attachments to finish uploading.'
           : null;
 
-  const send = useCallback(async () => {
-    if (problem) {
-      notify({ type: 'error', content: problem });
-      return false;
-    }
-    setSending(true);
-    dirty.current = false;
-    const sent = await compose.send(latest.current, stored.current ? draftId.current : undefined);
-    setSending(false);
-    if (!sent) dirty.current = true;
-    return sent;
-  }, [compose, notify, problem]);
+  const send = useCallback(
+    async (sendAt?: Date) => {
+      if (problem) {
+        notify({ type: 'error', content: problem });
+        return false;
+      }
+      setSending(true);
+      dirty.current = false;
+      const sent = await compose.send(
+        latest.current,
+        stored.current ? draftId.current : undefined,
+        sendAt,
+      );
+      setSending(false);
+      if (!sent) dirty.current = true;
+      return sent;
+    },
+    [compose, notify, problem],
+  );
 
   // Closing keeps the draft (saved straight away); discarding deletes it.
   const keep = useCallback(async () => {
@@ -154,6 +205,9 @@ export function useComposition(request: ComposeRequest) {
     update,
     uploads,
     addFiles,
+    tooLarge,
+    shareTooLarge,
+    keepSmallOnly: () => setTooLarge([]),
     removeAttachment,
     saveState,
     sending,

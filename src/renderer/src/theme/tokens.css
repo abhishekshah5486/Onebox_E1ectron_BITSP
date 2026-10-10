@@ -39,6 +39,22 @@
   --ob-outline: #747775;
   --ob-danger: #b3261e;
   --ob-shadow: 0 1px 3px rgb(60 64 67 / 30%), 0 4px 8px 3px rgb(60 64 67 / 15%);
+  /* Gmail's compose window. */
+  --ob-compose-bg: #ffffff;
+  --ob-compose-header: #f2f6fc;
+  --ob-compose-title: #041e49;
+  --ob-compose-text: #1f1f1f;
+  --ob-compose-muted: #5e5e5e;
+  --ob-compose-placeholder: #757575;
+  --ob-compose-line: #e0e3e7;
+  --ob-compose-bar: #edf2fa;
+  --ob-compose-hover: rgb(68 71 70 / 8%);
+  --ob-compose-pressed: #d3e3fd;
+  --ob-compose-send: #0b57d0;
+  --ob-compose-send-hover: #0a4fbf;
+  --ob-compose-on-send: #ffffff;
+  --ob-compose-menu: #ffffff;
+  --ob-compose-chip-line: #747775;
 }
 
 :root[data-theme='dark'] {
@@ -86,6 +102,21 @@
   --ob-scroll-thumb: #808080;
   --ob-danger: #f2b8b5;
   --ob-shadow: 0 1px 3px rgb(0 0 0 / 60%), 0 4px 8px 3px rgb(0 0 0 / 30%);
+  --ob-compose-bg: #1e1f20;
+  --ob-compose-header: #28292a;
+  --ob-compose-title: #e3e3e3;
+  --ob-compose-text: #e3e3e3;
+  --ob-compose-muted: #c4c7c5;
+  --ob-compose-placeholder: #8e918f;
+  --ob-compose-line: #3c3d3e;
+  --ob-compose-bar: #2b2c2e;
+  --ob-compose-hover: rgb(227 227 227 / 8%);
+  --ob-compose-pressed: #3c4043;
+  --ob-compose-send: #0b57d0;
+  --ob-compose-send-hover: #1a63da;
+  --ob-compose-on-send: #ffffff;
+  --ob-compose-menu: #2b2c2e;
+  --ob-compose-chip-line: #8e918f;
 }
 
 :root {

@@ -18,9 +18,9 @@
   max-width: calc(100vw - 32px);
   height: min(560px, calc(100vh - 96px));
   overflow: hidden;
-  border-radius: 12px 12px 0 0;
-  background: var(--ob-dialog-bg);
-  color: var(--ob-dialog-text);
+  border-radius: 16px 16px 0 0;
+  background: var(--ob-compose-bg);
+  color: var(--ob-compose-text);
   box-shadow: var(--ob-shadow);
   pointer-events: auto;
 }
@@ -30,9 +30,10 @@
   flex: none;
   align-items: center;
   gap: 8px;
-  height: 40px;
-  padding: 0 4px 0 16px;
-  background: var(--ob-surface-hover);
+  height: 44px;
+  padding: 0 6px 0 16px;
+  background: var(--ob-compose-header);
+  color: var(--ob-compose-title);
   cursor: default;
 }
 
@@ -40,6 +41,7 @@
   flex: 1;
   overflow: hidden;
   margin: 0;
+  color: var(--ob-compose-title);
   font-size: 14px;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -63,7 +65,11 @@
   width: min(1100px, 90vw);
   max-width: none;
   height: 88vh;
-  border-radius: 12px;
+  border-radius: 16px;
+}
+
+.header button {
+  color: var(--ob-compose-muted);
 }
 
 .backdrop {

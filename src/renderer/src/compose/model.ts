@@ -1,5 +1,7 @@
-import type { Composition, Recipient, ReplyMode } from '../api/compose';
+import type { Composition, Recipient, ReplyMode, SharedFile } from '../api/compose';
 import type { Address, Message } from '../api/mail';
+import { formatBytes } from '../mail/format';
+import { STORAGE_PROVIDERS } from '../storage/providers';
 
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
@@ -157,3 +159,26 @@ export const hasContent = (composition: Composition) =>
   composition.subject.trim() !== '' ||
   composition.text.trim() !== '' ||
   composition.attachments.length > 0;
+
+// A steady colour per address for its avatar, like Gmail's letter avatars.
+const AVATAR_COLORS = [
+  '#1a73e8',
+  '#188038',
+  '#e8710a',
+  '#a142f4',
+  '#d93025',
+  '#12858e',
+  '#c5221f',
+  '#3367d6',
+];
+export const avatarColor = (address: string) => {
+  let hash = 0;
+  for (const char of address) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]!;
+};
+
+// A file shared from cloud storage, as a link chip in the message (inline styles, for mail apps).
+export const sharedFileHtml = (file: SharedFile) =>
+  `<div style="display:inline-block;margin:4px 0;padding:6px 12px;border:1px solid #dadce0;border-radius:16px">` +
+  `<a href="${escapeHtml(file.link)}" style="color:#1a73e8;font-weight:500;text-decoration:none">${escapeHtml(file.name)}</a>` +
+  ` <span style="color:#5f6368">(${formatBytes(file.sizeBytes)}) · ${STORAGE_PROVIDERS[file.provider].name}</span></div><br>`;

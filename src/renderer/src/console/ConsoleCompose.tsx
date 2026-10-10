@@ -8,13 +8,14 @@ import Form from '@cloudscape-design/components/form';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
 import Input from '@cloudscape-design/components/input';
+import ProgressBar from '@cloudscape-design/components/progress-bar';
 import Select from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Spinner from '@cloudscape-design/components/spinner';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import TokenGroup from '@cloudscape-design/components/token-group';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { composeApi, useContacts, type Recipient } from '../api/compose';
 import { useAccounts, usePreferences } from '../api/queries';
@@ -22,7 +23,8 @@ import { useAuth } from '../auth/AuthProvider';
 import { describeError } from '../auth/errors';
 import type { ComposeRequest } from '../compose/ComposeProvider';
 import { emptyComposition, parseRecipients, recipientLabel } from '../compose/model';
-import { RichEditor } from '../compose/RichEditor';
+import { LargeFilesDialog } from '../compose/LargeFilesDialog';
+import { RichEditor, type EditorHandle } from '../compose/RichEditor';
 import { useComposition } from '../compose/useComposition';
 import { formatBytes } from '../mail/format';
 
@@ -101,6 +103,7 @@ function ComposeEditor({ request }: { request: ComposeRequest }) {
   const navigate = useNavigate();
   const accounts = useAccounts();
   const state = useComposition(request);
+  const editor = useRef<EditorHandle>(null);
   const { composition, update } = state;
   const [copies, setCopies] = useState(composition.cc.length + composition.bcc.length > 0);
   const [tried, setTried] = useState(false);
@@ -144,6 +147,15 @@ function ComposeEditor({ request }: { request: ComposeRequest }) {
         </Header>
       }
     >
+      {state.tooLarge.length > 0 && (
+        <LargeFilesDialog
+          files={state.tooLarge}
+          onCancel={state.keepSmallOnly}
+          onConfirm={(accountId) =>
+            void state.shareTooLarge(accountId, (html) => editor.current?.insertHtml(html))
+          }
+        />
+      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -248,6 +260,7 @@ function ComposeEditor({ request }: { request: ComposeRequest }) {
                 </FormField>
                 <FormField label="Body" stretch>
                   <RichEditor
+                    ref={editor}
                     variant="console"
                     initialHtml={composition.html}
                     onChange={(html, text) => update({ html, text })}
@@ -257,7 +270,7 @@ function ComposeEditor({ request }: { request: ComposeRequest }) {
                 </FormField>
                 <FormField
                   label="Attachments"
-                  description="Up to 25 MB in total."
+                  description="Up to 25 MB attached; larger files are shared by link from your cloud storage."
                   {...(tried &&
                     state.uploads.length > 0 && {
                       errorText: 'Wait for attachments to finish uploading.',
@@ -287,9 +300,12 @@ function ComposeEditor({ request }: { request: ComposeRequest }) {
                       showFileSize
                     />
                     {state.uploads.map((upload) => (
-                      <StatusIndicator key={upload.id} type="loading">
-                        Uploading {upload.filename}
-                      </StatusIndicator>
+                      <ProgressBar
+                        key={upload.id}
+                        label={upload.filename}
+                        description={formatBytes(upload.sizeBytes)}
+                        value={Math.round(upload.progress * 100)}
+                      />
                     ))}
                     {composition.attachments.length > 0 && (
                       <TokenGroup

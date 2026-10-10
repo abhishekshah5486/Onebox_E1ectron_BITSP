@@ -30,6 +30,12 @@ export interface ApiClientOptions {
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
+export interface UploadOptions {
+  headers?: Record<string, string>;
+  // From 0 to 1 as the file goes up.
+  onProgress?: (fraction: number) => void;
+}
+
 const NO_REFRESH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'];
 
 export function createApiClient({
@@ -112,22 +118,44 @@ export function createApiClient({
   }
 
   // A file as the request body, e.g. a compose attachment; its name and type go in headers.
-  async function upload<T>(path: string, file: File): Promise<T> {
-    const post = () =>
-      fetchImpl(`${baseUrl}${path}`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'x-onebox-client': 'web',
-          'content-type': 'application/octet-stream',
-          'x-filename': encodeURIComponent(file.name),
-          'x-content-type': file.type || 'application/octet-stream',
-          ...(accessToken && { authorization: `Bearer ${accessToken}` }),
-        },
-        body: file,
-      });
-    let response = await post();
-    if (response.status === 401 && (await refreshSession())) response = await post();
+  // XMLHttpRequest rather than fetch, because only it reports how much has gone up.
+  function sendFile(
+    path: string,
+    file: File,
+    { headers = {}, onProgress }: UploadOptions,
+  ): Promise<Response> {
+    return new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('POST', `${baseUrl}${path}`);
+      request.withCredentials = true;
+      const all: Record<string, string> = {
+        'x-onebox-client': 'web',
+        'content-type': 'application/octet-stream',
+        'x-filename': encodeURIComponent(file.name),
+        'x-content-type': file.type || 'application/octet-stream',
+        ...headers,
+        ...(accessToken && { authorization: `Bearer ${accessToken}` }),
+      };
+      for (const [name, value] of Object.entries(all)) request.setRequestHeader(name, value);
+      request.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress?.(event.loaded / event.total);
+      };
+      request.onload = () =>
+        resolve(
+          new Response(request.status === 204 ? null : request.responseText, {
+            status: request.status,
+          }),
+        );
+      request.onerror = () => reject(new TypeError('Upload failed'));
+      request.send(file);
+    });
+  }
+
+  async function upload<T>(path: string, file: File, options: UploadOptions = {}): Promise<T> {
+    let response = await sendFile(path, file, options);
+    if (response.status === 401 && (await refreshSession())) {
+      response = await sendFile(path, file, options);
+    }
     return parse<T>(response);
   }
 

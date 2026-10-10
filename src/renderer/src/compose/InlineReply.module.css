@@ -1,18 +1,23 @@
+/* Gmail keeps Reply and Forward in view at the bottom of the conversation. */
 .buttons {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 16px 0 24px 56px;
+  padding: 16px 0 20px 56px;
+  background: var(--ob-surface-raised);
 }
 
 .buttons button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 36px;
-  padding: 0 20px 0 16px;
-  border: 1px solid var(--ob-border);
-  border-radius: 18px;
+  gap: 10px;
+  height: 40px;
+  padding: 0 24px 0 18px;
+  border: 1px solid var(--ob-compose-chip-line);
+  border-radius: 20px;
   background: transparent;
   color: var(--ob-text);
   font: inherit;

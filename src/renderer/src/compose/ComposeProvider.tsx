@@ -34,7 +34,8 @@ interface ComposeContextValue {
   // Starts writing: a new message by default, or the given reply, forward or draft.
   open: (request?: Partial<ComposeRequest>) => void;
   // Queues a message; it goes after a few seconds, so the banner offers Undo.
-  send: (composition: Composition, draftId?: string) => Promise<boolean>;
+  // With `sendAt`, it goes at that time instead (scheduled send).
+  send: (composition: Composition, draftId?: string, sendAt?: Date) => Promise<boolean>;
   // v1's floating windows.
   windows: ComposeWindowState[];
   close: (key: string) => void;
@@ -158,14 +159,26 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   );
 
   const send = useCallback(
-    async (composition: Composition, draftId?: string) => {
+    async (composition: Composition, draftId?: string, sendAt?: Date) => {
       try {
-        const queued = await composeApi.send(api, { ...composition, ...(draftId && { draftId }) });
+        const queued = await composeApi.send(api, {
+          ...composition,
+          ...(draftId && { draftId }),
+          ...(sendAt && { sendAt: sendAt.toISOString() }),
+        });
         await queryClient.invalidateQueries({ queryKey: composeKeys.drafts });
         notify({
           id: `send-${queued.id}`,
           type: 'success',
-          content: 'Message sent.',
+          content: sendAt
+            ? `Send scheduled for ${sendAt.toLocaleString(undefined, {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}.`
+            : 'Message sent.',
           action: { label: 'Undo', onClick: () => void undo(queued.id) },
         });
         void follow(queued);

@@ -145,6 +145,62 @@ describe('compose in v1', () => {
     expect(post).not.toHaveBeenCalledWith('/mail/send', expect.anything());
   });
 
+  it('shares a file too big to attach from cloud storage, and can schedule the message', async () => {
+    const { api: client, post } = api();
+    client.get = routedGet({
+      '/accounts': () => ({ items: [account()] }),
+      '/settings/storage': () => ({
+        providers: ['GOOGLE_DRIVE'],
+        accounts: [
+          {
+            id: 'g1',
+            provider: 'GOOGLE_DRIVE',
+            email: 'me@gmail.com',
+            defaultPath: 'OneBox',
+            connectedAt: '2026-10-01T00:00:00Z',
+            updatedAt: '2026-10-01T00:00:00Z',
+          },
+        ],
+        failures: [],
+      }),
+    });
+    client.upload = vi.fn(async (_path: string, file: File) => ({
+      name: file.name,
+      link: 'https://drive.example/big',
+      provider: 'GOOGLE_DRIVE',
+      sizeBytes: file.size,
+    })) as unknown as ApiClient['upload'];
+    renderApp(client, <AppShell />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Compose' }));
+    await screen.findByRole('dialog', { name: 'New Message' });
+
+    const big = new File([new Uint8Array(26 * 1024 * 1024)], 'video.mp4', { type: 'video/mp4' });
+    await userEvent.upload(screen.getByLabelText('Files to attach'), big);
+    const ask = within(
+      await screen.findByRole('dialog', { name: 'Large files must be shared with Google Drive' }),
+    );
+    await userEvent.click(ask.getByRole('button', { name: 'OK, got it' }));
+    await waitFor(() =>
+      expect(client.upload).toHaveBeenCalledWith(
+        '/mail/uploads/cloud',
+        big,
+        expect.objectContaining({ headers: { 'x-storage-account': 'g1' } }),
+      ),
+    );
+    await waitFor(() => expect(body().innerHTML).toContain('https://drive.example/big'));
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'To' }), 'sam@acme.example,');
+    await userEvent.click(screen.getByRole('button', { name: 'More send options' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: /Tomorrow morning/ }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(
+        '/mail/send',
+        expect.objectContaining({ sendAt: expect.stringMatching(/T/) as unknown }),
+      ),
+    );
+    expect(await screen.findByText(/Send scheduled for/)).toBeInTheDocument();
+  });
+
   it('replies to everyone right under the conversation', async () => {
     const { api: client, post } = api();
     const message: Message = {
@@ -179,6 +235,8 @@ describe('compose in v1', () => {
     );
     await userEvent.click(await screen.findByRole('button', { name: 'Reply all' }));
     const reply = within(screen.getByRole('region', { name: 'Reply all' }));
+    // Who it goes to shows in one line until clicked, then as chips.
+    await userEvent.click(reply.getByRole('button', { name: 'Priya, Sam' }));
     expect(reply.getByText('Priya')).toBeInTheDocument();
     expect(reply.getByText('Sam')).toBeInTheDocument();
     expect(body().innerHTML).toContain('Can you send pricing?');

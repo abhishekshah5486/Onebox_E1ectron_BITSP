@@ -1,17 +1,20 @@
 .editor {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  color: var(--ob-compose-text);
 }
 
 .area {
   position: relative;
   flex: 1;
-  min-height: 180px;
+  min-height: 160px;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 10px 0;
   outline: none;
+  font-family: arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -20,30 +23,127 @@
 .area[data-empty]::before {
   content: attr(data-placeholder);
   position: absolute;
+  color: var(--ob-compose-placeholder);
   pointer-events: none;
-  opacity: 0.6;
 }
 
 .area blockquote {
   margin: 0 0 0 0.8ex;
   padding-left: 1ex;
-  border-left: 1px solid currentcolor;
-  opacity: 0.85;
+  border-left: 1px solid var(--ob-compose-line);
 }
 
 .area a {
-  color: var(--ob-accent);
+  color: #1a73e8;
 }
 
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
-  padding: 4px 0;
+  gap: 0;
+  padding: 4px 10px;
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--ob-compose-line);
 }
 
 .tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ob-compose-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tool:hover,
+.tool[aria-expanded='true'] {
+  background: var(--ob-compose-hover);
+  color: var(--ob-compose-text);
+}
+
+.tool:focus-visible {
+  outline: 2px solid var(--ob-compose-send);
+  outline-offset: -2px;
+}
+
+.wideTool {
+  gap: 2px;
+  min-width: 132px;
+  justify-content: space-between;
+}
+
+.fontName {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.menuRoot {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Gmail's bar sits at the bottom, so its menus open upwards. */
+.menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 160px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px 0;
+  border-radius: 8px;
+  background: var(--ob-compose-menu);
+  box-shadow: var(--ob-shadow);
+}
+
+.menu > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 16px 6px 36px;
+  border: none;
+  background: transparent;
+  color: var(--ob-compose-text);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu > button[aria-checked='true'] {
+  padding-left: 12px;
+}
+
+.menu > button:hover {
+  background: var(--ob-compose-hover);
+}
+
+.row,
+.column {
+  display: flex;
+  gap: 2px;
+  padding: 0 6px;
+}
+
+.column {
+  flex-direction: column;
+}
+
+.row button,
+.column button {
   display: grid;
   place-items: center;
   width: 32px;
@@ -51,54 +151,110 @@
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: inherit;
+  color: var(--ob-compose-muted);
   cursor: pointer;
 }
 
-.tool:hover {
-  background: var(--ob-surface-hover);
+.row button:hover,
+.column button:hover {
+  background: var(--ob-compose-hover);
 }
 
-.tool:focus-visible {
-  outline: 2px solid var(--ob-accent);
-  outline-offset: -2px;
+.menu:has(.row),
+.menu:has(.column) {
+  min-width: 0;
 }
 
-.linkForm {
+/* Opened from the Text colour button; kept in the layout but out of sight. */
+.colorInput {
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+}
+
+/* Gmail's link card: the link's text and its address, floating over the message. */
+.linkCard {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  z-index: 25;
   display: flex;
-  gap: 6px;
-  margin-left: 6px;
+  flex-direction: column;
+  gap: 10px;
+  width: min(440px, 100%);
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--ob-compose-menu);
+  box-shadow: var(--ob-shadow);
 }
 
-.linkForm input {
-  width: 220px;
-  padding: 4px 8px;
-  border: 1px solid var(--ob-border);
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.linkForm button {
-  padding: 4px 10px;
+.linkField {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ob-compose-chip-line);
+  border-radius: 6px;
+  color: var(--ob-compose-muted);
+}
+
+.linkField:focus-within {
+  border: 2px solid var(--ob-compose-send);
+  padding: 0 11px;
+}
+
+.linkField input {
+  flex: 1;
+  min-width: 0;
   border: none;
-  border-radius: 4px;
-  background: var(--ob-accent);
-  color: var(--ob-accent-contrast);
+  outline: none;
+  background: transparent;
+  color: var(--ob-compose-text);
   font: inherit;
+  font-size: 14px;
+}
+
+.linkRow button {
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--ob-compose-send);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
 }
 
-/* v1: a light toolbar above the footer, like Gmail's formatting row. */
-.gmail .toolbar {
-  margin: 0 -8px;
-  padding: 2px 8px;
-  border-radius: 8px;
-  background: var(--ob-surface-hover);
+.linkRow button:disabled {
+  color: var(--ob-compose-placeholder);
+  cursor: default;
 }
 
-/* v2: the editor sits in a bordered box like a Cloudscape text area, toolbar on top. */
+.linkRow button:hover:not(:disabled) {
+  background: var(--ob-compose-hover);
+}
+
+/* v1: Gmail's rounded formatting bar floating above the footer. */
+.gmail .toolbar {
+  margin: 0 -6px;
+  border-radius: 24px;
+  background: var(--ob-compose-bar);
+}
+
+/* v2: the editor sits in a bordered box like a Cloudscape text area, the bar on top and menus
+   opening downwards. */
 .console {
   flex-direction: column-reverse;
   border: 1px solid var(--ob-border);
@@ -107,10 +263,14 @@
 
 .console .toolbar {
   border-bottom: 1px solid var(--ob-border);
-  padding: 2px 6px;
 }
 
 .console .area {
   padding: 8px 12px;
   min-height: 260px;
+}
+
+.console .menu {
+  top: calc(100% + 6px);
+  bottom: auto;
 }

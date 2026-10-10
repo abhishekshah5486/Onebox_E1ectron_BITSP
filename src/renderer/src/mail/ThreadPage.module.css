@@ -43,6 +43,19 @@
 
 /* Like Gmail, the reading pane is white in both themes, under the themed toolbar. */
 .body {
+  /* A reply written inside the white page uses compose's light colours. */
+  --ob-compose-bg: #ffffff;
+  --ob-compose-header: #f2f6fc;
+  --ob-compose-title: #041e49;
+  --ob-compose-text: #1f1f1f;
+  --ob-compose-muted: #5e5e5e;
+  --ob-compose-placeholder: #757575;
+  --ob-compose-line: #e0e3e7;
+  --ob-compose-bar: #edf2fa;
+  --ob-compose-hover: rgb(68 71 70 / 8%);
+  --ob-compose-pressed: #d3e3fd;
+  --ob-compose-menu: #ffffff;
+  --ob-compose-chip-line: #747775;
   --ob-text: #1f1f1f;
   --ob-storage-pill: #e9eef6;
   --ob-storage-pill-hover: #dde3ea;

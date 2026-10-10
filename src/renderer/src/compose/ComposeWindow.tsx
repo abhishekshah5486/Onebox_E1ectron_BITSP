@@ -13,7 +13,9 @@ export function ComposeWindow({ window: request }: { window: ComposeWindowState 
   const state = useComposition(request);
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
-  const title = state.composition.subject.trim() || 'New Message';
+  const subject = state.composition.subject.trim() || 'New Message';
+  // Gmail's title says when the draft is being saved.
+  const title = state.saveState === 'saving' ? 'Draft saving…' : subject;
   const done = () => close(request.key);
   const keepAndClose = () => {
     void state.keep();
@@ -31,7 +33,7 @@ export function ComposeWindow({ window: request }: { window: ComposeWindowState 
     <section
       className={`${styles.window} ${minimized ? styles.minimized : ''} ${maximized ? styles.maximized : ''}`}
       role="dialog"
-      aria-label={title}
+      aria-label={subject}
     >
       <header className={styles.header} onClick={() => minimized && setMinimized(false)}>
         <h2>{title}</h2>
