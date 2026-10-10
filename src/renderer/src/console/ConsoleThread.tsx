@@ -2,7 +2,6 @@ import Alert from '@cloudscape-design/components/alert';
 import Icon from '@cloudscape-design/components/icon';
 import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
-import ButtonGroup from '@cloudscape-design/components/button-group';
 import Popover from '@cloudscape-design/components/popover';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Spinner from '@cloudscape-design/components/spinner';
@@ -18,12 +17,12 @@ import { replyComposition } from '../compose/model';
 import { Icon as OneboxIcon } from '../ui/Icon';
 import { AttachmentCards } from '../mail/attachments/AttachmentCards';
 import { EmailFrame } from '../mail/EmailFrame';
-import { folderActions, moveRequest, moveTargets, type ActionSpec } from '../mail/actions';
+import type { ActionSpec } from '../mail/actions';
 import { viewFromPath } from '../mail/folders';
 import { useMailAction } from '../mail/useMailAction';
 import { useFlash } from '../settings/flash';
 import { displayName, formatMessageDate, formatUtc } from '../mail/format';
-import { actionIcon } from './ConsoleActions';
+import { ConsoleActions } from './ConsoleActions';
 import styles from './ConsoleThread.module.css';
 import { useUnsubscribeFlow } from './UnsubscribeFlow';
 
@@ -222,80 +221,45 @@ export function ConsoleThread({ basePath }: { basePath: string }) {
   return (
     <section className={styles.reader} aria-label="Conversation">
       <div className={styles.toolbar} role="toolbar" aria-label="Conversation actions">
-        <SpaceBetween direction="horizontal" size="xs" alignItems="center">
-          <Button variant="icon" iconName="arrow-left" ariaLabel="Back" onClick={back} />
+        <SpaceBetween direction="horizontal" size="xs">
+          <Button iconName="arrow-left" onClick={back}>
+            Back
+          </Button>
+          {/* Separate children, not a fragment, so SpaceBetween spaces each button. */}
           {thread && (
-            <ButtonGroup
-              variant="icon"
-              ariaLabel="Conversation"
-              items={[
-                {
-                  type: 'group',
-                  text: 'Move',
-                  items: folderActions(view).map((item) => ({
-                    type: 'icon-button' as const,
-                    id: item.id,
-                    text: item.label,
-                    ...actionIcon(item),
-                  })),
-                },
-                {
-                  type: 'group',
-                  text: 'Mark',
-                  items: [
-                    {
-                      type: 'icon-button',
-                      id: 'unread',
-                      text: 'Mark as unread',
-                      iconName: 'envelope',
-                    },
-                    {
-                      type: 'icon-button',
-                      id: 'star',
-                      text: thread.isStarred ? 'Unstar' : 'Star',
-                      iconName: thread.isStarred ? 'star-filled' : 'star',
-                    },
-                  ],
-                },
-              ]}
-              onItemClick={({ detail }) => {
-                if (detail.id === 'unread') markUnread();
-                else if (detail.id === 'star') toggleStar();
-                else {
-                  const item = folderActions(view).find((action) => action.id === detail.id);
-                  if (item) run(item.request);
-                }
-              }}
+            <ConsoleActions
+              view={view}
+              folders={folders}
+              selected={[thread]}
+              onAction={run}
+              extraFlags={false}
             />
           )}
+          {thread && <Button onClick={markUnread}>Mark as unread</Button>}
           {thread && (
             <ButtonDropdown
-              items={moveTargets(view, folders).map((target) => ({
-                id: target.key,
-                text: target.label,
-              }))}
-              onItemClick={({ detail }) => {
-                const target = moveTargets(view, folders).find((item) => item.key === detail.id);
-                if (target) run(moveRequest(view, target.target));
-              }}
+              items={[
+                { id: 'reply', text: 'Reply', iconSvg: <OneboxIcon name="reply" size={16} /> },
+                {
+                  id: 'replyAll',
+                  text: 'Reply all',
+                  iconSvg: <OneboxIcon name="replyAll" size={16} />,
+                },
+                {
+                  id: 'forward',
+                  text: 'Forward',
+                  iconSvg: <OneboxIcon name="forward" size={16} />,
+                },
+              ]}
+              onItemClick={({ detail }) => replyWith(detail.id as ReplyMode)}
             >
-              Move to
+              Reply
             </ButtonDropdown>
           )}
           {thread && (
-            <ButtonDropdown
-              mainAction={{
-                text: 'Reply',
-                iconSvg: <OneboxIcon name="reply" size={16} />,
-                onClick: () => replyWith('reply'),
-              }}
-              items={[
-                { id: 'replyAll', text: 'Reply all' },
-                { id: 'forward', text: 'Forward' },
-              ]}
-              ariaLabel="More reply options"
-              onItemClick={({ detail }) => replyWith(detail.id as ReplyMode)}
-            />
+            <Button iconName={thread.isStarred ? 'star-filled' : 'star'} onClick={toggleStar}>
+              {thread.isStarred ? 'Unstar' : 'Star'}
+            </Button>
           )}
         </SpaceBetween>
         {query.data && (

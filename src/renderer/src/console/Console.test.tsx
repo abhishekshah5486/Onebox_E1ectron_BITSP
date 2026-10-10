@@ -263,7 +263,7 @@ describe('v2 console', () => {
     });
   });
 
-  it("groups a conversation's actions into icons, Move to and a Reply menu", async () => {
+  it('keeps Reply, Reply all and Forward in one Reply menu', async () => {
     const patch = vi.fn(async () => threads(1)[0]);
     renderConsole(
       `/inbox/${threads(1)[0]!.id}`,
@@ -283,10 +283,12 @@ describe('v2 console', () => {
     const toolbar = within(await screen.findByRole('toolbar', { name: 'Conversation actions' }));
     expect(await toolbar.findByRole('button', { name: 'Archive' })).toBeInTheDocument();
     expect(toolbar.getByRole('button', { name: 'Move to' })).toBeInTheDocument();
+    expect(toolbar.getByRole('button', { name: 'Mark as unread' })).toBeInTheDocument();
     // Reply all and Forward wait in the Reply menu rather than taking pills of their own.
     expect(toolbar.queryByRole('button', { name: 'Reply all' })).toBeNull();
-    await userEvent.click(toolbar.getByRole('button', { name: 'More reply options' }));
-    expect(await screen.findByRole('menuitem', { name: 'Forward' })).toBeInTheDocument();
+    await userEvent.click(toolbar.getByRole('button', { name: 'Reply' }));
+    expect(await screen.findByRole('menuitem', { name: 'Reply all' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Forward' })).toBeInTheDocument();
 
     await userEvent.click(toolbar.getByRole('button', { name: 'Star' }));
     await waitFor(() =>
