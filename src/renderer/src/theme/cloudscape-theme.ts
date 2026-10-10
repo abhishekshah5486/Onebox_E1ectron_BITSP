@@ -31,7 +31,12 @@ export const applyCloudscapeTheme = () => applyTheme({ theme: oneboxCloudscapeTh
 // v2 keeps AWS's palette, but its top bar follows light mode instead of staying dark.
 const lightBar = (light: string) => ({ light });
 export const consoleTheme: Theme = {
-  tokens: {},
+  // The main area shows the console's gradient (ConsoleShell's backdrop) through it; the
+  // navigation stays a solid panel, so the two read apart.
+  tokens: {
+    colorBackgroundLayoutMain: { light: 'transparent', dark: 'transparent' },
+    colorBackgroundLayoutPanelContent: { light: '#ffffff', dark: '#0f1319' },
+  },
   contexts: {
     'top-navigation': {
       tokens: {

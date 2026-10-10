@@ -1,0 +1,17 @@
+/* Behind the console's main area: a soft glow on a slightly lighter base than the navigation,
+   in the spirit of v1's gradients. Containers and tables keep their own solid backgrounds. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(1100px 620px at 88% -8%, rgb(66 133 244 / 12%), transparent 62%),
+    radial-gradient(900px 560px at 18% 108%, rgb(146 98 255 / 8%), transparent 62%), #f3f6fa;
+  pointer-events: none;
+}
+
+:root[data-theme='dark'] .backdrop {
+  background:
+    radial-gradient(1100px 620px at 88% -8%, rgb(66 133 244 / 18%), transparent 62%),
+    radial-gradient(900px 560px at 18% 108%, rgb(146 98 255 / 12%), transparent 62%), #161c24;
+}
