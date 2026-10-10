@@ -95,9 +95,13 @@
 }
 
 .unread .senderName,
-.unread .subject,
 .unread .date {
   font-weight: 700;
+}
+
+/* A touch lighter than the sender, so long subjects don't shout. */
+.unread .subject {
+  font-weight: 600;
 }
 
 .count {
