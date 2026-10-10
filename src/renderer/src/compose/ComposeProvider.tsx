@@ -39,6 +39,8 @@ interface ComposeContextValue {
   // v1's floating windows.
   windows: ComposeWindowState[];
   close: (key: string) => void;
+  // A window's draft got saved: remembered, so it reopens after a refresh.
+  saved: (key: string, draftId: string) => void;
 }
 
 const ComposeContext = createContext<ComposeContextValue | null>(null);
@@ -48,6 +50,24 @@ export function useCompose() {
   if (!value) throw new Error('useCompose must be used inside ComposeProvider');
   return value;
 }
+
+// The drafts open in compose windows, kept in this browser so they reopen after a refresh.
+const OPEN_DRAFTS = 'onebox.compose.open';
+const readOpenDrafts = (): string[] => {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(OPEN_DRAFTS) ?? '[]');
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+const writeOpenDrafts = (ids: string[]) => {
+  try {
+    localStorage.setItem(OPEN_DRAFTS, JSON.stringify(ids));
+  } catch {
+    // Only a convenience.
+  }
+};
 
 const POLL_MS = 2_000;
 const FOLLOW_FOR_MS = 2 * 60_000;
@@ -100,6 +120,33 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     setWindows((current) => current.filter((w) => w.key !== key));
   }, []);
 
+  const saved = useCallback((key: string, draftId: string) => {
+    setWindows((current) => current.map((w) => (w.key === key ? { ...w, draftId } : w)));
+  }, []);
+
+  // Open windows survive a refresh: their drafts are reopened from the server.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current || version === 'v2') return;
+    restored.current = true;
+    for (const id of readOpenDrafts()) {
+      void composeApi
+        .draft(api, id)
+        .then((draft) =>
+          setWindows((current) =>
+            current.some((w) => w.draftId === draft.id)
+              ? current
+              : [...current, { composition: draft, draftId: draft.id, key: crypto.randomUUID() }],
+          ),
+        )
+        // Sent or discarded since: nothing to reopen.
+        .catch(() => undefined);
+    }
+  }, [api, version]);
+  useEffect(() => {
+    if (restored.current) writeOpenDrafts(windows.flatMap((w) => (w.draftId ? [w.draftId] : [])));
+  }, [windows]);
+
   // After the undo window, waits to hear how sending went and says so if it failed.
   const follow = useCallback(
     async (queued: OutboxItem) => {
@@ -151,12 +198,6 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
       try {
         const draft = await composeApi.undo(api, outboxId);
         await queryClient.invalidateQueries({ queryKey: composeKeys.drafts });
-        notify({
-          id: `send-${outboxId}`,
-          type: 'info',
-          tone: 'burgundy',
-          content: 'Sending undone.',
-        });
         open({ composition: draft, draftId: draft.id });
       } catch (error) {
         notify({
@@ -205,6 +246,9 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
     [api, follow, notify, queryClient, undo],
   );
 
-  const value = useMemo(() => ({ open, send, windows, close }), [open, send, windows, close]);
+  const value = useMemo(
+    () => ({ open, send, windows, close, saved }),
+    [open, send, windows, close, saved],
+  );
   return <ComposeContext.Provider value={value}>{children}</ComposeContext.Provider>;
 }

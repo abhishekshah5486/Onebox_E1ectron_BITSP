@@ -9,8 +9,8 @@ import { IconButton } from '../ui/IconButton';
 
 // Gmail's compose window: docked at the bottom right, minimised to its title bar, or full screen.
 export function ComposeWindow({ window: request }: { window: ComposeWindowState }) {
-  const { close } = useCompose();
-  const state = useComposition(request);
+  const { close, saved } = useCompose();
+  const state = useComposition(request, (draftId) => saved(request.key, draftId));
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
   const subject = state.composition.subject.trim() || 'New Message';

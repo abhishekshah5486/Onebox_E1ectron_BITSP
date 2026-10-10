@@ -17,6 +17,12 @@
   background: var(--ob-dialog-bg);
   color: var(--ob-dialog-text);
   box-shadow: var(--ob-shadow);
+  /* The dialog stays light in both themes, so fields inside it (e.g. a folder name) use its
+     light colours rather than the page's dark-mode ones. */
+  --ob-text: var(--ob-dialog-text);
+  --ob-text-muted: var(--ob-dialog-muted);
+  --ob-accent: var(--ob-dialog-accent);
+  color-scheme: light;
 }
 
 .title {

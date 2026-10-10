@@ -73,7 +73,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: scroll;
-  padding: 12px 24px 48px 0;
+  /* Its bottom padding, which the pinned Reply/Forward strip covers to reach the very edge. */
+  --reading-end: 48px;
+  padding: 12px 24px var(--reading-end) 0;
   background: #ffffff;
   color: var(--ob-text);
 }

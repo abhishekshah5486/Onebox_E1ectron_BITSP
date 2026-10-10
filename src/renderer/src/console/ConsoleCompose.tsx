@@ -102,7 +102,10 @@ function RecipientsField({
 function ComposeEditor({ request }: { request: ComposeRequest }) {
   const navigate = useNavigate();
   const accounts = useAccounts();
-  const state = useComposition(request);
+  // Once saved, the address names the draft (without reloading), so a refresh reopens it.
+  const state = useComposition(request, (draftId) =>
+    window.history.replaceState(window.history.state, '', `/compose/${draftId}`),
+  );
   const editor = useRef<EditorHandle>(null);
   const { composition, update } = state;
   const [copies, setCopies] = useState(composition.cc.length + composition.bcc.length > 0);

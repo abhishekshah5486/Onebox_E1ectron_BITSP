@@ -22,7 +22,11 @@ export type SaveState = 'unsaved' | 'saving' | 'saved' | 'error';
 
 // One message being written: what it says, its draft (saved as you type), its attachments,
 // and sending or throwing it away.
-export function useComposition(request: ComposeRequest) {
+export function useComposition(
+  request: ComposeRequest,
+  // Told the draft's id once it's first saved, e.g. to reopen it after a refresh.
+  onSaved?: (draftId: string) => void,
+) {
   const { api } = useAuth();
   const queryClient = useQueryClient();
   const compose = useCompose();
@@ -38,6 +42,11 @@ export function useComposition(request: ComposeRequest) {
   const stored = useRef(Boolean(request.draftId));
   const dirty = useRef(false);
   const latest = useRef(composition);
+  // The newest callback, without restarting the save timer each time it changes.
+  const onSavedRef = useRef(onSaved);
+  useEffect(() => {
+    onSavedRef.current = onSaved;
+  });
   useEffect(() => {
     latest.current = composition;
   }, [composition]);
@@ -60,6 +69,7 @@ export function useComposition(request: ComposeRequest) {
     setSaveState('saving');
     try {
       await composeApi.saveDraft(api, draftId.current, latest.current);
+      if (!stored.current) onSavedRef.current?.(draftId.current);
       stored.current = true;
       setSaveState((state) => (state === 'saving' ? 'saved' : state));
       void queryClient.invalidateQueries({ queryKey: composeKeys.drafts });
