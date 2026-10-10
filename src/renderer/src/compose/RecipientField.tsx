@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { Recipient } from '../api/compose';
 import { useContacts } from '../api/compose';
 import { Icon } from '../ui/Icon';
@@ -35,11 +35,24 @@ export function RecipientField({
   const [text, setText] = useState('');
   const [active, setActive] = useState(0);
   const [focused, setFocused] = useState(false);
+  const field = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  // Where the suggestions open: under the text being typed, as in Gmail.
+  const [place, setPlace] = useState<{ left: number; top: number } | null>(null);
   const query = text.trim();
   const contacts = useContacts(query);
   const taken = new Set(value.map((r) => r.address));
   const suggestions =
     focused && query ? (contacts.data ?? []).filter((c) => !taken.has(c.address)) : [];
+
+  const showing = suggestions.length > 0;
+  useLayoutEffect(() => {
+    if (!showing || !input.current || !field.current) return;
+    const box = input.current;
+    // Kept inside the field: the list is about 420px wide.
+    const room = field.current.clientWidth - Math.min(420, field.current.clientWidth);
+    setPlace({ left: Math.min(box.offsetLeft, room), top: box.offsetTop + box.offsetHeight + 4 });
+  }, [showing, text, value.length]);
 
   const add = (recipients: Recipient[]) => {
     const fresh = recipients.filter((r) => !taken.has(r.address));
@@ -56,13 +69,13 @@ export function RecipientField({
   };
 
   return (
-    <div className={styles.field}>
+    <div ref={field} className={styles.field}>
       <span className={styles.label}>{label}</span>
       <div className={styles.chips}>
         {value.map((recipient) => (
           <span key={recipient.address} className={styles.chip} title={recipient.address}>
             <Avatar recipient={recipient} />
-            {recipientLabel(recipient)}
+            <span className={styles.chipLabel}>{recipientLabel(recipient)}</span>
             <button
               type="button"
               aria-label={`Remove ${recipient.address}`}
@@ -73,6 +86,7 @@ export function RecipientField({
           </span>
         ))}
         <input
+          ref={input}
           className={styles.input}
           aria-label={label}
           autoFocus={autoFocus}
@@ -118,7 +132,12 @@ export function RecipientField({
       </div>
       {trailing}
       {suggestions.length > 0 && (
-        <ul className={styles.suggestions} role="listbox" aria-label={`${label} suggestions`}>
+        <ul
+          className={styles.suggestions}
+          role="listbox"
+          aria-label={`${label} suggestions`}
+          style={place ?? undefined}
+        >
           {suggestions.map((contact, index) => (
             <li
               key={contact.address}

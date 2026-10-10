@@ -28,7 +28,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 300px;
+  max-width: 100%;
+  box-sizing: border-box;
   height: 32px;
   padding: 0 4px 0 2px;
   border: 1px solid var(--ob-compose-chip-line);
@@ -38,8 +39,16 @@
   white-space: nowrap;
 }
 
+.chipLabel {
+  overflow: hidden;
+  min-width: 0;
+  max-width: 260px;
+  text-overflow: ellipsis;
+}
+
 .chip button {
   display: grid;
+  flex: none;
   place-items: center;
   width: 24px;
   height: 24px;
@@ -92,7 +101,7 @@
 .suggestions {
   position: absolute;
   top: 100%;
-  left: 24px;
+  left: 0;
   z-index: 30;
   width: min(420px, calc(100% - 24px));
   max-height: 360px;
