@@ -145,8 +145,8 @@ describe('compose in v1', () => {
     expect(post).not.toHaveBeenCalledWith('/mail/send', expect.anything());
   });
 
-  it('shares a file too big to attach from cloud storage, and can schedule the message', async () => {
-    const { api: client, post } = api();
+  it('shares a file too big to attach from cloud storage by link', async () => {
+    const { api: client } = api();
     client.get = routedGet({
       '/accounts': () => ({ items: [account()] }),
       '/settings/storage': () => ({
@@ -188,17 +188,6 @@ describe('compose in v1', () => {
       ),
     );
     await waitFor(() => expect(body().innerHTML).toContain('https://drive.example/big'));
-
-    await userEvent.type(screen.getByRole('textbox', { name: 'To' }), 'sam@acme.example,');
-    await userEvent.click(screen.getByRole('button', { name: 'More send options' }));
-    await userEvent.click(screen.getByRole('menuitem', { name: /Tomorrow morning/ }));
-    await waitFor(() =>
-      expect(post).toHaveBeenCalledWith(
-        '/mail/send',
-        expect.objectContaining({ sendAt: expect.stringMatching(/T/) as unknown }),
-      ),
-    );
-    expect(await screen.findByText(/Send scheduled for/)).toBeInTheDocument();
   });
 
   it('replies to everyone right under the conversation', async () => {

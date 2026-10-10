@@ -1,0 +1,10 @@
+.panel :global(.epr-emoji-category-label) {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.panel :global(.epr-search-container input) {
+  border-radius: 20px;
+}

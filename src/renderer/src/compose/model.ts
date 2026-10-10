@@ -182,3 +182,9 @@ export const sharedFileHtml = (file: SharedFile) =>
   `<div style="display:inline-block;margin:4px 0;padding:6px 12px;border:1px solid #dadce0;border-radius:16px">` +
   `<a href="${escapeHtml(file.link)}" style="color:#1a73e8;font-weight:500;text-decoration:none">${escapeHtml(file.name)}</a>` +
   ` <span style="color:#5f6368">(${formatBytes(file.sizeBytes)}) · ${STORAGE_PROVIDERS[file.provider].name}</span></div><br>`;
+
+// Gmail's short sizes for attachments: (147K), (2.4M).
+export const gmailSize = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))}K`
+    : `${(bytes / (1024 * 1024)).toFixed(1).replace(/\.0$/, '')}M`;

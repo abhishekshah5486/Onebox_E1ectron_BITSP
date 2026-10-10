@@ -121,6 +121,10 @@
 
 :root {
   --ob-radius: 16px;
+  /* The space Gmail keeps between the mail panel and the window's right edge. */
+  --ob-shell-gutter: 64px;
+  /* The mail panel's scrollbar, which compose windows stay clear of. */
+  --ob-panel-scrollbar: 16px;
   --ob-radius-pill: 999px;
   --ob-font: 'Google Sans Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
   /* Like Gmail, confirm dialogs stay light in both themes. */

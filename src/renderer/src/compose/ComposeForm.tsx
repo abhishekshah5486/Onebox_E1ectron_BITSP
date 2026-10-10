@@ -1,9 +1,9 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState, type Ref } from 'react';
 import { useAccounts, usePreferences } from '../api/queries';
-import { formatBytes } from '../mail/format';
 import { Icon, type IconName } from '../ui/Icon';
 import styles from './ComposeForm.module.css';
-import { recipientLabel, signatureHtml } from './model';
+import { gmailSize, recipientLabel, signatureHtml } from './model';
+import { Floating } from './Floating';
 import { LargeFilesDialog } from './LargeFilesDialog';
 import { RecipientField } from './RecipientField';
 import { RichEditor, type EditorHandle } from './RichEditor';
@@ -11,74 +11,12 @@ import type { CompositionState } from './useComposition';
 
 const EmojiPanel = lazy(() => import('./EmojiPanel'));
 
-// Gmail's quick choices for a scheduled send, worked out from now.
-function scheduleOptions(now = new Date()) {
-  const at = (days: number, hour: number) => {
-    const date = new Date(now);
-    date.setDate(date.getDate() + days);
-    date.setHours(hour, 0, 0, 0);
-    return date;
-  };
-  const toMonday = (8 - now.getDay()) % 7 || 7;
-  const label = (date: Date) =>
-    date.toLocaleString(undefined, {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  return [
-    { label: 'Tomorrow morning', at: at(1, 8) },
-    { label: 'Tomorrow afternoon', at: at(1, 13) },
-    { label: 'Monday morning', at: at(toMonday, 8) },
-  ].map((option) => ({ ...option, when: label(option.at) }));
-}
-
-// A footer button with a popup above it (emoji, schedule send).
-function Popup({
-  label,
-  trigger,
-  className,
-  children,
-}: {
-  label: string;
-  trigger: (props: { onClick: () => void; 'aria-expanded': boolean }) => ReactNode;
-  className: string | undefined;
-  children: (close: () => void) => ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (event: MouseEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', away);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', away);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-  return (
-    <span ref={root} className={styles.popupRoot}>
-      {trigger({ onClick: () => setOpen((value) => !value), 'aria-expanded': open })}
-      {open && (
-        <div className={className} role="menu" aria-label={label}>
-          {children(() => setOpen(false))}
-        </div>
-      )}
-    </span>
-  );
-}
-
 function FooterButton({
   icon,
   label,
   pressed,
   onClick,
+  ref,
   ...rest
 }: {
   icon: IconName;
@@ -86,9 +24,11 @@ function FooterButton({
   pressed?: boolean;
   onClick: () => void;
   'aria-expanded'?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       className={styles.footerButton}
       aria-label={label}
@@ -130,13 +70,15 @@ export function ComposeForm({
   const [showBcc, setShowBcc] = useState(composition.bcc.length > 0);
   const [formatting, setFormatting] = useState(true);
   const [dragging, setDragging] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const emojiButton = useRef<HTMLButtonElement>(null);
   const senders = accounts.data ?? [];
   const sender = senders.find((account) => account.id === composition.accountId);
   const everyone = [...composition.to, ...composition.cc, ...composition.bcc];
   const signature = preferences.data?.signature;
 
-  const send = async (sendAt?: Date) => {
-    if (await state.send(sendAt)) onDone();
+  const send = async () => {
+    if (await state.send()) onDone();
   };
 
   // Cc and Bcc links sit on the last recipients line, until each is opened.
@@ -247,7 +189,9 @@ export function ComposeForm({
             className={`${styles.summary} ${everyone.length ? '' : styles.placeholder}`}
             onClick={() => setRecipientsOpen(true)}
           >
-            {everyone.length ? everyone.map(recipientLabel).join(', ') : 'Recipients'}
+            <span className={styles.summaryText}>
+              {everyone.length ? everyone.map(recipientLabel).join(', ') : 'Recipients'}
+            </span>
             {sender && senders.length > 1 && <small>from {sender.emailAddress}</small>}
           </button>
         )}
@@ -271,39 +215,40 @@ export function ComposeForm({
         autoFocus={
           composition.replyTo?.mode === 'reply' || composition.replyTo?.mode === 'replyAll'
         }
+        attachments={
+          (composition.attachments.length > 0 || state.uploads.length > 0) && (
+            <ul className={styles.attachments} aria-label="Attachments">
+              {composition.attachments.map((attachment) => (
+                <li key={attachment.blobKey}>
+                  <span className={styles.name}>{attachment.filename}</span>
+                  <span className={styles.size}>({gmailSize(attachment.sizeBytes)})</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${attachment.filename}`}
+                    onClick={() => state.removeAttachment(attachment.blobKey)}
+                  >
+                    <Icon name="close" size={16} />
+                  </button>
+                </li>
+              ))}
+              {state.uploads.map((upload) => (
+                <li key={upload.id}>
+                  <span className={styles.uploadingName}>{upload.filename}</span>
+                  <span className={styles.size}>({gmailSize(upload.sizeBytes)})</span>
+                  <span
+                    className={styles.progress}
+                    role="progressbar"
+                    aria-label={`Uploading ${upload.filename}`}
+                    aria-valuenow={Math.round(upload.progress * 100)}
+                  >
+                    <span style={{ width: `${Math.round(upload.progress * 100)}%` }} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )
+        }
       />
-
-      {(composition.attachments.length > 0 || state.uploads.length > 0) && (
-        <ul className={styles.attachments} aria-label="Attachments">
-          {composition.attachments.map((attachment) => (
-            <li key={attachment.blobKey}>
-              <span className={styles.name}>{attachment.filename}</span>
-              <small>({formatBytes(attachment.sizeBytes)})</small>
-              <button
-                type="button"
-                aria-label={`Remove ${attachment.filename}`}
-                onClick={() => state.removeAttachment(attachment.blobKey)}
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </li>
-          ))}
-          {state.uploads.map((upload) => (
-            <li key={upload.id}>
-              <span className={styles.name}>{upload.filename}</span>
-              <small>({formatBytes(upload.sizeBytes)})</small>
-              <span
-                className={styles.progress}
-                role="progressbar"
-                aria-label={`Uploading ${upload.filename}`}
-                aria-valuenow={Math.round(upload.progress * 100)}
-              >
-                <span style={{ width: `${Math.round(upload.progress * 100)}%` }} />
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
 
       {state.tooLarge.length > 0 && (
         <LargeFilesDialog
@@ -320,42 +265,16 @@ export function ComposeForm({
           <button type="submit" className={styles.send} disabled={state.sending}>
             {state.sending ? 'Sending…' : 'Send'}
           </button>
-          <Popup
-            label="Schedule send"
-            className={styles.schedule}
-            trigger={(props) => (
-              <button
-                type="button"
-                className={styles.sendMore}
-                aria-label="More send options"
-                aria-haspopup="menu"
-                disabled={state.sending}
-                {...props}
-              >
-                <Icon name="caret" size={20} />
-              </button>
-            )}
+          {/* Schedule send lives here; it's switched off for now. */}
+          <button
+            type="button"
+            className={styles.sendMore}
+            aria-label="More send options"
+            data-tooltip="Scheduled sending is coming soon"
+            aria-disabled="true"
           >
-            {(close) => (
-              <>
-                <p>Schedule send</p>
-                {scheduleOptions().map((option) => (
-                  <button
-                    key={option.label}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      close();
-                      void send(option.at);
-                    }}
-                  >
-                    <span>{option.label}</span>
-                    <small>{option.when}</small>
-                  </button>
-                ))}
-              </>
-            )}
-          </Popup>
+            <Icon name="caret" size={20} />
+          </button>
         </span>
         <FooterButton
           icon="formatText"
@@ -369,22 +288,25 @@ export function ComposeForm({
           onClick={() => files.current?.click()}
         />
         <FooterButton icon="link" label="Insert link" onClick={() => editor.current?.startLink()} />
-        <Popup
+        <FooterButton
+          ref={emojiButton}
+          icon="emoji"
           label="Insert emoji"
-          className={styles.emoji}
-          trigger={(props) => <FooterButton icon="emoji" label="Insert emoji" {...props} />}
-        >
-          {(close) => (
+          pressed={emojiOpen}
+          onClick={() => setEmojiOpen((value) => !value)}
+        />
+        {emojiOpen && (
+          <Floating
+            anchor={emojiButton}
+            label="Insert emoji"
+            className={styles.emoji}
+            onClose={() => setEmojiOpen(false)}
+          >
             <Suspense fallback={<span className={styles.emojiLoading}>Loading emoji…</span>}>
-              <EmojiPanel
-                onPick={(emoji) => {
-                  editor.current?.insertText(emoji);
-                  close();
-                }}
-              />
+              <EmojiPanel onPick={(emoji) => editor.current?.insertText(emoji)} />
             </Suspense>
-          )}
-        </Popup>
+          </Floating>
+        )}
         {signature && (
           <FooterButton
             icon="signature"

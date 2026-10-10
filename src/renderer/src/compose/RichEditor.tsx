@@ -1,5 +1,6 @@
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Icon, type IconName } from '../ui/Icon';
+import { Floating } from './Floating';
 import { useFonts } from './fonts';
 import styles from './RichEditor.module.css';
 
@@ -40,9 +41,6 @@ const safeUrl = (value: string) => {
   return null;
 };
 
-const escapeHtml = (value: string) =>
-  value.replace(/[&<>"]/g, (c) => `&${{ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' }[c]};`);
-
 // The browser's editing commands; missing outside a real browser (e.g. in tests).
 const exec = (command: string, value?: string) =>
   typeof document.execCommand === 'function' && document.execCommand(command, false, value);
@@ -56,33 +54,23 @@ function ToolMenu({
   trigger,
   children,
   wide = false,
+  placement,
   onOpen,
 }: {
   label: string;
   trigger: ReactNode;
   children: (close: () => void) => ReactNode;
   wide?: boolean;
-  // Runs inside the click that opens it (e.g. to ask for the installed fonts).
-  onOpen?: () => void;
+  placement: 'above' | 'below';
+  // Runs before it opens (e.g. reading the installed fonts, which needs this click).
+  onOpen?: () => Promise<void> | void;
 }) {
   const [open, setOpen] = useState(false);
-  const root = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (event: MouseEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', away);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', away);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  const button = useRef<HTMLButtonElement>(null);
   return (
-    <span ref={root} className={styles.menuRoot}>
+    <>
       <button
+        ref={button}
         type="button"
         className={`${styles.tool} ${wide ? styles.wideTool : ''}`}
         aria-label={label}
@@ -91,19 +79,25 @@ function ToolMenu({
         data-tooltip={label}
         onMouseDown={keepSelection}
         onClick={() => {
-          if (!open) onOpen?.();
-          setOpen((value) => !value);
+          if (open) return setOpen(false);
+          void Promise.resolve(onOpen?.()).then(() => setOpen(true));
         }}
       >
         {trigger}
         <Icon name="caret" size={18} />
       </button>
       {open && (
-        <div className={styles.menu} role="menu" aria-label={label}>
+        <Floating
+          anchor={button}
+          label={label}
+          placement={placement}
+          className={styles.menu}
+          onClose={() => setOpen(false)}
+        >
           {children(() => setOpen(false))}
-        </div>
+        </Floating>
       )}
-    </span>
+    </>
   );
 }
 
@@ -116,6 +110,7 @@ export function RichEditor({
   variant = 'gmail',
   showToolbar = true,
   autoFocus = false,
+  attachments,
   ref,
 }: {
   initialHtml: string;
@@ -124,8 +119,11 @@ export function RichEditor({
   variant?: 'gmail' | 'console';
   showToolbar?: boolean;
   autoFocus?: boolean;
+  // Shown between the message and the formatting bar, as Gmail lists attachments.
+  attachments?: ReactNode;
   ref?: Ref<EditorHandle>;
 }) {
+  const placement = variant === 'gmail' ? 'above' : 'below';
   const area = useRef<HTMLDivElement>(null);
   const selection = useRef<Range | null>(null);
   const [linking, setLinking] = useState(false);
@@ -194,10 +192,30 @@ export function RichEditor({
     if (!url) return;
     setLinking(false);
     const text = linkText.trim() || link.trim();
-    const range = selection.current;
-    // Selected words keep their formatting and just become the link.
-    if (range && !range.collapsed && range.toString() === text) run('createLink', url);
-    else run('insertHTML', `<a href="${escapeHtml(url)}">${escapeHtml(text)}</a>`);
+    const node = area.current;
+    if (!node) return;
+    restore();
+    const range = selection.current ?? document.createRange();
+    if (!selection.current) {
+      range.selectNodeContents(node);
+      range.collapse(false);
+    }
+    // The link replaces the selection; the caret goes after it, past a space, so what's typed
+    // next is plain text rather than more of the link.
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.textContent = text;
+    range.deleteContents();
+    const after = document.createTextNode('\u00a0');
+    range.insertNode(after);
+    range.insertNode(anchor);
+    const caret = document.createRange();
+    caret.setStartAfter(after);
+    caret.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(caret);
+    selection.current = caret;
+    changed();
   };
 
   useImperativeHandle(ref, () => ({
@@ -295,6 +313,7 @@ export function RichEditor({
           </span>
         </form>
       )}
+      {attachments}
       {showToolbar && (
         <div className={styles.toolbar} role="toolbar" aria-label="Formatting">
           {button('Undo', 'undo', () => run('undo'))}
@@ -303,7 +322,8 @@ export function RichEditor({
           <ToolMenu
             label="Font"
             wide
-            onOpen={() => void loadFonts()}
+            placement={placement}
+            onOpen={loadFonts}
             trigger={<span className={styles.fontName}>{font}</span>}
           >
             {(close) =>
@@ -328,7 +348,11 @@ export function RichEditor({
             }
           </ToolMenu>
           <span className={styles.separator} />
-          <ToolMenu label="Size" trigger={<Icon name="formatSize" size={20} />}>
+          <ToolMenu
+            label="Size"
+            placement={placement}
+            trigger={<Icon name="formatSize" size={20} />}
+          >
             {(close) =>
               SIZES.map((item) => (
                 <button
@@ -370,7 +394,11 @@ export function RichEditor({
             onChange={(event) => run('foreColor', event.target.value)}
           />
           <span className={styles.separator} />
-          <ToolMenu label="Align" trigger={<Icon name="alignLeft" size={20} />}>
+          <ToolMenu
+            label="Align"
+            placement={placement}
+            trigger={<Icon name="alignLeft" size={20} />}
+          >
             {(close) => (
               <div className={styles.row}>
                 {ALIGNS.map((item) => (
@@ -396,7 +424,7 @@ export function RichEditor({
           {button('Indent less', 'indentLess', () => run('outdent'))}
           {button('Indent more', 'indentMore', () => run('indent'))}
           <span className={styles.separator} />
-          <ToolMenu label="More formatting options" trigger={null}>
+          <ToolMenu label="More formatting options" placement={placement} trigger={null}>
             {(close) => (
               <div className={styles.column}>
                 {MORE.map((item) => (
