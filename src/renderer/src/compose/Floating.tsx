@@ -18,9 +18,12 @@ export function Floating({
   placement = 'above',
   className,
   label,
+  maxHeight = Infinity,
   children,
 }: {
   anchor: RefObject<HTMLElement | null>;
+  // A cap on its height; it's also kept within the space available on screen.
+  maxHeight?: number;
   onClose: () => void;
   placement?: 'above' | 'below';
   className?: string | undefined;
@@ -41,19 +44,19 @@ export function Floating({
           ? {
               left,
               bottom: window.innerHeight - button.top + GAP,
-              maxHeight: button.top - GAP - MARGIN,
+              maxHeight: Math.min(maxHeight, button.top - GAP - MARGIN),
             }
           : {
               left,
               top: button.bottom + GAP,
-              maxHeight: window.innerHeight - button.bottom - GAP - MARGIN,
+              maxHeight: Math.min(maxHeight, window.innerHeight - button.bottom - GAP - MARGIN),
             },
       );
     };
     place();
     window.addEventListener('resize', place);
     return () => window.removeEventListener('resize', place);
-  }, [anchor, placement]);
+  }, [anchor, placement, maxHeight]);
 
   useEffect(() => {
     // Capture, so a click that something else stops on its way still closes this.

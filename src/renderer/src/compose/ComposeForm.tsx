@@ -24,6 +24,8 @@ function FooterButton({
   pressed?: boolean;
   onClick: () => void;
   'aria-expanded'?: boolean;
+  // Marks the button that opens and closes the link card.
+  'data-link-toggle'?: boolean;
   ref?: Ref<HTMLButtonElement>;
 }) {
   return (
@@ -287,7 +289,12 @@ export function ComposeForm({
           label="Attach files"
           onClick={() => files.current?.click()}
         />
-        <FooterButton icon="link" label="Insert link" onClick={() => editor.current?.startLink()} />
+        <FooterButton
+          icon="link"
+          label="Insert link"
+          data-link-toggle
+          onClick={() => editor.current?.toggleLink()}
+        />
         <FooterButton
           ref={emojiButton}
           icon="emoji"

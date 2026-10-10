@@ -7,7 +7,8 @@ import styles from './RichEditor.module.css';
 // What the compose footer can ask of the editor.
 export interface EditorHandle {
   focus: () => void;
-  startLink: () => void;
+  // Opens the link card, or closes it if it's open.
+  toggleLink: () => void;
   insertText: (text: string) => void;
   insertHtml: (html: string) => void;
 }
@@ -55,6 +56,8 @@ function ToolMenu({
   children,
   wide = false,
   placement,
+  maxHeight,
+  menuClassName,
   onOpen,
 }: {
   label: string;
@@ -62,6 +65,9 @@ function ToolMenu({
   children: (close: () => void) => ReactNode;
   wide?: boolean;
   placement: 'above' | 'below';
+  maxHeight?: number;
+  // Extra styling for this menu, e.g. the font list's width.
+  menuClassName?: string | undefined;
   // Runs before it opens (e.g. reading the installed fonts, which needs this click).
   onOpen?: () => Promise<void> | void;
 }) {
@@ -91,7 +97,8 @@ function ToolMenu({
           anchor={button}
           label={label}
           placement={placement}
-          className={styles.menu}
+          {...(maxHeight && { maxHeight })}
+          className={`${styles.menu} ${menuClassName ?? ''}`}
           onClose={() => setOpen(false)}
         >
           {children(() => setOpen(false))}
@@ -129,6 +136,20 @@ export function RichEditor({
   const [linking, setLinking] = useState(false);
   const [link, setLink] = useState('');
   const [linkText, setLinkText] = useState('');
+  const linkCard = useRef<HTMLFormElement>(null);
+
+  // A click anywhere else closes the link card (its own toggle button excepted, which does).
+  useEffect(() => {
+    if (!linking) return;
+    const away = (event: PointerEvent) => {
+      const target = event.target as Element;
+      if (!linkCard.current?.contains(target) && !target.closest('[data-link-toggle]')) {
+        setLinking(false);
+      }
+    };
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  }, [linking]);
   const { fonts, load: loadFonts } = useFonts();
   const [font, setFont] = useState('Sans Serif');
   const colorInput = useRef<HTMLInputElement>(null);
@@ -220,7 +241,8 @@ export function RichEditor({
 
   useImperativeHandle(ref, () => ({
     focus: () => area.current?.focus(),
-    startLink: () => {
+    toggleLink: () => {
+      if (linking) return setLinking(false);
       // The selected words become the link's text, as in Gmail.
       setLinkText(selection.current?.toString() ?? '');
       setLink('');
@@ -273,6 +295,7 @@ export function RichEditor({
       />
       {linking && (
         <form
+          ref={linkCard}
           className={styles.linkCard}
           aria-label="Insert link"
           onSubmit={(event) => {
@@ -323,6 +346,8 @@ export function RichEditor({
             label="Font"
             wide
             placement={placement}
+            maxHeight={280}
+            menuClassName={styles.fontMenu}
             onOpen={loadFonts}
             trigger={<span className={styles.fontName}>{font}</span>}
           >
