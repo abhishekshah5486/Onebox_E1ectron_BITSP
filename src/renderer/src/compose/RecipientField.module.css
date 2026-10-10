@@ -123,19 +123,24 @@
   cursor: pointer;
 }
 
-.suggestions li span:last-child {
+.who {
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
   font-size: 14px;
   line-height: 20px;
 }
 
-.suggestions b {
+.whoName {
   overflow: hidden;
-  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The part matching what was typed. */
+.who b {
+  font-weight: 700;
 }
 
 .suggestions small {
@@ -146,7 +151,29 @@
   white-space: nowrap;
 }
 
-.suggestions li:hover,
+.suggestions li:not(.used):hover,
 .active {
   background: var(--ob-compose-hover);
+}
+
+/* Already on this line: shown faded with a tick, and can't be picked again. */
+.used {
+  cursor: default !important;
+}
+
+.used .avatarLarge,
+.used .who {
+  opacity: 0.45;
+}
+
+.usedMark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--ob-compose-hover);
+  color: var(--ob-compose-muted);
 }

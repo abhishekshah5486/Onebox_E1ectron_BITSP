@@ -5,6 +5,19 @@ import { Icon } from '../ui/Icon';
 import { avatarColor, parseRecipients, recipientLabel } from './model';
 import styles from './RecipientField.module.css';
 
+// The typed text in bold wherever it appears, as Gmail shows matches.
+function Matched({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'ig'));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? <b key={i}>{part}</b> : part,
+      )}
+    </>
+  );
+}
+
 function Avatar({ recipient, large = false }: { recipient: Recipient; large?: boolean }) {
   return (
     <span
@@ -42,8 +55,21 @@ export function RecipientField({
   const query = text.trim();
   const contacts = useContacts(query);
   const taken = new Set(value.map((r) => r.address));
-  const suggestions =
-    focused && query ? (contacts.data ?? []).filter((c) => !taken.has(c.address)) : [];
+  // Everyone matching, with those already on this line shown but not pickable, as in Gmail.
+  const suggestions = focused && query ? (contacts.data ?? []) : [];
+  const free = (index: number) => {
+    const contact = suggestions[index];
+    return contact !== undefined && !taken.has(contact.address);
+  };
+  const current = free(active) ? active : suggestions.findIndex((_, i) => free(i));
+  // The next pickable suggestion in a direction, wrapping round.
+  const step = (direction: 1 | -1) => {
+    for (let n = 1; n <= suggestions.length; n++) {
+      const index = (current + direction * n + suggestions.length) % suggestions.length;
+      if (free(index)) return index;
+    }
+    return current;
+  };
 
   const showing = suggestions.length > 0;
   useLayoutEffect(() => {
@@ -107,14 +133,15 @@ export function RecipientField({
           onKeyDown={(event) => {
             if (event.key === 'ArrowDown' && suggestions.length) {
               event.preventDefault();
-              setActive((i) => (i + 1) % suggestions.length);
+              setActive(step(1));
             } else if (event.key === 'ArrowUp' && suggestions.length) {
               event.preventDefault();
-              setActive((i) => (i - 1 + suggestions.length) % suggestions.length);
+              setActive(step(-1));
             } else if (event.key === 'Enter' || event.key === 'Tab') {
-              if (suggestions[active]) {
+              const picked = current >= 0 ? suggestions[current] : undefined;
+              if (picked) {
                 event.preventDefault();
-                add([suggestions[active]]);
+                add([picked]);
                 setText('');
               } else if (query) {
                 event.preventDefault();
@@ -138,26 +165,41 @@ export function RecipientField({
           aria-label={`${label} suggestions`}
           style={place ?? undefined}
         >
-          {suggestions.map((contact, index) => (
-            <li
-              key={contact.address}
-              role="option"
-              aria-selected={index === active}
-              className={index === active ? styles.active : undefined}
-              // Picked before the input's blur commits the half-typed text.
-              onMouseDown={(event) => {
-                event.preventDefault();
-                add([contact]);
-                setText('');
-              }}
-            >
-              <Avatar recipient={contact} large />
-              <span>
-                <b>{contact.name ?? contact.address}</b>
-                <small>{contact.address}</small>
-              </span>
-            </li>
-          ))}
+          {suggestions.map((contact, index) => {
+            const used = taken.has(contact.address);
+            return (
+              <li
+                key={contact.address}
+                role="option"
+                aria-selected={index === current}
+                aria-disabled={used || undefined}
+                className={used ? styles.used : index === current ? styles.active : undefined}
+                // Picked before the input's blur commits the half-typed text.
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  if (used) return;
+                  add([contact]);
+                  setText('');
+                }}
+                onMouseEnter={() => !used && setActive(index)}
+              >
+                <Avatar recipient={contact} large />
+                <span className={styles.who}>
+                  <span className={styles.whoName}>
+                    <Matched text={contact.name ?? contact.address} query={query} />
+                  </span>
+                  <small>
+                    <Matched text={contact.address} query={query} />
+                  </small>
+                </span>
+                {used && (
+                  <span className={styles.usedMark} aria-label="Already added">
+                    <Icon name="check" size={18} />
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
