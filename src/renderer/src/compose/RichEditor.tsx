@@ -137,7 +137,7 @@ export function RichEditor({
   const [linking, setLinking] = useState(false);
   const [link, setLink] = useState('');
   const [linkText, setLinkText] = useState('');
-  const linkCard = useRef<HTMLFormElement>(null);
+  const linkCard = useRef<HTMLDivElement>(null);
 
   // A click anywhere else closes the link card (its own toggle button excepted, which does).
   useEffect(() => {
@@ -296,19 +296,21 @@ export function RichEditor({
         onBlur={changed}
       />
       {linking && (
-        <form
+        // Not a form: it sits inside the compose form, and submitting it would send the message.
+        <div
           ref={linkCard}
+          role="group"
           className={styles.linkCard}
           aria-label="Insert link"
-          onSubmit={(event) => {
-            event.preventDefault();
-            applyLink();
-          }}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.stopPropagation();
               setLinking(false);
               restore();
+            } else if (event.key === 'Enter') {
+              event.preventDefault();
+              event.stopPropagation();
+              applyLink();
             }
           }}
         >
@@ -332,11 +334,11 @@ export function RichEditor({
                 onChange={(event) => setLink(event.target.value)}
               />
             </label>
-            <button type="submit" disabled={!safeUrl(link)}>
+            <button type="button" disabled={!safeUrl(link)} onClick={applyLink}>
               Apply
             </button>
           </span>
-        </form>
+        </div>
       )}
       {attachments}
       {showToolbar && (
