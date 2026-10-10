@@ -17,6 +17,7 @@
 }
 
 .unread {
+  border-bottom-color: var(--ob-row-border-unread);
   background: var(--ob-row-unread);
   color: var(--ob-text-unread);
 }

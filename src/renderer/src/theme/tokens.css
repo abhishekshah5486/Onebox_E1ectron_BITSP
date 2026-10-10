@@ -20,6 +20,7 @@
   --ob-settings-bg: #f0f4f9;
   --ob-table-header: #f3f6fb;
   --ob-row-border: #ecedef;
+  --ob-row-border-unread: #ecedef;
   --ob-row-selected-ring: #a8c7fa;
   --ob-nav-hover: #e9eef6;
   --ob-scroll-thumb: #c4c7c5;
@@ -84,6 +85,8 @@
   --ob-settings-card: #1e1f20;
   --ob-settings-line: #2a2b2d;
   --ob-row-border: #333333;
+  /* Unread rows stand out with a lighter line beneath them. */
+  --ob-row-border-unread: #464646;
   /* Gmail lifts a hovered row with a pale halo in dark mode. */
   --ob-row-hover-shadow: 0 0 0 1px #414346, 0 0 6px 2px rgb(255 255 255 / 22%);
   --ob-icon-hover: rgb(227 227 227 / 12%);
