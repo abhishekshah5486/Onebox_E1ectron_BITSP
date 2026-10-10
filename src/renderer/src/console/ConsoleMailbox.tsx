@@ -43,6 +43,7 @@ import styles from './ConsoleMailbox.module.css';
 import { useUnsubscribeFlow } from './UnsubscribeFlow';
 import { LoadError } from '../ui/LoadError';
 import { useCompose } from '../compose/ComposeProvider';
+import { ConsoleDrafts } from './ConsoleDrafts';
 
 const PROBLEM: Record<string, string> = {
   AUTH_FAILED: 'The mail server rejected this account’s password.',
@@ -506,7 +507,7 @@ export function ConsoleUnifiedMailbox({
       onPageChange={setPage}
       loading={false}
       loadingText=""
-      alerts={null}
+      alerts={folder === 'drafts' ? <ConsoleDrafts /> : null}
       onRefresh={() => void query.refetch()}
       empty={
         <EmptyMessage
@@ -640,6 +641,7 @@ function AccountTable({ accountId, view }: { accountId: string; view: MailboxVie
               Something went wrong while loading older mail.
             </Alert>
           )}
+          {'role' in view && view.role === 'drafts' && <ConsoleDrafts accountId={accountId} />}
         </>
       }
       empty={

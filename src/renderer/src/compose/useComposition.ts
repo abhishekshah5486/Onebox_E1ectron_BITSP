@@ -194,10 +194,13 @@ export function useComposition(request: ComposeRequest) {
 
   const discard = useCallback(async () => {
     dirty.current = false;
-    if (!stored.current) return;
-    await composeApi.deleteDraft(api, draftId.current).catch(() => {});
-    void queryClient.invalidateQueries({ queryKey: composeKeys.drafts });
-    notify({ type: 'info', tone: 'burgundy', content: 'Draft discarded.' });
+    // Said whenever there was something to throw away, saved yet or not.
+    const anything = stored.current || hasContent(latest.current);
+    if (stored.current) {
+      await composeApi.deleteDraft(api, draftId.current).catch(() => {});
+      void queryClient.invalidateQueries({ queryKey: composeKeys.drafts });
+    }
+    if (anything) notify({ type: 'info', tone: 'burgundy', content: 'Draft discarded.' });
   }, [api, notify, queryClient]);
 
   return {

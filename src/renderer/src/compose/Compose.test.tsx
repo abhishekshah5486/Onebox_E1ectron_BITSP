@@ -17,6 +17,9 @@ import { ThemeProvider } from '../theme/ThemeProvider';
 import { UiVersionProvider } from '../theme/UiVersionProvider';
 import { SnackbarProvider } from '../ui/Snackbar';
 import { ComposeProvider } from './ComposeProvider';
+import { ConsoleDrafts } from '../console/ConsoleDrafts';
+import { ComposeDock } from './ComposeWindow';
+import { DraftRows } from './DraftRows';
 import { InlineReply } from './InlineReply';
 
 const queued = {
@@ -284,5 +287,72 @@ describe('compose in v2', () => {
       ),
     );
     expect(await screen.findByText('Message sent.')).toBeInTheDocument();
+  });
+});
+
+const savedDraft = {
+  id: '6f1c2b8e-1a4d-4c7e-9b1a-2f3e4d5c6b7a',
+  accountId: 'a1',
+  to: [{ name: 'Priya Raman', address: 'priya@acme.example' }],
+  cc: [],
+  bcc: [],
+  subject: 'Pricing for 20 seats',
+  html: '<p>Hi Priya</p>',
+  text: 'Hi Priya',
+  attachments: [],
+  replyTo: null,
+  note: null,
+  updatedAt: new Date().toISOString(),
+};
+
+const withDrafts = () => {
+  const { api: client } = api();
+  client.get = routedGet({
+    '/accounts': () => ({ items: [account()] }),
+    '/mail/drafts': () => ({ items: [savedDraft] }),
+  });
+  client.delete = vi.fn(async () => undefined) as unknown as ApiClient['delete'];
+  return client;
+};
+
+describe('drafts in OneBox', () => {
+  it('lists them in v1 Drafts, opens one in compose, and discards from the row', async () => {
+    const client = withDrafts();
+    renderApp(
+      client,
+      <SnackbarProvider>
+        <ComposeProvider>
+          <DraftRows />
+          <ComposeDock />
+        </ComposeProvider>
+      </SnackbarProvider>,
+    );
+    const row = await screen.findByRole('listitem');
+    expect(within(row).getByText('Priya Raman')).toBeInTheDocument();
+    await userEvent.click(within(row).getByText('Pricing for 20 seats'));
+    expect(await screen.findByRole('dialog', { name: 'Pricing for 20 seats' })).toBeInTheDocument();
+
+    await userEvent.click(within(row).getByRole('button', { name: 'Discard draft' }));
+    expect(client.delete).toHaveBeenCalledWith(`/mail/drafts/${savedDraft.id}`);
+    expect(await screen.findByText('Draft discarded.')).toBeInTheDocument();
+  });
+
+  it('lists them in a v2 table, continuing or discarding the selected ones', async () => {
+    localStorage.setItem('onebox.ui-version', 'v2');
+    const client = withDrafts();
+    renderApp(
+      client,
+      <FlashProvider>
+        <ComposeProvider>
+          <ConsoleDrafts />
+        </ComposeProvider>
+      </FlashProvider>,
+    );
+    expect(await screen.findByRole('heading', { name: /Drafts in OneBox/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Pricing for 20 seats' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(client.delete).toHaveBeenCalledWith(`/mail/drafts/${savedDraft.id}`);
+    expect(await screen.findByText('Draft discarded.')).toBeInTheDocument();
+    localStorage.removeItem('onebox.ui-version');
   });
 });

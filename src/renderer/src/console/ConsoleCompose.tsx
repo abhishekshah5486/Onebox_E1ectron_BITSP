@@ -111,7 +111,9 @@ function ComposeEditor({ request }: { request: ComposeRequest }) {
   const sender = senders.find((a) => a.id === composition.accountId);
   const mode = composition.replyTo?.mode;
   const title = mode === 'forward' ? 'Forward email' : mode ? 'Reply' : 'Compose email';
-  const leave = () => void navigate(-1);
+  const location = useLocation();
+  // Back to where it was opened from; opened straight from a link, to the inbox instead.
+  const leave = () => void (location.key === 'default' ? navigate('/inbox') : navigate(-1));
   const noRecipients = composition.to.length + composition.cc.length + composition.bcc.length === 0;
 
   return (

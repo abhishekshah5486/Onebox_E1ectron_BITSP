@@ -29,6 +29,8 @@ import { PageControls, SkeletonRows } from './PageControls';
 import { PAGE_SIZE, rangeLabel } from './paging';
 import { ThreadList } from './ThreadList';
 import { useLoadPage } from './useLoadPage';
+import { useDrafts } from '../api/compose';
+import { DraftRows } from '../compose/DraftRows';
 
 function EmptyState({ title, body, connect }: { title: string; body: string; connect?: boolean }) {
   return (
@@ -137,6 +139,7 @@ export function UnifiedMailbox({
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
   const hasAccounts = (accounts.data?.length ?? 0) > 0;
+  const localDrafts = useDrafts().data?.length ?? 0;
   const empty = tagged
     ? { title: `Nothing in ${title}`, body: 'Gmail puts matching mail here as it arrives.' }
     : unifiedEmpty(filter, folder, hasAccounts);
@@ -150,6 +153,7 @@ export function UnifiedMailbox({
         accounts={byId}
         view={filter === 'starred' || tagged ? null : { role: folder ?? 'inbox' }}
         folders={null}
+        {...(folder === 'drafts' && { banner: <DraftRows /> })}
         position={{ offset: (page - 1) * PAGE_SIZE, total: total || null }}
         tabs={
           tabbed && (
@@ -180,7 +184,7 @@ export function UnifiedMailbox({
             {describeError(query.error)}
           </p>
         )}
-        {query.isSuccess && total === 0 && (
+        {query.isSuccess && total === 0 && !(folder === 'drafts' && localDrafts > 0) && (
           <EmptyState title={empty.title} body={empty.body} connect={!hasAccounts} />
         )}
         {query.isSuccess && total > 0 && page * PAGE_SIZE >= total && (
@@ -327,6 +331,7 @@ function AccountMailboxView({ accountId, view }: { accountId: string; view: Mail
                 <button onClick={() => void loader.load(loader.failedPage!)}>Try again</button>
               </div>
             )}
+            {'role' in view && view.role === 'drafts' && <DraftRows accountId={accountId} />}
           </>
         }
         controls={

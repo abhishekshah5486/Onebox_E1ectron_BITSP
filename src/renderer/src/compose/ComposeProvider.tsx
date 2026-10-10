@@ -64,12 +64,14 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
   const preferences = usePreferences();
   const [windows, setWindows] = useState<ComposeWindowState[]>([]);
   const alive = useRef(true);
-  useEffect(
-    () => () => {
+  // Set on every mount: React mounts twice in development, and a stale false would stop
+  // following sends.
+  useEffect(() => {
+    alive.current = true;
+    return () => {
       alive.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   const open = useCallback(
     (request: Partial<ComposeRequest> = {}) => {
@@ -108,6 +110,18 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         if (!item || item.status === 'cancelled') return;
         if (item.status === 'sent') {
           await queryClient.invalidateQueries({ queryKey: mailKeys.all });
+          // The console's banner moves on from Undo (too late now) to the sent message.
+          if (version === 'v2') {
+            notify({
+              id: `send-${queued.id}`,
+              type: 'success',
+              content: 'Message sent.',
+              action: {
+                label: 'View message',
+                onClick: () => void navigate(item.threadId ? `/sent/${item.threadId}` : '/sent'),
+              },
+            });
+          }
           return;
         }
         if (item.status === 'failed') {
@@ -129,7 +143,7 @@ export function ComposeProvider({ children }: { children: ReactNode }) {
         await sleep(POLL_MS);
       }
     },
-    [api, notify, open, queryClient],
+    [api, navigate, notify, open, queryClient, version],
   );
 
   const undo = useCallback(

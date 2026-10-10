@@ -1,0 +1,79 @@
+/* Shaped like the conversation rows below them. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px 0 24px;
+  border-bottom: 1px solid var(--ob-row-border);
+  background: var(--ob-row-unread);
+  color: var(--ob-text);
+  cursor: pointer;
+}
+
+.row:hover,
+.row:focus-visible {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--ob-row-hover-shadow);
+  outline: none;
+}
+
+.who,
+.text {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.who {
+  display: flex;
+  gap: 6px;
+}
+
+/* Gmail marks drafts in red. */
+.tag {
+  flex: none;
+  color: #d93025;
+}
+
+.to {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text {
+  color: var(--ob-text-muted);
+}
+
+.text b {
+  color: var(--ob-text);
+  font-weight: 500;
+}
+
+.note {
+  color: #d93025;
+}
+
+.end {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.date {
+  color: var(--ob-text-muted);
+  font-size: 12px;
+}
+
+/* The bin shows on hover in place of nothing, as Gmail's row actions do. */
+.discard {
+  opacity: 0;
+}
+
+.row:hover .discard,
+.row:focus-within .discard {
+  opacity: 1;
+}
