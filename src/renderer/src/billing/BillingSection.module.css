@@ -13,3 +13,9 @@
   align-items: center;
   gap: 8px;
 }
+
+.recurring {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}

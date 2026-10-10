@@ -296,7 +296,7 @@ describe('BillingSection', () => {
     expect(await screen.findByText('of 20')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     // No renewal to explain on Free.
-    expect(screen.queryByText('Automatic renewal')).toBeNull();
+    expect(screen.queryByText('Recurring payment')).toBeNull();
     expect(screen.getByText('Never (Free credits are given once)')).toBeInTheDocument();
     // The plan and its actions live in Subscription only, not repeated beside the credits.
     expect(screen.queryByRole('button', { name: 'Actions' })).toBeNull();
@@ -349,7 +349,7 @@ describe('BillingSection', () => {
     );
     expect(await screen.findByText('Active')).toBeInTheDocument();
     expect(screen.getByText('UPI')).toBeInTheDocument();
-    expect(screen.getByText('Automatic renewal')).toBeInTheDocument();
+    expect(screen.getByText('Recurring payment')).toBeInTheDocument();
     // Paid with, and the payment's Provider column.
     expect(screen.getAllByText('Razorpay')).toHaveLength(2);
 
@@ -383,7 +383,7 @@ describe('BillingSection', () => {
       );
     const first = view();
     expect(await screen.findByText('Your Pro plan is cancelled')).toBeInTheDocument();
-    expect(screen.queryByText('Automatic renewal')).toBeNull();
+    expect(screen.queryByText('Recurring payment')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /dismiss/i }));
     expect(screen.queryByText('Your Pro plan is cancelled')).toBeNull();
     first.unmount();

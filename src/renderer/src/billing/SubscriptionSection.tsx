@@ -5,6 +5,7 @@ import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Container from '@cloudscape-design/components/container';
 import Header from '@cloudscape-design/components/header';
+import Icon from '@cloudscape-design/components/icon';
 import Modal from '@cloudscape-design/components/modal';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator, {
@@ -90,7 +91,7 @@ const noticeDismissed = (id: string) => {
   }
 };
 
-// Above Billing: how renewals are paid, or, once cancelled, when the plan ends.
+// Above Billing, once a plan is cancelled: when it ends.
 export function SubscriptionNotices() {
   const navigate = useNavigate();
   const { sub, plan } = usePaidPlan();
@@ -121,11 +122,29 @@ export function SubscriptionNotices() {
     );
   }
 
+  return null;
+}
+
+// On a recurring plan: what the payment method on file is charged for.
+export function RecurringPaymentCard() {
+  const { sub, plan } = usePaidPlan();
+  if (!sub || !plan || sub.cancelAtPeriodEnd) return null;
   return (
-    <Alert type="info" header="Automatic renewal">
-      Your {PROVIDER_NAME[sub.provider]} payment method is charged {priceOf(sub)} for each renewal
-      of your {plan.name} plan. The next charge is on <b>{formatDate(sub.currentPeriodEnd)}</b>.
-    </Alert>
+    <Container header={<Header variant="h2">Recurring payment</Header>}>
+      <div className={styles.recurring}>
+        <Icon name="status-info" variant="link" />
+        <SpaceBetween size="xxs">
+          <span>
+            Your default payment method is charged for subscription renewals, extra usage, and
+            auto-reload.
+          </span>
+          <Box color="text-body-secondary">
+            Your {plan.name} plan renews at {priceOf(sub)} through {PROVIDER_NAME[sub.provider]}.
+            The next charge is on <b>{formatDate(sub.currentPeriodEnd)}</b>.
+          </Box>
+        </SpaceBetween>
+      </div>
+    </Container>
   );
 }
 

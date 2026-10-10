@@ -15,7 +15,12 @@ import { useBilling, type LedgerEntry } from './billing';
 import styles from './BillingSection.module.css';
 import { formatCredits } from './plans';
 import { ModelLogo } from '../settings/ModelLogo';
-import { PaymentsTable, SubscriptionCard, SubscriptionNotices } from './SubscriptionSection';
+import {
+  PaymentsTable,
+  RecurringPaymentCard,
+  SubscriptionCard,
+  SubscriptionNotices,
+} from './SubscriptionSection';
 
 const PAGE = 10;
 
@@ -139,6 +144,8 @@ export function BillingSection() {
           )}
         </Container>
       </ColumnLayout>
+
+      <RecurringPaymentCard />
 
       <PaymentsTable />
 
