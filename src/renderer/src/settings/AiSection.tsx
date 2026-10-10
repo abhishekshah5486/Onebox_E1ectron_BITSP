@@ -1,5 +1,4 @@
 import Box from '@cloudscape-design/components/box';
-import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Container from '@cloudscape-design/components/container';
@@ -31,6 +30,7 @@ import { useFlash } from './flash';
 import { ModelLogo } from './ModelLogo';
 import { LoadError } from '../ui/LoadError';
 import { PlanGate } from '../billing/PlanGate';
+import { TableActions } from '../ui/TableActions';
 
 const PURPOSE: Record<ModelPurpose, { label: string; description: string }> = {
   classify: {
@@ -430,12 +430,41 @@ function UsageTable() {
               counter={totals ? `(${num(totals.calls)})` : undefined}
               description="Every AI call OneBox made for you, what it used and what it cost."
               actions={
-                <SpaceBetween direction="horizontal" size="xs">
-                  <Button
-                    iconName="refresh"
-                    ariaLabel="Reload usage"
-                    onClick={() => void usage.refetch()}
-                  />
+                <TableActions
+                  name="AI usage"
+                  refreshing={usage.isFetching && !usage.isPending}
+                  onRefresh={() => void usage.refetch()}
+                  rows={() =>
+                    grouped
+                      ? groupCalls(matching, groupBy).map((group) => ({
+                          [GROUP_LABEL[groupBy]]: group.key,
+                          Calls: group.calls,
+                          'Input tokens': group.inputTokens,
+                          'Output tokens': group.outputTokens,
+                          'Cache read tokens': group.cacheReadTokens,
+                          'Cache write tokens': group.cacheWriteTokens,
+                          'Cost (USD)': group.costUsd,
+                          'Latency (ms)': group.latencyMs,
+                          Failures: group.failures,
+                        }))
+                      : matching.map((call) => ({
+                          When: call.createdAt,
+                          Task: purposeLabel(call.purpose),
+                          'Requested model': call.requestedModel,
+                          'Model used': call.modelUsed ?? '',
+                          Status: call.status,
+                          Error: call.errorCode ?? '',
+                          'Cache hit': call.cacheHit,
+                          'Input tokens': call.inputTokens,
+                          'Output tokens': call.outputTokens,
+                          'Cache read tokens': call.cacheReadTokens,
+                          'Cache write tokens': call.cacheWriteTokens,
+                          'Cost (USD)': call.costUsd,
+                          'Latency (ms)': call.latencyMs,
+                          Fallbacks: call.fallbacks,
+                        }))
+                  }
+                >
                   <ButtonDropdown
                     items={(Object.keys(GROUP_LABEL) as GroupBy[]).map((id) => ({
                       id,
@@ -465,7 +494,7 @@ function UsageTable() {
                   >
                     {PERIODS.find((period) => period.id === days)?.text}
                   </ButtonDropdown>
-                </SpaceBetween>
+                </TableActions>
               }
             >
               AI usage

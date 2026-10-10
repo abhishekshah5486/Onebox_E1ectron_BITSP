@@ -26,6 +26,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { describeError } from '../auth/errors';
 import { useFlash } from '../settings/flash';
 import tableStyles from '../ui/DataTable.module.css';
+import { TableActions } from '../ui/TableActions';
 import styles from './BillingSection.module.css';
 import { PROVIDER_NAME } from './CheckoutOverlay';
 import { ProviderLogo } from './ProviderLogo';
@@ -47,8 +48,7 @@ const formatDate = (iso: string | null) =>
 function status(sub: Subscription): { type: StatusIndicatorProps.Type; text: string } {
   if (sub.status === 'halted') return { type: 'error', text: 'Payment failed' };
   if (sub.status === 'pending') return { type: 'pending', text: 'Retrying payment' };
-  if (sub.cancelAtPeriodEnd)
-    return { type: 'warning', text: `Ends ${formatDate(sub.currentPeriodEnd)}` };
+  if (sub.cancelAtPeriodEnd) return { type: 'warning', text: 'Cancelled' };
   return { type: 'success', text: 'Active' };
 }
 
@@ -314,6 +314,23 @@ export function PaymentsTable() {
             variant="h2"
             counter={history.data?.length ? `(${history.data.length})` : undefined}
             description="Every payment for your plan"
+            actions={
+              <TableActions
+                name="Payments"
+                refreshing={history.isFetching && !history.isLoading}
+                onRefresh={() => void history.refetch()}
+                rows={() =>
+                  (history.data ?? []).map((item) => ({
+                    Date: formatDate(item.createdAt),
+                    Provider: PROVIDER_NAME[item.provider],
+                    Amount: item.currency === 'INR' ? item.amount / 100 : item.amount,
+                    Currency: item.currency,
+                    Status: item.status,
+                    Method: item.failureReason ?? item.method ?? '',
+                  }))
+                }
+              />
+            }
           >
             Payments
           </Header>

@@ -11,6 +11,7 @@ import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Table from '@cloudscape-design/components/table';
 import { useState } from 'react';
 import tableStyles from '../ui/DataTable.module.css';
+import { TableActions } from '../ui/TableActions';
 import { useBilling, type LedgerEntry } from './billing';
 import styles from './BillingSection.module.css';
 import { formatCredits } from './plans';
@@ -161,6 +162,23 @@ export function BillingSection() {
               variant="h2"
               counter={ledger.length ? `(${ledger.length})` : undefined}
               description="Every time credits were added or used"
+              actions={
+                <TableActions
+                  name="Credit history"
+                  refreshing={billing.isFetching && !billing.isLoading}
+                  onRefresh={() => void billing.refetch()}
+                  rows={() =>
+                    ledger.map((item) => ({
+                      When: new Date(item.at).toISOString(),
+                      Type: KIND[item.kind],
+                      Activity: item.description,
+                      Model: item.model ?? '',
+                      Credits: item.credits,
+                      Balance: item.balanceAfter,
+                    }))
+                  }
+                />
+              }
             >
               Credit history
             </Header>
