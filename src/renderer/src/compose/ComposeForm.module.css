@@ -300,8 +300,23 @@
 .status {
   flex: 1;
   padding-left: 8px;
-  color: var(--ob-compose-muted);
+}
+
+/* The draft's state in a pill: light blue in the light theme, a dark shade in the dark one. */
+.statusPill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: var(--ob-compose-pressed);
+  color: var(--ob-compose-text);
   font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.statusError {
+  background: rgb(217 48 37 / 16%);
+  color: #d93025;
 }
 
 /* emoji-picker-react, restyled to sit like Gmail's panel above the footer. */

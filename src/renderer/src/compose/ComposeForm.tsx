@@ -349,13 +349,17 @@ export function ComposeForm({
           }}
         />
         <span className={styles.status} aria-live="polite">
-          {state.saveState === 'saving'
-            ? 'Saving…'
-            : state.saveState === 'saved'
-              ? 'Draft saved'
-              : state.saveState === 'error'
-                ? "Couldn't save draft"
-                : ''}
+          {state.saveState !== 'unsaved' && (
+            <span
+              className={`${styles.statusPill} ${state.saveState === 'error' ? styles.statusError : ''}`}
+            >
+              {state.saveState === 'saving'
+                ? 'Saving…'
+                : state.saveState === 'saved'
+                  ? 'Draft saved'
+                  : "Couldn't save draft"}
+            </span>
+          )}
         </span>
         <FooterButton
           icon="delete"
