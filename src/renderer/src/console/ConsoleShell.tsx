@@ -13,7 +13,6 @@ import { Icon } from '../ui/Icon';
 import oneboxMark from '../ui/onebox-mark.svg';
 import { VersionSwitch } from '../ui/VersionSwitch';
 import { ConsoleNavigation } from './ConsoleNavigation';
-import styles from './ConsoleShell.module.css';
 import { SidebarResizer } from './SidebarResizer';
 import { useSidebarWidth } from './useSidebarWidth';
 
@@ -98,7 +97,6 @@ export function ConsoleShell() {
               ]}
             />
           </div>
-          <div className={styles.backdrop} aria-hidden="true" />
           <AppLayout
             headerSelector="#onebox-top-nav"
             navigation={<ConsoleNavigation />}
