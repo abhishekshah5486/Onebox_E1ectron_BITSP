@@ -94,7 +94,7 @@
   top: 100%;
   left: 24px;
   z-index: 30;
-  width: min(560px, calc(100% - 24px));
+  width: min(420px, calc(100% - 24px));
   max-height: 360px;
   overflow-y: auto;
   margin: 0;
