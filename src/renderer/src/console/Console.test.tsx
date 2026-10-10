@@ -161,6 +161,23 @@ describe('v2 console', () => {
     expect(screen.getByText(/2026-10-07 17:06 UTC/)).toBeInTheDocument();
   });
 
+  it('switches inbox categories with tabs', async () => {
+    const get = vi.fn(
+      routedGet({
+        '/accounts': () => ({ items: [gmail] }),
+        '/mail/threads?': pageOf(threads(1)),
+      }),
+    );
+    renderConsole('/inbox', fakeApi({ ...restore, get }));
+
+    const tabs = within(await screen.findByRole('tablist', { name: 'Inbox categories' }));
+    expect(tabs.getByRole('tab', { name: 'Primary' })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(tabs.getByRole('tab', { name: 'Promotions' }));
+    await waitFor(() =>
+      expect(get).toHaveBeenCalledWith(expect.stringContaining('category=promotions')),
+    );
+  });
+
   it('shows read rows apart from unread ones', async () => {
     renderConsole(
       '/inbox',

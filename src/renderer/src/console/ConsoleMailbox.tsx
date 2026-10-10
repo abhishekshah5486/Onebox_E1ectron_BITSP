@@ -3,7 +3,7 @@ import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import Header from '@cloudscape-design/components/header';
 import Pagination from '@cloudscape-design/components/pagination';
-import SegmentedControl from '@cloudscape-design/components/segmented-control';
+import Tabs from '@cloudscape-design/components/tabs';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
 import TextFilter from '@cloudscape-design/components/text-filter';
@@ -416,12 +416,15 @@ function CategoryControl({
 }) {
   const tabs = useInboxTabs();
   return (
-    <SegmentedControl
-      label="Inbox categories"
-      selectedId={value}
-      options={tabs.map((id) => ({ id, text: CATEGORY_LABEL[id] }))}
-      onChange={({ detail }) => onChange(detail.selectedId as GmailCategory)}
-    />
+    // Tabs with no panels: the table below shows the chosen category.
+    <div className={styles.categoryTabs}>
+      <Tabs
+        ariaLabel="Inbox categories"
+        activeTabId={value}
+        tabs={tabs.map((id) => ({ id, label: CATEGORY_LABEL[id] }))}
+        onChange={({ detail }) => onChange(detail.activeTabId as GmailCategory)}
+      />
+    </div>
   );
 }
 

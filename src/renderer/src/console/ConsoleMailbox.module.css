@@ -185,3 +185,8 @@ tr:has(:focus-visible) .time {
   gap: 6px;
   min-width: 0;
 }
+
+/* Only the tab headers: their empty panel would add space under them. */
+.categoryTabs [role='tabpanel'] {
+  display: none;
+}
