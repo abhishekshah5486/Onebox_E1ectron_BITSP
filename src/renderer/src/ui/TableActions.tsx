@@ -39,10 +39,10 @@ export function TableActions({
         onClick={onRefresh}
       />
       <Button iconName="download" onClick={() => void exportRows(rows(), name, 'csv')}>
-        CSV
+        Export to CSV
       </Button>
       <Button iconName="download" onClick={() => void exportRows(rows(), name, 'xlsx')}>
-        XLSX
+        Export to XLSX
       </Button>
       {children}
     </SpaceBetween>

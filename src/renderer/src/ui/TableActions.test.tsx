@@ -20,7 +20,7 @@ describe('TableActions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Refresh payments' }));
     expect(onRefresh).toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', { name: 'CSV' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Export to CSV' }));
     await waitFor(() =>
       expect(writeFile).toHaveBeenLastCalledWith(
         expect.objectContaining({ SheetNames: ['Payments'] }),
@@ -28,7 +28,7 @@ describe('TableActions', () => {
         { bookType: 'csv' },
       ),
     );
-    await userEvent.click(screen.getByRole('button', { name: 'XLSX' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Export to XLSX' }));
     await waitFor(() =>
       expect(writeFile).toHaveBeenLastCalledWith(
         expect.anything(),
