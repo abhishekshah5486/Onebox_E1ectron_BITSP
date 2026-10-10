@@ -37,9 +37,9 @@ const signed = (credits: number) =>
   `${credits > 0 ? '+' : credits < 0 ? '−' : ''}${formatCredits(Math.abs(credits))}`;
 
 const KIND: Record<LedgerEntry['kind'], string> = {
-  grant: 'Added',
-  charge: 'Used',
-  refund: 'Returned',
+  grant: 'Credited',
+  charge: 'Deducted',
+  refund: 'Refunded',
   expiry: 'Expired',
 };
 
