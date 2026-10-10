@@ -83,7 +83,7 @@
   /* Cards and dividers on the settings sheet, a shade apart like Gemini's. */
   --ob-settings-card: #1e1f20;
   --ob-settings-line: #2a2b2d;
-  --ob-row-border: #222222;
+  --ob-row-border: #333333;
   /* Gmail lifts a hovered row with a pale halo in dark mode. */
   --ob-row-hover-shadow: 0 0 0 1px #414346, 0 0 6px 2px rgb(255 255 255 / 22%);
   --ob-icon-hover: rgb(227 227 227 / 12%);
