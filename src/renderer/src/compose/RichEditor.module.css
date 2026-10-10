@@ -110,7 +110,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 6px 16px 6px 36px;
+  padding: 6px 16px 6px 12px;
   border: none;
   background: transparent;
   color: var(--ob-compose-text);
@@ -119,8 +119,12 @@
   cursor: pointer;
 }
 
-.menu > button[aria-checked='true'] {
-  padding-left: 12px;
+/* Every row keeps room for the tick, so the names line up whether ticked or not. */
+.tick {
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  width: 20px;
 }
 
 .menu > button:hover {
@@ -185,7 +189,6 @@
 }
 
 .menu > .sizeItem[aria-checked='true'] {
-  padding-left: 12px;
   color: var(--ob-compose-placeholder);
 }
 

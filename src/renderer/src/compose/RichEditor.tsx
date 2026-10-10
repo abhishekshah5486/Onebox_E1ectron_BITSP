@@ -368,7 +368,9 @@ export function RichEditor({
                     close();
                   }}
                 >
-                  {font === item.label && <Icon name="check" size={16} />}
+                  <span className={styles.tick}>
+                    {font === item.label && <Icon name="check" size={18} />}
+                  </span>
                   {item.label}
                 </button>
               ))
@@ -396,7 +398,9 @@ export function RichEditor({
                     close();
                   }}
                 >
-                  {size === item.value && <Icon name="check" size={20} />}
+                  <span className={styles.tick}>
+                    {size === item.value && <Icon name="check" size={20} />}
+                  </span>
                   {item.label}
                 </button>
               ))
