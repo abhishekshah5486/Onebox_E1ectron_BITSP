@@ -65,7 +65,7 @@
 /* Full screen: the same margins on every side, so it's centred whatever is behind it. */
 .maximized {
   position: fixed;
-  inset: 5vh 6vw;
+  inset: 5vh max(6vw, calc((100vw - 1100px) / 2));
   width: auto;
   max-width: none;
   height: auto;
