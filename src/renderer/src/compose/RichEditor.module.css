@@ -159,6 +159,38 @@
 /* The font list: a small box that scrolls, names cut short rather than widening it. */
 .fontMenu {
   width: 240px;
+  scrollbar-color: var(--ob-compose-chip-line) transparent;
+  scrollbar-width: thin;
+}
+
+/* A scrollbar that stays visible, so it's clear there are more fonts. */
+.fontMenu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.fontMenu::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--ob-compose-chip-line);
+}
+
+/* Gmail's size menu: each size drawn at its own size, the current one ticked and dimmed. */
+.sizeMenu {
+  min-width: 170px;
+}
+
+.menu > .sizeItem {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  line-height: 1.2;
+}
+
+.menu > .sizeItem[aria-checked='true'] {
+  padding-left: 12px;
+  color: var(--ob-compose-placeholder);
+}
+
+.menu > .sizeItem[aria-checked='true'] svg {
+  color: var(--ob-compose-text);
 }
 
 .fontMenu > button {

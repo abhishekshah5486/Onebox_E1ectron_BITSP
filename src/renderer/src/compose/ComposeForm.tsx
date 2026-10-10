@@ -1,5 +1,8 @@
 import { lazy, Suspense, useRef, useState, type Ref } from 'react';
+import { composeApi } from '../api/compose';
 import { useAccounts, usePreferences } from '../api/queries';
+import { useAuth } from '../auth/AuthProvider';
+import { saveBlob } from '../mail/attachments/useAttachment';
 import { Icon, type IconName } from '../ui/Icon';
 import styles from './ComposeForm.module.css';
 import { gmailSize, recipientLabel, signatureHtml } from './model';
@@ -59,6 +62,7 @@ export function ComposeForm({
   onDone: () => void;
 }) {
   const { composition, update } = state;
+  const { api } = useAuth();
   const accounts = useAccounts();
   const preferences = usePreferences();
   const editor = useRef<EditorHandle>(null);
@@ -222,7 +226,19 @@ export function ComposeForm({
             <ul className={styles.attachments} aria-label="Attachments">
               {composition.attachments.map((attachment) => (
                 <li key={attachment.blobKey}>
-                  <span className={styles.name}>{attachment.filename}</span>
+                  <button
+                    type="button"
+                    className={styles.name}
+                    title={`Download ${attachment.filename}`}
+                    onClick={() =>
+                      void composeApi
+                        .downloadAttachment(api, attachment)
+                        .then((blob) => saveBlob(blob, attachment.filename))
+                        .catch(() => undefined)
+                    }
+                  >
+                    {attachment.filename}
+                  </button>
                   <span className={styles.size}>({gmailSize(attachment.sizeBytes)})</span>
                   <button
                     type="button"

@@ -14,11 +14,12 @@ export interface EditorHandle {
 }
 
 // execCommand's 1–7 scale, as Gmail uses it.
+// Each drawn at its own size in the menu, as Gmail does.
 const SIZES = [
-  { label: 'Small', value: '1' },
-  { label: 'Normal', value: '2' },
-  { label: 'Large', value: '4' },
-  { label: 'Huge', value: '6' },
+  { label: 'Small', value: '1', px: 13 },
+  { label: 'Normal', value: '2', px: 16 },
+  { label: 'Large', value: '4', px: 22 },
+  { label: 'Huge', value: '6', px: 34 },
 ];
 
 const ALIGNS: { label: string; command: string; icon: IconName }[] = [
@@ -152,6 +153,7 @@ export function RichEditor({
   }, [linking]);
   const { fonts, load: loadFonts } = useFonts();
   const [font, setFont] = useState('Sans Serif');
+  const [size, setSize] = useState('2');
   const colorInput = useRef<HTMLInputElement>(null);
   const [empty, setEmpty] = useState(!initialHtml);
 
@@ -346,7 +348,7 @@ export function RichEditor({
             label="Font"
             wide
             placement={placement}
-            maxHeight={280}
+            maxHeight={360}
             menuClassName={styles.fontMenu}
             onOpen={loadFonts}
             trigger={<span className={styles.fontName}>{font}</span>}
@@ -383,13 +385,18 @@ export function RichEditor({
                 <button
                   key={item.value}
                   type="button"
-                  role="menuitem"
+                  role="menuitemradio"
+                  aria-checked={size === item.value}
+                  className={styles.sizeItem}
+                  style={{ fontSize: item.px }}
                   onMouseDown={keepSelection}
                   onClick={() => {
+                    setSize(item.value);
                     run('fontSize', item.value);
                     close();
                   }}
                 >
+                  {size === item.value && <Icon name="check" size={20} />}
                   {item.label}
                 </button>
               ))

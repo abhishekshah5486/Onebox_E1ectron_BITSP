@@ -167,7 +167,16 @@
 }
 
 .name {
+  padding: 0;
+  border: none;
+  background: transparent;
   color: #1a73e8;
+  font: inherit;
+  cursor: pointer;
+}
+
+.name:hover {
+  text-decoration: underline;
 }
 
 .size {
@@ -176,7 +185,7 @@
   font-weight: 700;
 }
 
-.attachments button {
+.attachments button:not(.name) {
   display: grid;
   flex: none;
   place-items: center;
@@ -191,7 +200,7 @@
   cursor: pointer;
 }
 
-.attachments button:hover {
+.attachments button:not(.name):hover {
   background: var(--ob-compose-hover);
 }
 

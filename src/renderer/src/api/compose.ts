@@ -83,6 +83,11 @@ export const composeApi = {
       headers: { 'x-storage-account': storageAccountId },
       ...(onProgress && { onProgress }),
     }),
+  // An attached file's contents, to download it while writing.
+  downloadAttachment: (api: ApiClient, attachment: OutgoingAttachment) =>
+    api.blob(
+      `/mail/uploads/file?key=${encodeURIComponent(attachment.blobKey)}&name=${encodeURIComponent(attachment.filename)}`,
+    ),
   attachFromMessage: (api: ApiClient, messageId: string, index: number) =>
     api.post<OutgoingAttachment>('/mail/uploads/from-message', { messageId, index }),
 };
