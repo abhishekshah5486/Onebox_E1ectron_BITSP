@@ -30,6 +30,7 @@ import styles from './AiSection.module.css';
 import { useFlash } from './flash';
 import { ModelLogo } from './ModelLogo';
 import { LoadError } from '../ui/LoadError';
+import { PlanGate } from '../billing/PlanGate';
 
 const PURPOSE: Record<ModelPurpose, { label: string; description: string }> = {
   classify: {
@@ -102,64 +103,70 @@ export function AiSection() {
 
   return (
     <SpaceBetween size="l">
-      <Container
-        header={
-          <Header
-            variant="h2"
-            description="If a model is down or fails, OneBox moves to the next one from the same provider, then to Auto's picks."
-          >
-            Models
-          </Header>
-        }
+      <PlanGate
+        needs="STANDARD"
+        title="Models"
+        description="Choose the AI model for each task, such as a stronger one for writing replies. Free uses Auto's picks."
       >
-        <SpaceBetween size="l">
-          {models.isPending && <StatusIndicator type="loading">Loading models</StatusIndicator>}
-          {models.isError && (
-            <LoadError
-              error={models.error}
-              header="Models could not be loaded"
-              onRetry={() => void models.refetch()}
-            />
-          )}
-          <ColumnLayout columns={2}>
-            {(models.data?.purposes ?? []).map((purpose) => {
-              const chosen = models.data?.choices[purpose] ?? AUTO_MODEL;
-              return (
-                <FormField
-                  key={purpose}
-                  label={PURPOSE[purpose].label}
-                  description={PURPOSE[purpose].description}
-                >
-                  <Select
-                    selectedOption={inField(
-                      flat(options).find((option) => option.value === chosen),
-                    )}
-                    options={options}
-                    // Shows the chosen model with its maker's logo, not just its name.
-                    triggerVariant="option"
-                    ariaLabel={`Model for ${PURPOSE[purpose].label.toLowerCase()}`}
-                    onChange={({ detail }) => {
-                      const modelId = detail.selectedOption.value ?? AUTO_MODEL;
-                      choose.mutate(
-                        { purpose, modelId },
-                        {
-                          onSuccess: () =>
-                            flash({
-                              type: 'success',
-                              content: `${PURPOSE[purpose].label} now uses ${detail.selectedOption.label ?? 'Auto'}.`,
-                            }),
-                          onError: (error) =>
-                            flash({ type: 'error', content: describeError(error) }),
-                        },
-                      );
-                    }}
-                  />
-                </FormField>
-              );
-            })}
-          </ColumnLayout>
-        </SpaceBetween>
-      </Container>
+        <Container
+          header={
+            <Header
+              variant="h2"
+              description="If a model is down or fails, OneBox moves to the next one from the same provider, then to Auto's picks."
+            >
+              Models
+            </Header>
+          }
+        >
+          <SpaceBetween size="l">
+            {models.isPending && <StatusIndicator type="loading">Loading models</StatusIndicator>}
+            {models.isError && (
+              <LoadError
+                error={models.error}
+                header="Models could not be loaded"
+                onRetry={() => void models.refetch()}
+              />
+            )}
+            <ColumnLayout columns={2}>
+              {(models.data?.purposes ?? []).map((purpose) => {
+                const chosen = models.data?.choices[purpose] ?? AUTO_MODEL;
+                return (
+                  <FormField
+                    key={purpose}
+                    label={PURPOSE[purpose].label}
+                    description={PURPOSE[purpose].description}
+                  >
+                    <Select
+                      selectedOption={inField(
+                        flat(options).find((option) => option.value === chosen),
+                      )}
+                      options={options}
+                      // Shows the chosen model with its maker's logo, not just its name.
+                      triggerVariant="option"
+                      ariaLabel={`Model for ${PURPOSE[purpose].label.toLowerCase()}`}
+                      onChange={({ detail }) => {
+                        const modelId = detail.selectedOption.value ?? AUTO_MODEL;
+                        choose.mutate(
+                          { purpose, modelId },
+                          {
+                            onSuccess: () =>
+                              flash({
+                                type: 'success',
+                                content: `${PURPOSE[purpose].label} now uses ${detail.selectedOption.label ?? 'Auto'}.`,
+                              }),
+                            onError: (error) =>
+                              flash({ type: 'error', content: describeError(error) }),
+                          },
+                        );
+                      }}
+                    />
+                  </FormField>
+                );
+              })}
+            </ColumnLayout>
+          </SpaceBetween>
+        </Container>
+      </PlanGate>
       <UsageTable />
     </SpaceBetween>
   );

@@ -1,3 +1,4 @@
+import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
@@ -65,18 +66,77 @@ const PAYMENT_STATUS: Record<PaymentRecord['status'], StatusIndicatorProps.Type>
   refunded: 'info',
 };
 
-// Settings → Billing: the paid plan, if any, with cancelling and the payments made.
-export function SubscriptionSection() {
+// The paid plan, if any, and what Billing's parts share about it.
+export function usePaidPlan() {
+  const subscription = useSubscription();
+  const sub =
+    subscription.data && HOLDS_PLAN.has(subscription.data.status) ? subscription.data : null;
+  return { loading: subscription.isLoading, sub, plan: sub ? planById(sub.plan) : null };
+}
+
+const priceOf = (sub: Subscription) => {
+  const plan = planById(sub.plan);
+  return sub.interval === 'annual'
+    ? `${formatRupees(plan.annualMonthlyPrice * 12)}/year`
+    : `${formatRupees(plan.monthlyPrice)}/month`;
+};
+
+const NOTICE_KEY = 'onebox.billing.cancelledNotice';
+const noticeDismissed = (id: string) => {
+  try {
+    return localStorage.getItem(NOTICE_KEY) === id;
+  } catch {
+    return false;
+  }
+};
+
+// Above Billing: how renewals are paid, or, once cancelled, when the plan ends.
+export function SubscriptionNotices() {
+  const navigate = useNavigate();
+  const { sub, plan } = usePaidPlan();
+  const [hidden, setHidden] = useState(() => (sub ? noticeDismissed(sub.id) : false));
+  if (!sub || !plan) return null;
+
+  if (sub.cancelAtPeriodEnd) {
+    if (hidden || noticeDismissed(sub.id)) return null;
+    return (
+      <Alert
+        type="warning"
+        dismissible
+        i18nStrings={{ dismissAriaLabel: 'Dismiss' }}
+        header={`Your ${plan.name} plan is cancelled`}
+        action={<Button onClick={() => void navigate('/plans')}>Choose a plan</Button>}
+        onDismiss={() => {
+          try {
+            localStorage.setItem(NOTICE_KEY, sub.id);
+          } catch {
+            // Only a convenience.
+          }
+          setHidden(true);
+        }}
+      >
+        It stays active until <b>{formatDate(sub.currentPeriodEnd)}</b>, then you move to Free. You
+        won&apos;t be charged again.
+      </Alert>
+    );
+  }
+
+  return (
+    <Alert type="info" header="Automatic renewal">
+      Your {PROVIDER_NAME[sub.provider]} payment method is charged {priceOf(sub)} for each renewal
+      of your {plan.name} plan. The next charge is on <b>{formatDate(sub.currentPeriodEnd)}</b>.
+    </Alert>
+  );
+}
+
+// Settings → Billing: the plan, with changing, cancelling and the card on file.
+export function SubscriptionCard() {
   const navigate = useNavigate();
   const { api } = useAuth();
   const flash = useFlash();
-  const subscription = useSubscription();
-  const history = usePaymentHistory();
+  const { loading, sub, plan } = usePaidPlan();
   const cancel = useCancelSubscription();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const sub =
-    subscription.data && HOLDS_PLAN.has(subscription.data.status) ? subscription.data : null;
-  const plan = sub ? planById(sub.plan) : null;
 
   // Stripe's own page for the saved card and invoices, in the browser.
   async function openPortal() {
@@ -95,12 +155,13 @@ export function SubscriptionSection() {
   const shown = sub ? status(sub) : null;
 
   return (
-    <SpaceBetween size="l">
+    <>
       <Container
+        fitHeight
         header={
           <Header
             variant="h2"
-            description="Manage your plan and payments. Payments are processed securely by Razorpay or Stripe."
+            description="Your plan and how it's paid. Payments are processed securely by Razorpay or Stripe."
             actions={
               sub ? (
                 <ButtonDropdown
@@ -135,18 +196,16 @@ export function SubscriptionSection() {
           </Header>
         }
       >
-        {subscription.isLoading ? (
+        {loading ? (
           <StatusIndicator type="loading">Loading subscription</StatusIndicator>
         ) : sub && plan && shown ? (
-          <ColumnLayout columns={4} variant="text-grid">
+          <ColumnLayout columns={2} variant="text-grid">
             <div>
               <Box variant="awsui-key-label">Plan</Box>
               <span className={styles.valueRow}>
                 <Box variant="awsui-value-large">{plan.name}</Box>
                 <Box variant="span" color="text-body-secondary">
-                  {sub.interval === 'annual'
-                    ? `(${formatRupees(plan.annualMonthlyPrice * 12)}/year)`
-                    : `(${formatRupees(plan.monthlyPrice)}/month)`}
+                  ({priceOf(sub)})
                 </Box>
               </span>
             </div>
@@ -167,76 +226,17 @@ export function SubscriptionSection() {
             </div>
           </ColumnLayout>
         ) : (
-          <Box color="text-body-secondary">
-            You're on the Free plan. Upgrade for monthly credits and every AI feature.
-          </Box>
+          <SpaceBetween size="s">
+            <div>
+              <Box variant="awsui-key-label">Plan</Box>
+              <span className={styles.valueRow}>
+                <Box variant="awsui-value-large">Free</Box>
+              </span>
+            </div>
+            <Box color="text-body-secondary">Upgrade for monthly credits and every AI feature.</Box>
+          </SpaceBetween>
         )}
       </Container>
-
-      <div className={`${tableStyles.table} ${tableStyles.static}`}>
-        <Table
-          variant="container"
-          loading={history.isLoading}
-          loadingText="Loading payments"
-          trackBy="id"
-          items={history.data ?? []}
-          header={
-            <Header
-              variant="h2"
-              counter={history.data?.length ? `(${history.data.length})` : undefined}
-              description="Every payment for your plan"
-            >
-              Payments
-            </Header>
-          }
-          columnDefinitions={[
-            { id: 'date', header: 'Date', cell: (item) => formatDate(item.createdAt) },
-            {
-              id: 'provider',
-              header: 'Provider',
-              cell: (item) => (
-                <span className={styles.paidWith}>
-                  <ProviderLogo provider={item.provider} size={20} label={false} />
-                  {PROVIDER_NAME[item.provider]}
-                </span>
-              ),
-            },
-            {
-              id: 'amount',
-              header: 'Amount',
-              cell: (item) =>
-                item.currency === 'INR'
-                  ? formatRupees(item.amount)
-                  : `${item.amount} ${item.currency}`,
-            },
-            {
-              id: 'status',
-              header: 'Status',
-              cell: (item) => (
-                <StatusIndicator type={PAYMENT_STATUS[item.status]}>
-                  {item.status === 'captured'
-                    ? 'Paid'
-                    : item.status === 'failed'
-                      ? 'Failed'
-                      : 'Refunded'}
-                </StatusIndicator>
-              ),
-            },
-            {
-              id: 'method',
-              header: 'Method',
-              cell: (item) =>
-                item.failureReason ??
-                (item.method ? (METHOD[item.method] ?? item.method.toUpperCase()) : '–'),
-            },
-          ]}
-          empty={
-            <Box textAlign="center" color="inherit" padding="m">
-              <b>No payments yet</b>
-            </Box>
-          }
-        />
-      </div>
 
       <Modal
         visible={confirmCancel}
@@ -272,9 +272,80 @@ export function SubscriptionSection() {
         }
       >
         Cancel your <b>{plan?.name}</b> plan? It stays active until{' '}
-        <b>{formatDate(sub?.currentPeriodEnd ?? null)}</b>, then you move to Free. You won't be
+        <b>{formatDate(sub?.currentPeriodEnd ?? null)}</b>, then you move to Free. You won&apos;t be
         charged again.
       </Modal>
-    </SpaceBetween>
+    </>
+  );
+}
+
+// Every payment for the plan.
+export function PaymentsTable() {
+  const history = usePaymentHistory();
+  return (
+    <div className={`${tableStyles.table} ${tableStyles.static}`}>
+      <Table
+        variant="container"
+        loading={history.isLoading}
+        loadingText="Loading payments"
+        trackBy="id"
+        items={history.data ?? []}
+        header={
+          <Header
+            variant="h2"
+            counter={history.data?.length ? `(${history.data.length})` : undefined}
+            description="Every payment for your plan"
+          >
+            Payments
+          </Header>
+        }
+        columnDefinitions={[
+          { id: 'date', header: 'Date', cell: (item) => formatDate(item.createdAt) },
+          {
+            id: 'provider',
+            header: 'Provider',
+            cell: (item) => (
+              <span className={styles.paidWith}>
+                <ProviderLogo provider={item.provider} size={20} label={false} />
+                {PROVIDER_NAME[item.provider]}
+              </span>
+            ),
+          },
+          {
+            id: 'amount',
+            header: 'Amount',
+            cell: (item) =>
+              item.currency === 'INR'
+                ? formatRupees(item.amount)
+                : `${item.amount} ${item.currency}`,
+          },
+          {
+            id: 'status',
+            header: 'Status',
+            cell: (item) => (
+              <StatusIndicator type={PAYMENT_STATUS[item.status]}>
+                {item.status === 'captured'
+                  ? 'Paid'
+                  : item.status === 'failed'
+                    ? 'Failed'
+                    : 'Refunded'}
+              </StatusIndicator>
+            ),
+          },
+          {
+            id: 'method',
+            header: 'Method',
+            cell: (item) =>
+              item.failureReason ??
+              (item.method ? (METHOD[item.method] ?? item.method.toUpperCase()) : '–'),
+          },
+        ]}
+        empty={
+          <Box textAlign="center" color="inherit" padding="m">
+            <b>No payments yet</b>
+          </Box>
+        }
+      />
+    </div>
   );
 }

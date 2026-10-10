@@ -52,6 +52,7 @@ describe('SettingsPage', () => {
         .length,
     ).toBeGreaterThan(3);
     await userEvent.click(screen.getByRole('tab', { name: 'Integrations' }));
-    expect(await screen.findByText('No integrations yet')).toBeInTheDocument();
+    // Integrations are a Pro feature, locked on Free.
+    expect(await screen.findByText('Pro plan required')).toBeInTheDocument();
   });
 });

@@ -10,6 +10,7 @@ import { useCurrentUser } from '../auth/AuthProvider';
 import { useTheme, type ThemePreference } from '../theme/ThemeProvider';
 import { useUiVersion, type UiVersion } from '../theme/UiVersionProvider';
 import { BillingSection } from '../billing/BillingSection';
+import { PlanGate } from '../billing/PlanGate';
 import { AccountsSection } from './AccountsSection';
 import { AiSection } from './AiSection';
 import { FlashProvider } from './flash';
@@ -30,7 +31,13 @@ const TABS = [
     content: (
       <SpaceBetween size="l">
         <StorageSection />
-        <IntegrationsSection />
+        <PlanGate
+          needs="PRO"
+          title="Integrations"
+          description="Send OneBox events to Slack and your own webhooks, with automation rules."
+        >
+          <IntegrationsSection />
+        </PlanGate>
       </SpaceBetween>
     ),
   },

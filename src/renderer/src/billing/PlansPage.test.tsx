@@ -292,8 +292,11 @@ describe('BillingSection', () => {
         <BillingSection />
       </FlashProvider>,
     );
-    expect(await screen.findByText(/You're on the Free plan/)).toBeInTheDocument();
+    expect(await screen.findByText(/Upgrade for monthly credits/)).toBeInTheDocument();
     expect(await screen.findByText('of 20')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    // No renewal to explain on Free.
+    expect(screen.queryByText('Automatic renewal')).toBeNull();
     expect(screen.getByText('Never (Free credits are given once)')).toBeInTheDocument();
     // The plan and its actions live in Subscription only, not repeated beside the credits.
     expect(screen.queryByRole('button', { name: 'Actions' })).toBeNull();
@@ -346,6 +349,7 @@ describe('BillingSection', () => {
     );
     expect(await screen.findByText('Active')).toBeInTheDocument();
     expect(screen.getByText('UPI')).toBeInTheDocument();
+    expect(screen.getByText('Automatic renewal')).toBeInTheDocument();
     // Paid with, and the payment's Provider column.
     expect(screen.getAllByText('Razorpay')).toHaveLength(2);
 
@@ -357,6 +361,38 @@ describe('BillingSection', () => {
     expect(post).toHaveBeenCalledWith('/payments/subscription/cancel');
     expect(await screen.findByText(/plan is cancelled/)).toBeInTheDocument();
   });
+  it('says when a cancelled plan ends, until dismissed', async () => {
+    localStorage.clear();
+    const subscription = {
+      id: 's2',
+      provider: 'RAZORPAY',
+      plan: 'PRO',
+      interval: 'monthly',
+      status: 'active',
+      currentPeriodStart: '2026-10-09T00:00:00.000Z',
+      currentPeriodEnd: '2026-11-09T00:00:00.000Z',
+      cancelAtPeriodEnd: true,
+      createdAt: '2026-10-09T00:00:00.000Z',
+    };
+    const view = () =>
+      render(
+        <FlashProvider>
+          <BillingSection />
+        </FlashProvider>,
+        { get: routedGet({ '/payments/subscription': () => ({ subscription }) }) },
+      );
+    const first = view();
+    expect(await screen.findByText('Your Pro plan is cancelled')).toBeInTheDocument();
+    expect(screen.queryByText('Automatic renewal')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /dismiss/i }));
+    expect(screen.queryByText('Your Pro plan is cancelled')).toBeNull();
+    first.unmount();
+
+    view();
+    expect(await screen.findByText('Ends on')).toBeInTheDocument();
+    expect(screen.queryByText('Your Pro plan is cancelled')).toBeNull();
+  });
+
   it("opens Stripe's page for the card on file, and says when AI is paused", async () => {
     const subscription = {
       id: 's1',
