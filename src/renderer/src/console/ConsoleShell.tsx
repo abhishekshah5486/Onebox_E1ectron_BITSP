@@ -12,6 +12,7 @@ import { useTheme, type ThemePreference } from '../theme/ThemeProvider';
 import { Icon } from '../ui/Icon';
 import oneboxMark from '../ui/onebox-mark.svg';
 import { VersionSwitch } from '../ui/VersionSwitch';
+import { useLiveUpdates } from '../api/useLiveUpdates';
 import { ConsoleNavigation } from './ConsoleNavigation';
 import { SidebarResizer } from './SidebarResizer';
 import { useSidebarWidth } from './useSidebarWidth';
@@ -35,6 +36,7 @@ export function ConsoleShell() {
   const { preference, setPreference } = useTheme();
   const [navigationOpen, setNavigationOpen] = useState(true);
   const [navigationWidth, setNavigationWidth] = useSidebarWidth();
+  useLiveUpdates();
 
   return (
     <FlashArea>

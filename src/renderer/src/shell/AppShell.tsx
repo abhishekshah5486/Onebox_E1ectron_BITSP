@@ -7,9 +7,11 @@ import { TooltipLayer } from '../ui/TooltipLayer';
 import styles from './AppShell.module.css';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { useLiveUpdates } from '../api/useLiveUpdates';
 
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
+  useLiveUpdates();
   return (
     <SnackbarProvider>
       <ComposeProvider>

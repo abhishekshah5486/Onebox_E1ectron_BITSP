@@ -40,6 +40,7 @@ const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/ai/labels') return { items: [] };
   if (path === '/llm/models') return { items: [], purposes: [], choices: {} };
   if (path === '/mail/stats') return { unreadThreads: 0, starredThreads: 0, totalThreads: 0 };
+  if (path.startsWith('/search?')) return { mode: 'keyword', items: [], total: 0, nextPage: null };
   throw new Error(`fakeApi: unexpected GET ${path}`);
 };
 
@@ -53,6 +54,16 @@ export function routedGet(routes: Record<string, (path: string) => unknown>): Ap
   }) as ApiClient['get'];
 }
 
+// A live event stream that stays quiet until the app closes it.
+export const quietStream = (_path: string, signal: AbortSignal) =>
+  Promise.resolve(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        signal.addEventListener('abort', () => controller.close());
+      },
+    }),
+  );
+
 export function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     get: vi.fn(defaultGet) as ApiClient['get'],
@@ -61,6 +72,7 @@ export function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     put: vi.fn(),
     delete: vi.fn(),
     blob: vi.fn(async () => new Blob()),
+    stream: vi.fn(quietStream),
     upload: vi.fn(),
     login: vi.fn(async () => testUser),
     register: vi.fn(async () => testUser),

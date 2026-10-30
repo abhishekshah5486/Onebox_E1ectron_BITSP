@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
+import { isLive } from './liveStatus';
 import {
   viewKey,
   type FolderRole,
@@ -21,8 +22,9 @@ import {
   type ThreadPage,
 } from './mail';
 
-// Until the realtime channel exists, lists and counts refresh on an interval.
+// Live updates keep mail current; polling is the fallback while they are down.
 const REFRESH_MS = 30_000;
+const poll = () => (isLive() ? false : REFRESH_MS);
 const FETCHING_POLL_MS = 1500;
 
 export type ThreadScope =
@@ -55,7 +57,7 @@ export function useThreadPage(scope: ThreadScope, page: number) {
         ? mailApi.listAccountThreads(api, scope.accountId, scope.view, page, scope.category)
         : mailApi.listThreads(api, scope.filter, scope.folder, page, scope.category, scope.tagged),
     placeholderData: keepPreviousData,
-    refetchInterval: REFRESH_MS,
+    refetchInterval: poll,
   });
 }
 
@@ -80,7 +82,7 @@ export function useMailStats() {
   return useQuery({
     queryKey: mailKeys.stats,
     queryFn: () => mailApi.stats(api),
-    refetchInterval: REFRESH_MS,
+    refetchInterval: poll,
   });
 }
 
@@ -91,7 +93,7 @@ export function useMailboxSummary(accountId: string, view: MailboxView) {
     queryFn: () => mailApi.summary(api, accountId, view),
     // Poll quickly only while older mail is being fetched for this folder.
     refetchInterval: (query) =>
-      query.state.data?.history.status === 'fetching' ? FETCHING_POLL_MS : REFRESH_MS,
+      query.state.data?.history.status === 'fetching' ? FETCHING_POLL_MS : poll(),
   });
 }
 
@@ -102,7 +104,7 @@ export function useAccountFolders(accountIds: string[]) {
     queries: accountIds.map((id) => ({
       queryKey: mailKeys.folders(id),
       queryFn: () => mailApi.folders(api, id),
-      refetchInterval: REFRESH_MS,
+      refetchInterval: poll,
     })),
   });
 }

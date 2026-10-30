@@ -49,9 +49,15 @@ export function createApiClient({
   // Bumped on sign-out, so a refresh that was already under way cannot sign the user back in.
   let generation = 0;
 
-  async function send(method: Method, path: string, body?: unknown): Promise<Response> {
+  async function send(
+    method: Method,
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+  ): Promise<Response> {
     return fetchImpl(`${baseUrl}${path}`, {
       method,
+      ...(signal && { signal }),
       credentials: 'same-origin',
       headers: {
         'x-onebox-client': 'web',
@@ -97,10 +103,15 @@ export function createApiClient({
     return refreshing;
   }
 
-  async function authorized(method: Method, path: string, body?: unknown): Promise<Response> {
-    const response = await send(method, path, body);
+  async function authorized(
+    method: Method,
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+  ): Promise<Response> {
+    const response = await send(method, path, body, signal);
     if (response.status === 401 && !NO_REFRESH_PATHS.includes(path)) {
-      if (await refreshSession()) return send(method, path, body);
+      if (await refreshSession()) return send(method, path, body, signal);
       onSessionExpired?.();
     }
     return response;
@@ -115,6 +126,13 @@ export function createApiClient({
     const response = await authorized('GET', path);
     if (!response.ok) return parse<never>(response);
     return response.blob();
+  }
+
+  // A response read as it arrives, e.g. the live event stream; abort the signal to end it.
+  async function stream(path: string, signal: AbortSignal): Promise<ReadableStream<Uint8Array>> {
+    const response = await authorized('GET', path, undefined, signal);
+    if (!response.ok || !response.body) return parse<never>(response);
+    return response.body;
   }
 
   // A file as the request body, e.g. a compose attachment; its name and type go in headers.
@@ -172,6 +190,7 @@ export function createApiClient({
     put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
     delete: <T>(path: string) => request<T>('DELETE', path),
     blob,
+    stream,
     upload,
 
     login: (email: string, password: string) => startSession('/auth/login', { email, password }),
