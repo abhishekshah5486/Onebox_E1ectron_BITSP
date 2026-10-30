@@ -6,6 +6,7 @@ import { Icon } from '../ui/Icon';
 import { Logo } from '../ui/Logo';
 import { VersionSwitch } from '../ui/VersionSwitch';
 import { CreditsChip } from '../billing/CreditsChip';
+import { SearchBox } from './SearchBox';
 import { ThemeToggle } from './ThemeToggle';
 import styles from './TopBar.module.css';
 
@@ -32,20 +33,7 @@ export function TopBar({ onToggleMenu }: { onToggleMenu: () => void }) {
         </Link>
       </div>
 
-      <form className={styles.search} role="search" onSubmit={(e) => e.preventDefault()}>
-        <button className={styles.iconButton} aria-label="Search" data-tooltip="Search">
-          <Icon name="search" size={24} />
-        </button>
-        <input className={styles.searchInput} placeholder="Search mail" aria-label="Search mail" />
-        <button
-          type="button"
-          className={styles.iconButton}
-          aria-label="Search options"
-          data-tooltip="Show search options"
-        >
-          <Icon name="tune" size={22} />
-        </button>
-      </form>
+      <SearchBox />
 
       <div className={styles.actions}>
         <span className={styles.versionSlot}>
