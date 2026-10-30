@@ -8,7 +8,8 @@ import Input from '@cloudscape-design/components/input';
 import Modal from '@cloudscape-design/components/modal';
 import Select from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
-import Toggle from '@cloudscape-design/components/toggle';
+import ToggleButton from '@cloudscape-design/components/toggle-button';
+import { colorTextAccent } from '@cloudscape-design/design-tokens';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { searchPath, type SearchMode } from '../api/search';
@@ -21,6 +22,7 @@ import {
   type AdvancedSearch,
 } from '../mail/searchQuery';
 import { useCurrentSearch } from '../shell/SearchBox';
+import { Icon } from '../ui/Icon';
 
 const option = (value: string, label = value) => ({ value, label });
 const SIZE_OPS = [option('larger', 'greater than'), option('smaller', 'less than')];
@@ -48,29 +50,42 @@ export function ConsoleSearchBox() {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-      <div style={{ flex: 1, minWidth: 0 }} role="search">
+    <div
+      style={{ flex: 1, minWidth: 0, maxWidth: 720, display: 'flex', alignItems: 'center', gap: 8 }}
+    >
+      <div style={{ flex: 1, minWidth: 160 }} role="search">
         <Input
           type="search"
           value={text}
-          placeholder={mode === 'semantic' ? 'Describe the mail you want' : 'Search mail'}
+          placeholder={mode === 'semantic' ? 'Search by meaning' : 'Search mail'}
           ariaLabel="Search mail"
           onChange={({ detail }) => setText(detail.value)}
           onKeyDown={({ detail }) => detail.key === 'Enter' && run(text, mode)}
         />
       </div>
-      <Toggle
-        checked={mode === 'semantic'}
-        onChange={({ detail }) => setMode(detail.checked ? 'semantic' : 'keyword')}
-      >
-        AI
-      </Toggle>
-      <Button
-        variant="icon"
-        iconName="filter"
-        ariaLabel="Search options"
-        onClick={() => setAdvanced(true)}
-      />
+      {/* Cloudscape keeps the top bar's search narrow, so the mode is an icon: filled means AI. */}
+      <div style={{ flexShrink: 0 }}>
+        <ToggleButton
+          variant="icon"
+          iconName="gen-ai"
+          pressedIconSvg={
+            <span style={{ display: 'flex', color: colorTextAccent }}>
+              <Icon name="sparkle" size={16} />
+            </span>
+          }
+          pressed={mode === 'semantic'}
+          ariaLabel="Search by meaning (AI)"
+          onChange={({ detail }) => setMode(detail.pressed ? 'semantic' : 'keyword')}
+        />
+      </div>
+      <div style={{ flexShrink: 0 }}>
+        <Button
+          variant="icon"
+          iconName="filter"
+          ariaLabel="Search options"
+          onClick={() => setAdvanced(true)}
+        />
+      </div>
       {advanced && (
         <AdvancedModal mode={mode} onSearch={run} onDismiss={() => setAdvanced(false)} />
       )}
@@ -190,7 +205,7 @@ function AdvancedModal({
             checked={mode === 'semantic'}
             onChange={({ detail }) => setMode(detail.checked ? 'semantic' : 'keyword')}
           >
-            Search by meaning (AI, uses credits)
+            Search by meaning (AI)
           </Checkbox>
         </SpaceBetween>
         <Box variant="code" color="text-body-secondary">

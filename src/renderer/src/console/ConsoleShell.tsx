@@ -64,7 +64,9 @@ export function ConsoleShell() {
               search={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <ConsoleSearchBox />
-                  <VersionSwitch />
+                  <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                    <VersionSwitch />
+                  </div>
                 </div>
               }
               utilities={[

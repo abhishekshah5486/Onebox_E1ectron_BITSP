@@ -85,7 +85,7 @@ export function ConsoleSearch() {
             <Alert type="info">
               {fellBack
                 ? 'Only search operators were given, so this is a keyword search. Add words to search by meaning.'
-                : 'AI search finds mail by meaning, best matches first. Each search uses a few credits.'}
+                : 'AI search finds mail by meaning, best matches first.'}
             </Alert>
           )}
         </>
