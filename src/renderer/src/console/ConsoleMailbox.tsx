@@ -213,8 +213,16 @@ function columns(
   ];
 }
 
-function MailTable({
-  scope,
+interface ThreadsQuery {
+  data: { items: Thread[] } | undefined;
+  isPending: boolean;
+  isError: boolean;
+  error: unknown;
+  refetch: () => unknown;
+}
+
+export function MailTable({
+  query,
   view,
   folders,
   tabs,
@@ -233,7 +241,7 @@ function MailTable({
   empty,
   onRefresh,
 }: {
-  scope: ThreadScope;
+  query: ThreadsQuery;
   // The folder or label shown; null for views spanning folders, like Starred.
   view: MailboxView | null;
   // The account's folders and labels, for "Move to"; null in views spanning accounts.
@@ -257,7 +265,6 @@ function MailTable({
   const navigate = useNavigate();
   const [tableRef, tableWidth] = useWidth<HTMLDivElement>();
   const compact = tableWidth < COMPACT_TABLE_WIDTH;
-  const query = useThreadPage(scope, page);
   const act = useMailAction();
   const unsubscribe = useUnsubscribeFlow();
   // Selection belongs to the page it was made on, so paging clears it.
@@ -431,7 +438,7 @@ function CategoryControl({
   );
 }
 
-function EmptyMessage({
+export function EmptyMessage({
   title,
   body,
   action,
@@ -488,7 +495,7 @@ export function ConsoleUnifiedMailbox({
 
   return (
     <MailTable
-      scope={scope}
+      query={query}
       view={filter === 'starred' || tagged ? null : { role: folder ?? 'inbox' }}
       folders={null}
       tabs={
@@ -596,7 +603,7 @@ function AccountTable({ accountId, view }: { accountId: string; view: MailboxVie
 
   return (
     <MailTable
-      scope={scope}
+      query={query}
       view={view}
       folders={folders}
       tabs={

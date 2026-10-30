@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import type { ApiClient } from '../api/client';
+import { ApiError, type ApiClient } from '../api/client';
 import type { MailboxSummary, Thread } from '../api/mail';
 import { QueryProvider } from '../api/QueryProvider';
 import { AuthProvider } from '../auth/AuthProvider';
@@ -15,6 +15,7 @@ import { ThemeProvider } from '../theme/ThemeProvider';
 import { UiVersionProvider } from '../theme/UiVersionProvider';
 import { activeHref } from './ConsoleNavigation';
 import { ConsoleAccountMailbox, ConsoleUnifiedMailbox } from './ConsoleMailbox';
+import { ConsoleSearch } from './ConsoleSearch';
 import { ConsoleShell } from './ConsoleShell';
 import { ConsoleThread } from './ConsoleThread';
 
@@ -76,6 +77,7 @@ function renderConsole(path: string, api: ApiClient) {
                       path="/accounts/:accountId/labels/:label"
                       element={<ConsoleAccountMailbox />}
                     />
+                    <Route path="/search/:mode/:q" element={<ConsoleSearch />} />
                     <Route path="/settings" element={<p>at /settings</p>} />
                   </Route>
                 </Route>
@@ -383,5 +385,55 @@ describe('v2 console', () => {
   it('highlights the folder a conversation was opened from', () => {
     expect(activeHref(`/accounts/a/spam/${'f'.repeat(64)}`)).toBe('/accounts/a/spam');
     expect(activeHref('/inbox')).toBe('/inbox');
+  });
+
+  it('searches from the top bar and shows the matches in the mail table', async () => {
+    const get = routedGet({
+      '/search?': () => ({
+        mode: 'keyword',
+        items: [
+          {
+            thread: thread({ subject: 'Flight to Paris' }),
+            messageId: 'm1',
+            score: null,
+            highlights: [],
+          },
+        ],
+        total: 1,
+        nextPage: null,
+      }),
+    });
+    renderConsole('/inbox', fakeApi({ ...restore, get }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Search' }));
+    const box = await screen.findByRole('searchbox', { name: 'Search mail' });
+    await userEvent.type(box, 'paris{Enter}');
+    expect(await screen.findByText('Flight to Paris')).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith('/search?q=paris&mode=keyword&page=0&pageSize=50');
+    expect(screen.getByRole('tab', { name: 'Keyword search' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(box).toHaveValue('paris');
+  });
+
+  it('builds an AI search from the options and warns when credits run out', async () => {
+    const get = routedGet({
+      '/search?': () => {
+        throw new ApiError(402, 'OUT_OF_CREDITS', 'out');
+      },
+    });
+    renderConsole('/inbox', fakeApi({ ...restore, get }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Search' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Search options' }));
+    const modal = await screen.findByRole('dialog');
+    await userEvent.type(
+      within(modal).getByRole('textbox', { name: 'Has the words' }),
+      'trip ideas',
+    );
+    await userEvent.click(within(modal).getByRole('checkbox', { name: /Search by meaning/ }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Search' }));
+    expect(await screen.findByText(/You are out of AI credits/)).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith('/search?q=trip+ideas&mode=semantic&page=0&pageSize=50');
+    expect(screen.getByRole('button', { name: 'See plans' })).toBeInTheDocument();
   });
 });

@@ -14,6 +14,7 @@ import oneboxMark from '../ui/onebox-mark.svg';
 import { VersionSwitch } from '../ui/VersionSwitch';
 import { useLiveUpdates } from '../api/useLiveUpdates';
 import { ConsoleNavigation } from './ConsoleNavigation';
+import { ConsoleSearchBox } from './ConsoleSearchBox';
 import { SidebarResizer } from './SidebarResizer';
 import { useSidebarWidth } from './useSidebarWidth';
 
@@ -53,8 +54,16 @@ export function ConsoleShell() {
                   void navigate('/inbox');
                 },
               }}
+              // On narrow windows the search folds into an icon that opens it.
+              i18nStrings={{
+                searchIconAriaLabel: 'Search',
+                searchDismissIconAriaLabel: 'Close search',
+                overflowMenuTriggerText: 'More',
+                overflowMenuTitleText: 'All',
+              }}
               search={
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <ConsoleSearchBox />
                   <VersionSwitch />
                 </div>
               }

@@ -14,7 +14,9 @@ import {
 } from './mail/folders';
 import { OpenCompose } from './compose/OpenCompose';
 import { AccountMailbox, UnifiedMailbox } from './mail/MailboxPage';
+import { SearchPage } from './mail/SearchPage';
 import { ThreadPage } from './mail/ThreadPage';
+import { isSearchMode, searchPath } from './api/search';
 import { AppShell } from './shell/AppShell';
 import { useUiVersion } from './theme/UiVersionProvider';
 
@@ -32,6 +34,7 @@ const ConsoleAccountMailbox = lazy(() =>
 );
 const ConsoleThread = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleThread })));
 const ConsoleCompose = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleCompose })));
+const ConsoleSearch = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleSearch })));
 
 interface UnifiedProps {
   filter: ThreadFilter;
@@ -48,6 +51,7 @@ interface Kit {
   Account: ComponentType;
   Thread: ComponentType<{ basePath: string }>;
   Compose: ComponentType;
+  Search: ComponentType;
 }
 
 const CLASSIC: Kit = {
@@ -56,6 +60,7 @@ const CLASSIC: Kit = {
   Account: AccountMailbox,
   Thread: ThreadPage,
   Compose: OpenCompose,
+  Search: SearchPage,
 };
 
 const CONSOLE: Kit = {
@@ -64,6 +69,7 @@ const CONSOLE: Kit = {
   Account: ConsoleAccountMailbox,
   Thread: ConsoleThread,
   Compose: ConsoleCompose,
+  Search: ConsoleSearch,
 };
 
 const UNIFIED_FOLDERS: FolderRole[] = ['sent', 'drafts', 'archive', 'spam', 'trash'];
@@ -83,9 +89,15 @@ function AccountThread({ Thread }: { Thread: Kit['Thread'] }) {
   );
 }
 
+// A conversation opened from search results; Back returns to them.
+function SearchThread({ Thread }: { Thread: Kit['Thread'] }) {
+  const { mode, q = '' } = useParams();
+  return <Thread basePath={searchPath(isSearchMode(mode) ? mode : 'keyword', q)} />;
+}
+
 export function AppRoutes() {
   const { version } = useUiVersion();
-  const { Shell, Unified, Account, Thread, Compose } = version === 'v2' ? CONSOLE : CLASSIC;
+  const { Shell, Unified, Account, Thread, Compose, Search } = version === 'v2' ? CONSOLE : CLASSIC;
   const unified = (key: string, props: UnifiedProps) => [
     <Route key={key} path={props.basePath} element={<Unified key={key} {...props} />} />,
     <Route
@@ -132,6 +144,8 @@ export function AppRoutes() {
             path="/accounts/:accountId/:folder/:threadId"
             element={<AccountThread Thread={Thread} />}
           />
+          <Route path="/search/:mode/:q" element={loading('Searching', <Search />)} />
+          <Route path="/search/:mode/:q/:threadId" element={<SearchThread Thread={Thread} />} />
           <Route path="/compose" element={loading('Loading compose', <Compose />)} />
           <Route path="/compose/:draftId" element={loading('Loading compose', <Compose />)} />
           <Route
