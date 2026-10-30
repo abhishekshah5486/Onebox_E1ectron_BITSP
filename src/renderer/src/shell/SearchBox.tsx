@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+  type SelectHTMLAttributes,
+} from 'react';
 import { useMatch, useNavigate } from 'react-router';
 import { isSearchMode, searchPath, type SearchMode } from '../api/search';
 import {
@@ -118,6 +125,24 @@ function Row({
   );
 }
 
+// An underlined select with Gmail's caret.
+function Pick({
+  wide,
+  children,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & { wide?: boolean }) {
+  return (
+    <span className={`${styles.pick} ${wide ? styles.wide : ''}`}>
+      <select {...props} className={styles.select}>
+        {children}
+      </select>
+      <span className={styles.caret}>
+        <Icon name="caret" size={18} />
+      </span>
+    </span>
+  );
+}
+
 function AdvancedPanel({
   mode: initialMode,
   onSearch,
@@ -159,15 +184,14 @@ function AdvancedPanel({
       {text('hasWords', 'Has the words')}
       {text('doesntHave', "Doesn't have")}
       <Row label="Size">
-        <select
+        <Pick
           aria-label="Size is"
-          className={styles.select}
           value={form.sizeOp}
           onChange={(event) => set('sizeOp', event.target.value as AdvancedSearch['sizeOp'])}
         >
           <option value="larger">greater than</option>
           <option value="smaller">less than</option>
-        </select>
+        </Pick>
         <input
           aria-label="Size"
           inputMode="decimal"
@@ -175,21 +199,19 @@ function AdvancedPanel({
           value={form.size}
           onChange={(event) => set('size', event.target.value)}
         />
-        <select
+        <Pick
           aria-label="Size unit"
-          className={styles.select}
           value={form.sizeUnit}
           onChange={(event) => set('sizeUnit', event.target.value as AdvancedSearch['sizeUnit'])}
         >
           {SIZE_UNITS.map((unit) => (
             <option key={unit}>{unit}</option>
           ))}
-        </select>
+        </Pick>
       </Row>
       <Row label="Date within">
-        <select
+        <Pick
           aria-label="Date within"
-          className={styles.select}
           value={form.within}
           onChange={(event) => set('within', event.target.value)}
         >
@@ -198,7 +220,7 @@ function AdvancedPanel({
               {w.label}
             </option>
           ))}
-        </select>
+        </Pick>
         <input
           type="date"
           aria-label="Of date"
@@ -208,9 +230,9 @@ function AdvancedPanel({
         />
       </Row>
       <Row label="Search" htmlFor="adv-in">
-        <select
+        <Pick
           id="adv-in"
-          className={`${styles.select} ${styles.wide}`}
+          wide
           value={form.searchIn}
           onChange={(event) => set('searchIn', event.target.value as AdvancedSearch['searchIn'])}
         >
@@ -219,7 +241,7 @@ function AdvancedPanel({
               {place.label}
             </option>
           ))}
-        </select>
+        </Pick>
       </Row>
       <div className={styles.checks}>
         <label>
@@ -236,16 +258,15 @@ function AdvancedPanel({
             checked={mode === 'semantic'}
             onChange={(event) => setMode(event.target.checked ? 'semantic' : 'keyword')}
           />
-          Search by meaning (AI, uses credits)
+          Search by meaning (AI)
         </label>
       </div>
       <div className={styles.footer}>
         <code className={styles.preview} aria-label="Search query">
           {query}
         </code>
-        <Button disabled={!query} onClick={() => onSearch(query, mode)}>
-          Search
-        </Button>
+        {/* Like Gmail, searching with nothing filled in just closes the panel. */}
+        <Button onClick={() => (query ? onSearch(query, mode) : onClose())}>Search</Button>
       </div>
     </div>
   );

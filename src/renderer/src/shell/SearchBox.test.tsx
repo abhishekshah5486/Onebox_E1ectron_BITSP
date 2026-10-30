@@ -49,7 +49,6 @@ describe('SearchBox', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Search options' }));
     const panel = screen.getByRole('dialog', { name: 'Search options' });
     const search = within(panel).getByRole('button', { name: 'Search' });
-    expect(search).toBeDisabled();
     await userEvent.type(screen.getByLabelText('From'), 'alice@x.com');
     await userEvent.type(screen.getByLabelText('Subject'), 'quarterly report');
     await userEvent.selectOptions(within(panel).getByRole('combobox', { name: 'Search' }), 'sent');
@@ -62,6 +61,15 @@ describe('SearchBox', () => {
       '/search/keyword/from:alice@x.com subject:"quarterly report" in:sent has:attachment',
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('closes the panel when searching with nothing filled in', async () => {
+    show();
+    await userEvent.click(screen.getByRole('button', { name: 'Search options' }));
+    const panel = screen.getByRole('dialog', { name: 'Search options' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Search' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(where()).not.toMatch(/^\/search/);
   });
 
   it('closes the panel with Escape', async () => {

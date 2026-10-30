@@ -56,6 +56,11 @@
   --ob-compose-on-send: #ffffff;
   --ob-compose-menu: #ffffff;
   --ob-compose-chip-line: #747775;
+  /* Gmail's search options panel. */
+  --ob-popover-bg: #ffffff;
+  --ob-field-label: #444746;
+  --ob-field-line: #c4c7c5;
+  --ob-field-line-hover: #1f1f1f;
 }
 
 :root[data-theme='dark'] {
@@ -120,6 +125,10 @@
   --ob-compose-on-send: #ffffff;
   --ob-compose-menu: #2b2c2e;
   --ob-compose-chip-line: #8e918f;
+  --ob-popover-bg: #2d2e30;
+  --ob-field-label: #c4c7c5;
+  --ob-field-line: #5f6368;
+  --ob-field-line-hover: #e3e3e3;
 }
 
 :root {

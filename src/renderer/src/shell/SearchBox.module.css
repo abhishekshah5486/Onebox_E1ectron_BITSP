@@ -77,9 +77,9 @@
   right: 0;
   z-index: 20;
   margin-top: 4px;
-  padding: 20px 24px 16px;
+  padding: 16px 24px 20px;
   border-radius: 8px;
-  background: var(--ob-surface);
+  background: var(--ob-popover-bg);
   box-shadow: var(--ob-shadow);
   color: var(--ob-text);
 }
@@ -99,74 +99,117 @@
   cursor: pointer;
 }
 
+.close:hover {
+  background: var(--ob-icon-hover);
+}
+
 .row {
   display: flex;
   align-items: flex-end;
   gap: 16px;
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .label {
-  width: 120px;
+  width: 128px;
   flex-shrink: 0;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
+  color: var(--ob-field-label);
   font-size: 14px;
 }
 
 .field {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 16px;
 }
 
-.line {
+/* Gmail's fields: a single line underneath that darkens on hover and turns blue on focus. */
+.line,
+.select {
   flex: 1;
   min-width: 0;
-  padding: 6px 0;
+  height: 34px;
+  padding: 0 0 1px;
   border: none;
-  border-bottom: 1px solid var(--ob-border);
+  border-bottom: 1px solid var(--ob-field-line);
+  border-radius: 0;
   background: transparent;
   color: var(--ob-text);
   font: inherit;
   font-size: 14px;
   outline: none;
+  color-scheme: inherit;
 }
 
-.line:focus {
+.line:hover,
+.select:hover {
+  border-bottom-color: var(--ob-field-line-hover);
+}
+
+.line:focus,
+.select:focus {
+  padding-bottom: 0;
   border-bottom: 2px solid var(--ob-accent);
 }
 
 .short {
-  flex: 0 0 120px;
+  flex: 0 0 96px;
 }
 
-.select {
-  padding: 6px 4px;
-  border: 1px solid var(--ob-border);
-  border-radius: 4px;
-  background: var(--ob-surface);
-  color: var(--ob-text);
-  font: inherit;
-  font-size: 14px;
+.pick {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  color: var(--ob-text-muted);
 }
 
 .wide {
   flex: 1;
 }
 
+.select {
+  appearance: none;
+  padding-right: 28px;
+  cursor: pointer;
+}
+
+.select option {
+  background: var(--ob-popover-bg);
+  color: var(--ob-text);
+}
+
+.caret {
+  position: absolute;
+  right: 2px;
+  bottom: 7px;
+  display: flex;
+  pointer-events: none;
+}
+
 .checks {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
-  margin-top: 16px;
+  gap: 8px 32px;
+  margin-top: 20px;
   font-size: 14px;
 }
 
 .checks label {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.checks input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--ob-accent);
+  cursor: pointer;
 }
 
 .footer {
@@ -174,7 +217,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 16px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .preview {
