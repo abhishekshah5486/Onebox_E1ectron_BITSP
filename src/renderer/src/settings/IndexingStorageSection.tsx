@@ -40,6 +40,7 @@ import { ProviderMark } from './ProviderMark';
 
 const PAGE_SIZE = 6;
 const markId = (provider: string) => provider.toLowerCase();
+const STACK_AFTER = 3;
 
 type StoreStatus = NonNullable<SemanticStatus['stores']>[number];
 
@@ -67,6 +68,15 @@ function BackupBanners({ filling }: { filling: { store: IndexingStore; status: S
   if (!filling.length) return null;
   return (
     <Flashbar
+      // More than a few at once fold into one stack that expands, as the AWS console does.
+      stackItems={filling.length > STACK_AFTER}
+      i18nStrings={{
+        ariaLabel: 'Backups',
+        notificationBarText: 'Backups',
+        notificationBarAriaLabel: 'Show all backups',
+        inProgressIconAriaLabel: 'In progress',
+        infoIconAriaLabel: 'Info',
+      }}
       items={filling.map(({ store, status }) => {
         const progress = status.catchup;
         return {

@@ -227,6 +227,39 @@ describe('IndexingStorageSection', () => {
     expect(await screen.findByText('Searches now go to Milvus.')).toBeInTheDocument();
   });
 
+  it('groups more than three running backups into one stack that expands', async () => {
+    const ids = ['a', 'b', 'c', 'd'];
+    setup(
+      listOf(
+        ONEBOX,
+        ...ids.map((id) => ({
+          id,
+          name: `Milvus ${id}`,
+          provider: 'MILVUS',
+          paused: false,
+          search: false,
+        })),
+      ),
+      {},
+      {
+        stores: ids.map((id) => ({
+          id,
+          paused: false,
+          search: false,
+          upToDate: false,
+          catchup: { done: 10, total: 100 },
+        })),
+      },
+    );
+    const expand = await screen.findByRole('button', { name: 'Show all backups' });
+    expect(expand).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(expand);
+    expect(expand).toHaveAttribute('aria-expanded', 'true');
+    for (const id of ids) {
+      expect(await screen.findByText(`Backing up your mail to Milvus ${id}`)).toBeInTheDocument();
+    }
+  });
+
   it('edits a store keeping its saved secret, and removes one after asking', async () => {
     const del = vi.fn(async () => undefined);
     const qdrant: IndexingStore = {
