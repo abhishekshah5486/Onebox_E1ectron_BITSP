@@ -25,6 +25,13 @@ describe('ProviderMark', () => {
     expect(chroma.container.textContent).toBe('');
   });
 
+  it('draws a bare logo at full size, without the tile', () => {
+    const { container } = render(
+      <ProviderMark providerId="milvus" logoUrl={null} name="Milvus" size={20} bare />,
+    );
+    expect(container.querySelector('img')).toHaveAttribute('width', '20');
+  });
+
   it('shows the logo fetched from a catalogue provider’s own site', () => {
     const { container } = render(
       <ProviderMark

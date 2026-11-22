@@ -12,6 +12,11 @@
   color: #f9f9fa;
 }
 
+.bare,
+:root[data-theme='dark'] .bare {
+  background: none;
+}
+
 .svg {
   display: flex;
 }

@@ -11,12 +11,15 @@ export function ProviderMark({
   name,
   icon,
   size = 40,
+  bare = false,
 }: {
   providerId: string;
   logoUrl: string | null;
   name: string;
   icon?: string | null;
   size?: number;
+  // The logo alone, without the tile, e.g. inline in a table row.
+  bare?: boolean;
 }) {
   // Kept with the brand it was loaded for, so a reused tile never shows the last one's logo.
   const key = `${providerId}|${icon ?? ''}`;
@@ -32,10 +35,10 @@ export function ProviderMark({
   const mark = loaded?.key === key ? loaded.mark : null;
   const logo = officialLogo(providerId);
 
-  const size60 = Math.round(size * 0.6);
+  const size60 = bare ? size : Math.round(size * 0.6);
   return (
     <span
-      className={styles.tile}
+      className={bare ? `${styles.tile} ${styles.bare}` : styles.tile}
       style={{ width: size, height: size, ['--icon' as string]: `${size60}px` }}
       aria-hidden="true"
     >
