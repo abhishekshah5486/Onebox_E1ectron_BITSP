@@ -12,11 +12,11 @@ function WhenSignedIn() {
   return useAuth().state.status === 'authenticated' ? <SettingsPage /> : null;
 }
 
-async function renderSettings(tab = 'accounts') {
+async function renderSettings(tab = 'accounts', api = fakeApi()) {
   renderPage(<WhenSignedIn />, {
     path: `/settings/${tab}`,
     route: '/settings/:tab',
-    api: fakeApi({ restoreSession: vi.fn(async () => testUser) }),
+    api: { ...api, restoreSession: vi.fn(async () => testUser) },
   });
   await screen.findByRole('heading', { name: 'Settings' });
 }
@@ -54,5 +54,31 @@ describe('SettingsPage', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Integrations' }));
     // Integrations are a Pro feature, locked on Free.
     expect(await screen.findByText('Pro plan required')).toBeInTheDocument();
+  });
+
+  it('shows the model semantic search runs on', async () => {
+    const api = fakeApi();
+    const get = api.get;
+    api.get = vi.fn(async (path: string) =>
+      path === '/llm/models'
+        ? {
+            items: [],
+            purposes: [],
+            choices: {},
+            embedding: {
+              id: 'ollama/bge-m3',
+              name: 'bge-m3 (local)',
+              dimensions: 1024,
+              local: true,
+            },
+          }
+        : get(path),
+    ) as typeof api.get;
+    await renderSettings('ai', api);
+    expect(await screen.findByRole('heading', { name: 'Semantic search' })).toBeInTheDocument();
+    expect(screen.getByText('bge-m3')).toBeInTheDocument();
+    expect(screen.getByText('This server (Ollama)')).toBeInTheDocument();
+    expect(screen.getByText('1,024 dimensions')).toBeInTheDocument();
+    expect(screen.getByText('Free, runs locally')).toBeInTheDocument();
   });
 });

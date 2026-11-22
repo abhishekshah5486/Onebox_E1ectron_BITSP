@@ -5,6 +5,7 @@ import Container from '@cloudscape-design/components/container';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
 import Icon from '@cloudscape-design/components/icon';
+import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
 import Pagination from '@cloudscape-design/components/pagination';
 import Select, { type SelectProps } from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
@@ -17,6 +18,7 @@ import {
   useChooseModel,
   useModels,
   useUsage,
+  type EmbeddingModel,
   type ModelOption,
   type ModelProvider,
   type ModelPurpose,
@@ -167,10 +169,52 @@ export function AiSection() {
           </SpaceBetween>
         </Container>
       </PlanGate>
+      {models.data?.embedding && <SemanticSearchModel model={models.data.embedding} />}
       <UsageTable />
     </SpaceBetween>
   );
 }
+
+// Not a per-user choice: every mailbox is indexed with the same model.
+function SemanticSearchModel({ model }: { model: EmbeddingModel }) {
+  const [provider = '', apiName = model.name] = model.id.split('/');
+  return (
+    <Container
+      header={
+        <Header
+          variant="h2"
+          description="Semantic search turns each email into a vector with this model and finds mail by meaning."
+        >
+          Semantic search
+        </Header>
+      }
+    >
+      <KeyValuePairs
+        columns={4}
+        items={[
+          { label: 'Embedding model', value: apiName },
+          {
+            label: 'Runs on',
+            value: model.local
+              ? `This server (${provider === 'ollama' ? 'Ollama' : provider})`
+              : (PROVIDER_NAME[provider] ?? provider),
+          },
+          { label: 'Vector size', value: `${model.dimensions.toLocaleString()} dimensions` },
+          {
+            label: 'Cost',
+            value: model.local ? (
+              <StatusIndicator type="success">Free, runs locally</StatusIndicator>
+            ) : (
+              'Uses credits per search'
+            ),
+          },
+        ]}
+      />
+    </Container>
+  );
+}
+
+const PROVIDER_NAME: Record<string, string> = { openai: 'OpenAI', gemini: 'Google Gemini' };
 
 // A model id with its maker's logo, as in the model picker.
 function ModelName({ model, suffix = '' }: { model: string; suffix?: string }) {

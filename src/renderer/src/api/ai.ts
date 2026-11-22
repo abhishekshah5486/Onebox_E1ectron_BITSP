@@ -54,10 +54,19 @@ export interface UsageSummary {
   limit: number;
 }
 
+// What semantic search embeds mail with; the server sets it.
+export interface EmbeddingModel {
+  id: string;
+  name: string;
+  dimensions: number;
+  local: boolean;
+}
+
 interface Models {
   items: ModelOption[];
   purposes: ModelPurpose[];
   choices: Record<string, string>;
+  embedding?: EmbeddingModel;
 }
 
 export type AiMode = 'auto' | 'suggest' | 'off';
