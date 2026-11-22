@@ -15,6 +15,8 @@ import { AccountsSection } from './AccountsSection';
 import { AiSection } from './AiSection';
 import { FlashProvider } from './flash';
 import { StorageSection } from './StorageSection';
+import { IndexingStorageSection } from './IndexingStorageSection';
+import { ModelProvidersSection } from './ModelProvidersSection';
 import { IntegrationsSection } from './IntegrationsSection';
 import { LabelsSection } from './LabelsSection';
 import { PreferencesSection } from './PreferencesSection';
@@ -30,6 +32,9 @@ const TABS = [
     label: 'Integrations',
     content: (
       <SpaceBetween size="l">
+        <ModelProvidersSection kind="llm" />
+        <ModelProvidersSection kind="embedding" />
+        <IndexingStorageSection />
         <StorageSection />
         <PlanGate
           needs="PRO"

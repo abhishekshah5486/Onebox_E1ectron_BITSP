@@ -41,8 +41,6 @@ import tableStyles from '../ui/DataTable.module.css';
 import styles from './AiSection.module.css';
 import { useFlash } from './flash';
 import { ModelLogo } from './ModelLogo';
-import { IndexingStorageSection } from './IndexingStorageSection';
-import { ModelProvidersSection } from './ModelProvidersSection';
 import { OWN_PREFIX, useUserModels, type UserModel } from '../api/providers';
 import { LoadError } from '../ui/LoadError';
 import { PlanGate } from '../billing/PlanGate';
@@ -201,10 +199,7 @@ export function AiSection() {
           </SpaceBetween>
         </Container>
       </PlanGate>
-      <ModelProvidersSection kind="llm" />
       <SemanticSearchSection />
-      <ModelProvidersSection kind="embedding" />
-      <IndexingStorageSection />
       <UsageTable />
     </SpaceBetween>
   );
