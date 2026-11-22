@@ -10,12 +10,27 @@ describe('ProviderMark', () => {
     await waitFor(() => expect(container.querySelector('svg title')?.textContent).toBe('Claude'));
   });
 
-  it('draws brands LobeHub lacks from Simple Icons, in their colour', async () => {
+  it("uses the brand's official logo file first, with its dark-mode version", () => {
     const { container } = render(
-      <ProviderMark providerId="qdrant" icon="qdrant" logoUrl={null} name="Qdrant" />,
+      <ProviderMark providerId="pinecone" logoUrl={null} name="Pinecone" />,
     );
-    await waitFor(() => expect(container.querySelector('svg title')?.textContent).toBe('Qdrant'));
-    expect(container.querySelector('svg')?.parentElement).toHaveStyle({ color: '#DC244C' });
+    const [light, dark] = [...container.querySelectorAll('img')].map((img) =>
+      img.getAttribute('src'),
+    );
+    // Small files are inlined, so the colour tells the two versions apart.
+    expect(decodeURIComponent(light!)).toContain('#111');
+    expect(decodeURIComponent(dark!)).toContain('#fff');
+    const chroma = render(<ProviderMark providerId="chroma" logoUrl={null} name="Chroma" />);
+    expect(chroma.container.querySelectorAll('img')).toHaveLength(2);
+    expect(chroma.container.textContent).toBe('');
+  });
+
+  it('draws other brands from Simple Icons, in their colour', async () => {
+    const { container } = render(
+      <ProviderMark providerId="zilliz" icon="zilliz" logoUrl={null} name="Zilliz" />,
+    );
+    await waitFor(() => expect(container.querySelector('svg title')?.textContent).toBe('Zilliz'));
+    expect(container.querySelector('svg')?.parentElement).toHaveStyle({ color: '#2858FF' });
   });
 
   it('keeps the text colour for brands whose colour is black', async () => {

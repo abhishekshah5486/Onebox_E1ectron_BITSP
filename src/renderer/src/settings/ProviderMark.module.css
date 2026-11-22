@@ -21,6 +21,22 @@
   height: var(--icon);
 }
 
+/* An official logo comes in a light and a dark version; the theme shows one. */
+.light,
+.dark {
+  display: block;
+  object-fit: contain;
+}
+
+.dark,
+:root[data-theme='dark'] .light {
+  display: none;
+}
+
+:root[data-theme='dark'] .dark {
+  display: block;
+}
+
 /* Simple Icons leave the fill unset. */
 .mono svg {
   fill: currentColor;

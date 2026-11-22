@@ -12,6 +12,21 @@ const lobehub = (name: string) =>
   LOBEHUB[`../../../../node_modules/@lobehub/icons-static-svg/icons/${name}.svg`];
 const simple = (slug: string) => SIMPLE[`../../../../node_modules/simple-icons/icons/${slug}.svg`];
 
+// Official logos kept in ./brands (see SOURCES.md), by id; "<id>-dark" is for dark mode.
+const OFFICIAL = import.meta.glob<string>('./brands/*.{svg,png}', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+});
+const official = (name: string) =>
+  OFFICIAL[`./brands/${name}.svg`] ?? OFFICIAL[`./brands/${name}.png`];
+
+// A brand's own logo file, with its dark-mode version where it has one.
+export function officialLogo(id: string) {
+  const light = official(id);
+  return light ? { light, dark: official(`${id}-dark`) ?? light } : null;
+}
+
 // Catalogue ids whose LobeHub icon goes by another name.
 const LOBEHUB_NAME: Record<string, string> = {
   anthropic: 'claude',
