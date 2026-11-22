@@ -86,10 +86,14 @@ export function SearchBox() {
         type="button"
         className={styles.modeChip}
         aria-pressed={mode === 'semantic'}
-        data-tooltip={mode === 'semantic' ? 'Searching by meaning' : 'Search by meaning with AI'}
+        data-tooltip={
+          mode === 'semantic'
+            ? 'Semantic search is on: finding mail by meaning'
+            : 'Semantic search: find mail by meaning'
+        }
         onClick={() => setMode(mode === 'semantic' ? 'keyword' : 'semantic')}
       >
-        <Icon name="bolt" size={16} /> AI
+        <Icon name="bolt" size={16} /> Semantic
       </button>
       <button
         type="button"
@@ -258,7 +262,7 @@ function AdvancedPanel({
             checked={mode === 'semantic'}
             onChange={(event) => setMode(event.target.checked ? 'semantic' : 'keyword')}
           />
-          Search by meaning (AI)
+          Semantic search (match by meaning)
         </label>
       </div>
       <div className={styles.footer}>

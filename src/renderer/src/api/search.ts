@@ -4,12 +4,12 @@ import { PAGE_SIZE } from '../mail/paging';
 import { ApiError, type ApiClient } from './client';
 import type { Thread } from './mail';
 
-// keyword: Elasticsearch with Gmail's operators. semantic: AI search by meaning (Qdrant).
+// keyword: Elasticsearch with Gmail's operators. semantic: search by meaning (Qdrant).
 export type SearchMode = 'keyword' | 'semantic';
 
 export const SEARCH_MODE_LABEL: Record<SearchMode, string> = {
   keyword: 'Keyword search',
-  semantic: 'AI search',
+  semantic: 'Semantic search',
 };
 
 export interface SearchHit {
@@ -20,7 +20,7 @@ export interface SearchHit {
 }
 
 export interface SearchResults {
-  // What ran: AI search falls back to keywords when only operators were given.
+  // What ran: semantic search falls back to keywords when only operators were given.
   mode: SearchMode;
   items: SearchHit[];
   total: number;
@@ -41,7 +41,7 @@ export const searchApi = {
     ),
 };
 
-// Bad queries, missing credits and AI search being off won't fix themselves on a retry.
+// Bad queries, missing credits and semantic search being off won't fix themselves on a retry.
 const FINAL = new Set([400, 402, 503]);
 
 export function useSearch(q: string, mode: SearchMode, page: number) {
@@ -51,7 +51,7 @@ export function useSearch(q: string, mode: SearchMode, page: number) {
     queryFn: () => searchApi.search(api, q, mode, page),
     enabled: q.trim().length > 0,
     placeholderData: keepPreviousData,
-    // Charged per AI search, so results are kept until something changes.
+    // Charged per semantic search (when the model isn't local), so results are kept until something changes.
     staleTime: Infinity,
     retry: (count, error) => !(error instanceof ApiError && FINAL.has(error.status)) && count < 2,
     select: (data) => ({ ...data, threads: data.items.map((hit) => hit.thread) }),
@@ -65,7 +65,10 @@ export function searchProblem(error: unknown): { text: string; plans: boolean } 
     return { text: 'You are out of AI credits. Add credits or use keyword search.', plans: true };
   }
   if (error.code === 'EMBEDDINGS_OFF') {
-    return { text: 'AI search is not set up on this server. Use keyword search.', plans: false };
+    return {
+      text: 'Semantic search is not set up on this server. Use keyword search.',
+      plans: false,
+    };
   }
   return null;
 }

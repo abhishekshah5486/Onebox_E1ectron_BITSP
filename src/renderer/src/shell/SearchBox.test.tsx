@@ -21,13 +21,13 @@ const show = (path = '/inbox') =>
 const where = () => decodeURIComponent(screen.getByTestId('where').textContent ?? '');
 
 describe('SearchBox', () => {
-  it('runs a keyword search on Enter, and an AI search with AI on', async () => {
+  it('runs a keyword search on Enter, and a semantic search with Semantic on', async () => {
     show();
     const box = screen.getByRole('textbox', { name: 'Search mail' });
     await userEvent.type(box, 'invoice from:alice{Enter}');
     expect(where()).toBe('/search/keyword/invoice from:alice');
 
-    await userEvent.click(screen.getByRole('button', { name: /AI/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Semantic/ }));
     await userEvent.type(box, '{Enter}');
     expect(where()).toBe('/search/semantic/invoice from:alice');
   });
@@ -41,7 +41,10 @@ describe('SearchBox', () => {
   it('shows the search a results page is for', () => {
     show('/search/semantic/trip%20to%20paris');
     expect(screen.getByRole('textbox', { name: 'Search mail' })).toHaveValue('trip to paris');
-    expect(screen.getByRole('button', { name: /AI/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Semantic/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('builds a search from the options panel', async () => {

@@ -37,7 +37,7 @@ describe('SearchPage', () => {
     );
   });
 
-  it('runs AI search and says what it does', async () => {
+  it('runs semantic search and says what it does', async () => {
     const get = routedGet({ '/search?': () => results('semantic', ['Trip ideas']) });
     show('/search/semantic/holiday%20plans', get);
     expect(await screen.findByText('Trip ideas')).toBeInTheDocument();
@@ -45,17 +45,17 @@ describe('SearchPage', () => {
     expect(screen.getByText(/finds mail by meaning/)).toBeInTheDocument();
   });
 
-  it('switches between keyword and AI search', async () => {
+  it('switches between keyword and semantic search', async () => {
     const get = routedGet({ '/search?': () => results() });
     show('/search/keyword/paris', get);
     await screen.findByText('Flight to Paris');
-    await userEvent.click(screen.getByRole('tab', { name: 'AI search' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Semantic search' }));
     await vi.waitFor(() =>
       expect(get).toHaveBeenCalledWith('/search?q=paris&mode=semantic&page=0&pageSize=50'),
     );
   });
 
-  it('says when AI search had nothing but operators to go on', async () => {
+  it('says when semantic search had nothing but operators to go on', async () => {
     show('/search/semantic/from:alice', routedGet({ '/search?': () => results('keyword') }));
     expect(await screen.findByText(/Only search operators were given/)).toBeInTheDocument();
   });

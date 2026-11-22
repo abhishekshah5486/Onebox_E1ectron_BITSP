@@ -85,7 +85,7 @@ export function ConsoleSearch() {
             <Alert type="info">
               {fellBack
                 ? 'Only search operators were given, so this is a keyword search. Add words to search by meaning.'
-                : 'AI search finds mail by meaning, best matches first.'}
+                : 'Semantic search finds mail by meaning, best matches first.'}
             </Alert>
           )}
         </>
@@ -95,7 +95,7 @@ export function ConsoleSearch() {
           title="No messages matched your search"
           body={
             mode === 'keyword'
-              ? 'Try other words, or AI search to find mail by meaning.'
+              ? 'Try other words, or semantic search to find mail by meaning.'
               : 'Try describing it another way, or keyword search for exact words.'
           }
         />
