@@ -41,6 +41,9 @@ import tableStyles from '../ui/DataTable.module.css';
 import styles from './AiSection.module.css';
 import { useFlash } from './flash';
 import { ModelLogo } from './ModelLogo';
+import { IndexingStorageSection } from './IndexingStorageSection';
+import { ModelProvidersSection } from './ModelProvidersSection';
+import { OWN_PREFIX, useUserModels, type UserModel } from '../api/providers';
 import { LoadError } from '../ui/LoadError';
 import { PlanGate } from '../billing/PlanGate';
 import { TableActions } from '../ui/TableActions';
@@ -75,7 +78,7 @@ const autoMark = (
   </svg>
 );
 
-function optionsFor(models: ModelOption[]): SelectProps.Options {
+function optionsFor(models: ModelOption[], own: UserModel[]): SelectProps.Options {
   const groups = (Object.keys(PROVIDER) as ModelProvider[]).map((provider) => ({
     label: PROVIDER[provider],
     options: models
@@ -96,6 +99,20 @@ function optionsFor(models: ModelOption[]): SelectProps.Options {
       description: 'Always picks the best available model',
       iconSvg: autoMark,
     },
+    ...(own.length
+      ? [
+          {
+            label: 'Your models',
+            options: own.map((model) => ({
+              value: `${OWN_PREFIX}${model.id}`,
+              label: model.name,
+              description: `${model.providerName}, your own key`,
+              iconUrl: model.logoUrl ?? undefined,
+              iconAlt: '',
+            })),
+          },
+        ]
+      : []),
     ...groups.filter((group) => group.options.length > 0),
   ];
 }
@@ -112,7 +129,11 @@ export function AiSection() {
   const models = useModels();
   const choose = useChooseModel();
   const flash = useFlash();
-  const options = optionsFor(models.data?.items ?? []);
+  const userModels = useUserModels();
+  const options = optionsFor(
+    models.data?.items ?? [],
+    (userModels.data?.items ?? []).filter((model) => model.kind === 'llm'),
+  );
 
   return (
     <SpaceBetween size="l">
@@ -180,7 +201,10 @@ export function AiSection() {
           </SpaceBetween>
         </Container>
       </PlanGate>
+      <ModelProvidersSection kind="llm" />
       <SemanticSearchSection />
+      <ModelProvidersSection kind="embedding" />
+      <IndexingStorageSection />
       <UsageTable />
     </SpaceBetween>
   );
@@ -204,6 +228,8 @@ const context = (model: EmbeddingOption) =>
 
 // The gist on the tile, in two lines; the rest is behind its info icon.
 function embeddingSummary(model: EmbeddingOption) {
+  if (model.own)
+    return [model.description, dimensions(model), context(model)].filter(Boolean).join(' · ');
   if (!model.available) return `Needs a working ${providerName(model)} API key on the server`;
   const who = model.local
     ? `${providerName(model)}, free`

@@ -71,6 +71,8 @@ export interface EmbeddingOption {
   local: boolean;
   available: boolean;
   usdPerMillionTokens: number;
+  // Added by the user with their own key; free to OneBox.
+  own: boolean;
 }
 
 interface Embeddings {
