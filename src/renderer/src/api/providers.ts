@@ -136,13 +136,14 @@ const keys = {
   vectorStores: ['settings', 'indexing-storage', 'stores'] as const,
 };
 
-// The provider list changes only when the catalogue does, so it is kept for the session.
+// The provider list changes only with the catalogue or a release, so it's fetched again at most
+// every few minutes, and each time the section opens after that.
 export function useProviders() {
   const { api } = useAuth();
   return useQuery({
     queryKey: keys.providers,
     queryFn: () => providersApi.list(api),
-    staleTime: Infinity,
+    staleTime: 5 * 60_000,
   });
 }
 
