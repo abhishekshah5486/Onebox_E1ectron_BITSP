@@ -166,7 +166,13 @@ describe('IndexingStorageSection', () => {
             catchup: { done: 120, total: 500 },
           },
           { id: 'b', paused: true, search: false, upToDate: false, catchup: null },
-          { id: 'c', paused: false, search: false, upToDate: false, catchup: null },
+          {
+            id: 'c',
+            paused: false,
+            search: false,
+            upToDate: false,
+            catchup: { done: 0, total: 0 },
+          },
         ],
       },
     );
@@ -178,6 +184,7 @@ describe('IndexingStorageSection', () => {
     expect(screen.getByText('Backing up your mail to Milvus')).toBeVisible();
     expect(screen.getByText(/120 of 500 emails/)).toBeVisible();
     expect(screen.getByText('Backing up your mail to Milvus 3')).toBeVisible();
+    expect(screen.getByText('Starting…')).toBeVisible();
     expect(screen.getByRole('status', { name: 'Search store' })).toHaveTextContent(
       'Searches across your mail use OneBox hosted.',
     );

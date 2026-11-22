@@ -48,7 +48,7 @@ type StoreStatus = NonNullable<SemanticStatus['stores']>[number];
 // catches up on only what it missed once resumed.
 function StatusCell({ store, status }: { store: IndexingStore; status?: StoreStatus | undefined }) {
   if (store.paused) return <StatusIndicator type="stopped">Paused</StatusIndicator>;
-  if (status?.catchup) {
+  if (status?.catchup?.total) {
     return (
       <StatusIndicator type="in-progress">Backing up · {percent(status.catchup)}%</StatusIndicator>
     );
@@ -78,7 +78,8 @@ function BackupBanners({ filling }: { filling: { store: IndexingStore; status: S
         infoIconAriaLabel: 'Info',
       }}
       items={filling.map(({ store, status }) => {
-        const progress = status.catchup;
+        // Queued but not yet counted: no total to show.
+        const progress = status.catchup?.total ? status.catchup : null;
         return {
           id: store.id,
           type: 'info',
