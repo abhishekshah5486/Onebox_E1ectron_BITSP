@@ -75,15 +75,23 @@ export interface UserModelInput {
 export type UserModelChanges = Partial<Omit<UserModelInput, 'kind' | 'providerId'>>;
 
 // Where semantic search keeps the user's vectors: OneBox's own, or their Qdrant.
-export interface OwnIndexingStore {
+// One of the stores a user keeps vectors in: OneBox's own, or a database of theirs.
+export interface IndexingStore {
+  id: string;
+  name: string;
   provider: string;
-  settings: Record<string, string>;
-  keyHint: string | null;
-  updatedAt: string;
+  paused: boolean;
+  // Searches go to this one.
+  search: boolean;
+  settings?: Record<string, string>;
+  keyHint?: string | null;
+  updatedAt?: string;
 }
-export type IndexingStore = { provider: 'ONEBOX' } | OwnIndexingStore;
-export const isOwnStore = (store: IndexingStore | undefined): store is OwnIndexingStore =>
-  Boolean(store && 'settings' in store);
+export interface IndexingStores {
+  searchStoreId: string;
+  stores: IndexingStore[];
+}
+export const ONEBOX_STORE = 'onebox';
 
 // A vector database search can keep vectors in, and the fields its form asks for.
 export interface VectorStoreField {
@@ -120,12 +128,21 @@ export const providersApi = {
   update: (api: ApiClient, id: string, changes: UserModelChanges) =>
     api.patch<UserModel>(`/llm/user-models/${id}`, changes),
   remove: (api: ApiClient, id: string) => api.delete<void>(`/llm/user-models/${id}`),
-  indexing: (api: ApiClient) => api.get<IndexingStore>('/settings/indexing-storage'),
+  indexing: (api: ApiClient) => api.get<IndexingStores>('/settings/indexing-storage'),
   vectorStores: (api: ApiClient) =>
     api.get<{ stores: VectorStoreInfo[] }>('/settings/indexing-storage/stores'),
-  setIndexing: (api: ApiClient, body: { provider: string; settings: Record<string, string> }) =>
-    api.put<IndexingStore>('/settings/indexing-storage', body),
-  clearIndexing: (api: ApiClient) => api.delete<void>('/settings/indexing-storage'),
+  addStore: (
+    api: ApiClient,
+    body: { provider: string; name?: string; settings: Record<string, string> },
+  ) => api.post<IndexingStore>('/settings/indexing-storage', body),
+  updateStore: (
+    api: ApiClient,
+    id: string,
+    body: { name?: string; settings?: Record<string, string>; paused?: boolean },
+  ) => api.patch<IndexingStores>(`/settings/indexing-storage/${id}`, body),
+  searchWith: (api: ApiClient, storeId: string) =>
+    api.put<IndexingStores>('/settings/indexing-storage/search', { storeId }),
+  removeStore: (api: ApiClient, id: string) => api.delete<void>(`/settings/indexing-storage/${id}`),
 };
 
 const keys = {
@@ -217,17 +234,17 @@ export function useVectorStores() {
   });
 }
 
-export function useIndexingStore() {
+export function useIndexingStores() {
   const { api } = useAuth();
   return useQuery({ queryKey: keys.indexing, queryFn: () => providersApi.indexing(api) });
 }
 
-// Moving the vectors starts a rebuild, so its progress is fetched again too.
+// A change to the stores may start a catch-up, so their progress is fetched again too.
 function useIndexingMutation<T, R>(mutationFn: (input: T) => Promise<R>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
-    onSettled: () =>
+    onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.indexing }),
         queryClient.invalidateQueries({ queryKey: ['search', 'semantic'] }),
@@ -235,14 +252,35 @@ function useIndexingMutation<T, R>(mutationFn: (input: T) => Promise<R>) {
   });
 }
 
-export function useSetIndexingStore() {
+export function useAddIndexingStore() {
   const { api } = useAuth();
-  return useIndexingMutation((body: { provider: string; settings: Record<string, string> }) =>
-    providersApi.setIndexing(api, body),
+  return useIndexingMutation(
+    (body: { provider: string; name?: string; settings: Record<string, string> }) =>
+      providersApi.addStore(api, body),
   );
 }
 
-export function useClearIndexingStore() {
+export function useUpdateIndexingStore() {
   const { api } = useAuth();
-  return useIndexingMutation(() => providersApi.clearIndexing(api));
+  return useIndexingMutation(
+    ({
+      id,
+      ...body
+    }: {
+      id: string;
+      name?: string;
+      settings?: Record<string, string>;
+      paused?: boolean;
+    }) => providersApi.updateStore(api, id, body),
+  );
+}
+
+export function useSearchWithStore() {
+  const { api } = useAuth();
+  return useIndexingMutation((storeId: string) => providersApi.searchWith(api, storeId));
+}
+
+export function useRemoveIndexingStore() {
+  const { api } = useAuth();
+  return useIndexingMutation((id: string) => providersApi.removeStore(api, id));
 }

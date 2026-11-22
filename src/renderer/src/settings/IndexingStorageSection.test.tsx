@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError, type ApiClient } from '../api/client';
-import type { IndexingStore, VectorStoreInfo } from '../api/providers';
+import type { IndexingStore, IndexingStores, VectorStoreInfo } from '../api/providers';
 import { useAuth } from '../auth/AuthProvider';
 import { fakeApi, routedGet, testUser } from '../test/fake-api';
 import { renderPage } from '../test/render';
@@ -59,12 +59,29 @@ const STORES: VectorStoreInfo[] = [
   })),
 ];
 
-function setup(store: IndexingStore, overrides: Partial<ApiClient> = {}) {
+const ONEBOX: IndexingStore = {
+  id: 'onebox',
+  name: 'OneBox hosted',
+  provider: 'ONEBOX',
+  paused: false,
+  search: true,
+};
+const listOf = (...stores: IndexingStore[]): IndexingStores => ({
+  searchStoreId: stores.find((store) => store.search)?.id ?? 'onebox',
+  stores,
+});
+
+function setup(stores: IndexingStores, overrides: Partial<ApiClient> = {}, semantic: object = {}) {
   const api = fakeApi({
     restoreSession: vi.fn(async () => testUser),
     get: routedGet({
       '/settings/indexing-storage/stores': () => ({ stores: STORES }),
-      '/settings/indexing-storage': () => store,
+      '/settings/indexing-storage': () => stores,
+      '/search/semantic': () => ({
+        active: { id: 'm', name: 'm', dimensions: 3, local: true },
+        rebuild: null,
+        ...semantic,
+      }),
     }),
     ...overrides,
   });
@@ -72,60 +89,117 @@ function setup(store: IndexingStore, overrides: Partial<ApiClient> = {}) {
 }
 
 describe('IndexingStorageSection', () => {
-  it('connects a vector database with the fields it asks for, saying why one fails', async () => {
-    const put = vi
+  it('adds a vector database with the fields it asks for, saying why one fails', async () => {
+    const post = vi
       .fn()
       .mockRejectedValueOnce(
         new ApiError(400, 'STORE_CHECK', 'Neo4j: The store rejected these credentials'),
       )
       .mockResolvedValueOnce({
+        id: 'n1',
+        name: 'Graph',
         provider: 'NEO4J',
-        settings: { url: 'neo4j+s://x.databases.neo4j.io', username: 'neo4j' },
-        keyHint: null,
-        updatedAt: '2026-11-23T00:00:00Z',
+        paused: false,
+        search: false,
       });
-    setup({ provider: 'ONEBOX' }, { put: put as ApiClient['put'] });
-    expect(await screen.findByText('In use')).toBeVisible();
+    setup(listOf(ONEBOX), { post: post as ApiClient['post'] });
+    expect(await screen.findByText('OneBox hosted')).toBeVisible();
     await userEvent.type(screen.getByLabelText('Search vector databases'), 'neo');
-    await userEvent.click(screen.getByRole('button', { name: 'Configure Neo4j' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add Neo4j' }));
 
-    const dialog = await screen.findByRole('dialog', { name: /Connect Neo4j/ });
+    const dialog = await screen.findByRole('dialog', { name: /Add Neo4j/ });
     expect(within(dialog).getByLabelText('Username')).toHaveValue('neo4j');
-    const connect = within(dialog).getByRole('button', { name: 'Check and connect' });
-    expect(connect).toBeDisabled();
+    const add = within(dialog).getByRole('button', { name: 'Check and add' });
+    expect(add).toBeDisabled();
+    await userEvent.type(within(dialog).getByLabelText('Name (optional)'), 'Graph');
     await userEvent.type(within(dialog).getByLabelText('URL'), 'neo4j+s://x.databases.neo4j.io');
     await userEvent.type(within(dialog).getByLabelText('Password'), 'wrong');
-    await userEvent.click(connect);
+    await userEvent.click(add);
     expect(
       await within(dialog).findByText('Neo4j: The store rejected these credentials'),
     ).toBeVisible();
-    await userEvent.click(connect);
-    expect(await screen.findByText('Neo4j is connected')).toBeVisible();
-    expect(put).toHaveBeenLastCalledWith('/settings/indexing-storage', {
+    await userEvent.click(add);
+    expect(await screen.findByText('Graph added')).toBeVisible();
+    expect(post).toHaveBeenLastCalledWith('/settings/indexing-storage', {
       provider: 'NEO4J',
+      name: 'Graph',
       settings: { url: 'neo4j+s://x.databases.neo4j.io', username: 'neo4j', password: 'wrong' },
     });
   });
 
   it('pages through the databases on offer', async () => {
-    setup({ provider: 'ONEBOX' });
+    setup(listOf(ONEBOX));
     expect(await screen.findByText('Qdrant')).toBeVisible();
     expect(screen.queryByText('Redis')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: /page 2/i }));
     expect(await screen.findByText('Redis')).toBeVisible();
   });
 
-  it('edits the store in use keeping its saved secret, and moves back to OneBox after asking', async () => {
-    const del = vi.fn(async () => undefined);
+  it('shows each store’s backup, pauses and resumes one, and switches searches to another', async () => {
+    const milvus = (id: string, name: string, paused: boolean): IndexingStore => ({
+      id,
+      name,
+      provider: 'MILVUS',
+      paused,
+      search: false,
+      settings: { url: `https://${id}.example.com` },
+      keyHint: null,
+    });
+    const patch = vi.fn(async () => listOf(ONEBOX));
+    const put = vi.fn(async () => listOf(ONEBOX));
     setup(
+      listOf(ONEBOX, milvus('a', 'Milvus', false), milvus('b', 'Milvus 2', true)),
+      { patch: patch as ApiClient['patch'], put: put as ApiClient['put'] },
       {
-        provider: 'QDRANT',
-        settings: { url: 'https://q.example.com' },
-        keyHint: 'ab12',
-        updatedAt: '2026-11-22T00:00:00Z',
+        stores: [
+          { id: 'onebox', paused: false, search: true, upToDate: true, catchup: null },
+          {
+            id: 'a',
+            paused: false,
+            search: false,
+            upToDate: false,
+            catchup: { done: 120, total: 500 },
+          },
+          { id: 'b', paused: true, search: false, upToDate: false, catchup: null },
+        ],
       },
-      { delete: del as ApiClient['delete'] },
     );
+    expect(await screen.findByText('Backing up 120 of 500')).toBeVisible();
+    expect(screen.getByText('Paused')).toBeVisible();
+    expect(screen.getByText('Backed up')).toBeVisible();
+    // The search store can't be paused.
+    expect(screen.queryByRole('button', { name: 'Pause OneBox hosted' })).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Resume Milvus 2' }));
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/settings/indexing-storage/b', { paused: false }),
+    );
+    expect(
+      await screen.findByText(/backing up again, starting with only the mail it missed/),
+    ).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Pause Milvus' }));
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/settings/indexing-storage/a', { paused: true }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Search with Milvus' }));
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith('/settings/indexing-storage/search', { storeId: 'a' }),
+    );
+    expect(await screen.findByText('Searches now go to Milvus.')).toBeInTheDocument();
+  });
+
+  it('edits a store keeping its saved secret, and removes one after asking', async () => {
+    const del = vi.fn(async () => undefined);
+    const qdrant: IndexingStore = {
+      id: 'q1',
+      name: 'Qdrant',
+      provider: 'QDRANT',
+      paused: false,
+      search: false,
+      settings: { url: 'https://q.example.com' },
+      keyHint: 'ab12',
+    };
+    setup(listOf(ONEBOX, qdrant), { delete: del as ApiClient['delete'] });
     await userEvent.click(await screen.findByRole('button', { name: 'Edit Qdrant' }));
     const dialog = await screen.findByRole('dialog', { name: /Edit Qdrant/ });
     expect(within(dialog).getByLabelText('URL')).toHaveValue('https://q.example.com');
@@ -135,11 +209,9 @@ describe('IndexingStorageSection', () => {
     );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
-    await userEvent.click(screen.getByRole('button', { name: 'Move back' }));
-    const confirm = await screen.findByRole('dialog', {
-      name: 'Move search vectors back to OneBox?',
-    });
-    await userEvent.click(within(confirm).getByRole('button', { name: 'Move back' }));
-    await waitFor(() => expect(del).toHaveBeenCalledWith('/settings/indexing-storage'));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Qdrant' }));
+    const confirm = await screen.findByRole('dialog', { name: 'Remove Qdrant?' });
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(del).toHaveBeenCalledWith('/settings/indexing-storage/q1'));
   });
 });

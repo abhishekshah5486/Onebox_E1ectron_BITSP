@@ -85,6 +85,14 @@ interface Embeddings {
 export interface SemanticStatus {
   active: { id: string; name: string; dimensions: number; local: boolean };
   rebuild: { modelId: string; done: number; total: number; startedAt: string } | null;
+  // How each vector store is doing; a store catching up shows how far it has got.
+  stores?: {
+    id: string;
+    paused: boolean;
+    search: boolean;
+    upToDate: boolean;
+    catchup: { done: number; total: number } | null;
+  }[];
 }
 
 // How long re-embedding all the user's mail with a model would take, measured on a sample.
@@ -181,7 +189,10 @@ export function useSemanticStatus({ starting = false } = {}) {
   return useQuery({
     queryKey: aiKeys.semanticStatus,
     queryFn: () => aiApi.semanticStatus(api),
-    refetchInterval: (query) => (starting || query.state.data?.rebuild ? 2_000 : false),
+    refetchInterval: (query) =>
+      starting || query.state.data?.rebuild || query.state.data?.stores?.some((s) => s.catchup)
+        ? 2_000
+        : false,
   });
 }
 
