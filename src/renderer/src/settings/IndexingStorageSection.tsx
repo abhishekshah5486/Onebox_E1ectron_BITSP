@@ -1,178 +1,195 @@
+import { useCollection } from '@cloudscape-design/collection-hooks';
 import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
-import ColumnLayout from '@cloudscape-design/components/column-layout';
-import Container from '@cloudscape-design/components/container';
+import Cards from '@cloudscape-design/components/cards';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
 import Input from '@cloudscape-design/components/input';
+import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
+import Pagination from '@cloudscape-design/components/pagination';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
-import Tiles from '@cloudscape-design/components/tiles';
+import TextFilter from '@cloudscape-design/components/text-filter';
 import { useState } from 'react';
-import { useClearIndexingStore, useIndexingStore, useSetIndexingStore } from '../api/providers';
+import {
+  useClearIndexingStore,
+  useIndexingStore,
+  useSetIndexingStore,
+  useVectorStores,
+  isOwnStore,
+  type OwnIndexingStore,
+  type VectorStoreInfo,
+} from '../api/providers';
 import { describeError } from '../auth/errors';
 import { LoadError } from '../ui/LoadError';
 import { useFlash } from './flash';
+import styles from './ModelProvidersSection.module.css';
+import { PAGE_LABELS } from './page-labels';
+import { ProviderMark } from './ProviderMark';
 
-type Choice = 'ONEBOX' | 'QDRANT';
+const ONEBOX: VectorStoreInfo = {
+  id: 'ONEBOX',
+  name: 'OneBox hosted',
+  description: 'Kept on OneBox’s vector database. Nothing to set up.',
+  docsUrl: '',
+  icon: null,
+  fields: [],
+};
+const PAGE_SIZE = 6;
 
-// Where semantic search keeps the user's vectors. Moving them re-embeds all their mail into the
-// new place and then removes it from OneBox's.
+// Where semantic search keeps the user's vectors: OneBox's, or a vector database of their own.
+// Moving them re-embeds all their mail into the new place.
 export function IndexingStorageSection() {
-  const store = useIndexingStore();
-  const save = useSetIndexingStore();
+  const current = useIndexingStore();
+  const stores = useVectorStores();
   const clear = useClearIndexingStore();
   const flash = useFlash();
-  const saved = store.data?.provider ?? 'ONEBOX';
-  const [choice, setChoice] = useState<Choice | null>(null);
-  const [url, setUrl] = useState('');
-  const [apiKey, setApiKey] = useState('');
+  const [configuring, setConfiguring] = useState<VectorStoreInfo | null>(null);
   const [confirmBack, setConfirmBack] = useState(false);
-  const shown = choice ?? saved;
-  const qdrant = store.data?.provider === 'QDRANT' ? store.data : null;
-
-  const connect = () =>
-    save.mutate(
-      { url: url.trim(), ...(apiKey.trim() && { apiKey: apiKey.trim() }) },
-      {
-        onSuccess: () => {
-          setChoice(null);
-          setUrl('');
-          setApiKey('');
-          flash({
-            type: 'success',
-            header: 'Your Qdrant is connected',
-            content:
-              'Your mail is being embedded into it; searches keep working meanwhile. You’ll get a notification once it’s finished.',
-          });
-        },
-      },
-    );
+  const inUse = current.data?.provider ?? 'ONEBOX';
+  const all = [ONEBOX, ...(stores.data ?? [])];
+  const { items, actions, filterProps, paginationProps } = useCollection(all, {
+    filtering: {
+      filteringFunction: (store, text) =>
+        `${store.name} ${store.id} ${store.description}`
+          .toLowerCase()
+          .includes(text.trim().toLowerCase()),
+    },
+    pagination: { pageSize: PAGE_SIZE },
+  });
 
   const backToOneBox = () =>
     clear.mutate(undefined, {
       onSuccess: () => {
         setConfirmBack(false);
-        setChoice(null);
         flash({
           type: 'success',
-          content: 'Search vectors are moving back to OneBox. What’s in your Qdrant stays there.',
+          content: 'Search vectors are moving back to OneBox. What’s in your store stays there.',
         });
       },
       onError: (error) => flash({ type: 'error', content: describeError(error) }),
     });
 
+  const status = (store: VectorStoreInfo) =>
+    store.id === inUse ? (
+      <StatusIndicator type="success">In use</StatusIndicator>
+    ) : (
+      <Box color="text-body-secondary" fontSize="body-s">
+        {store.id === 'ONEBOX' ? 'Default' : 'Vector database'}
+      </Box>
+    );
+
+  const action = (store: VectorStoreInfo) => {
+    if (store.id === 'ONEBOX') {
+      return inUse === 'ONEBOX' ? null : (
+        <Button onClick={() => setConfirmBack(true)}>Move back</Button>
+      );
+    }
+    return store.id === inUse ? (
+      <Button ariaLabel={`Edit ${store.name}`} onClick={() => setConfiguring(store)}>
+        Edit
+      </Button>
+    ) : (
+      <Button
+        iconName="add-plus"
+        ariaLabel={`Configure ${store.name}`}
+        onClick={() => setConfiguring(store)}
+      >
+        Configure
+      </Button>
+    );
+  };
+
   return (
-    <Container
-      header={
-        <Header
-          variant="h2"
-          description="Where semantic search keeps the vectors made from your mail."
-        >
-          Indexing storage
-        </Header>
-      }
-    >
-      <SpaceBetween size="l">
-        {store.isError && (
-          <LoadError
-            error={store.error}
-            header="Indexing storage could not be loaded"
-            onRetry={() => void store.refetch()}
-          />
-        )}
-        <Tiles
-          ariaLabel="Indexing storage"
-          columns={2}
-          value={shown}
-          onChange={({ detail }) => setChoice(detail.value as Choice)}
-          items={[
-            {
-              value: 'ONEBOX',
-              label: 'OneBox hosted',
-              description: 'Kept on OneBox’s vector database. Nothing to set up.',
-            },
-            {
-              value: 'QDRANT',
-              label: 'Your own Qdrant',
-              description: 'Qdrant Cloud or your own server. Your vectors stay with you.',
-            },
-          ]}
-        />
-
-        {qdrant && shown === 'QDRANT' && (
-          <ColumnLayout columns={2} variant="text-grid">
-            <div>
-              <Box variant="awsui-key-label">Connected to</Box>
-              <StatusIndicator type="success">{qdrant.url}</StatusIndicator>
-            </div>
-            <div>
-              <Box variant="awsui-key-label">API key</Box>
-              {qdrant.keyHint ?? 'None'}
-            </div>
-          </ColumnLayout>
-        )}
-
-        {shown === 'QDRANT' && (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (url.trim()) connect();
-            }}
+    <>
+      <Cards
+        variant="container"
+        header={
+          <Header
+            variant="h2"
+            description="Where semantic search keeps the vectors made from your mail."
           >
-            <SpaceBetween size="m">
-              <ColumnLayout columns={2}>
-                <FormField label="Qdrant URL">
-                  <Input
-                    value={url}
-                    placeholder={qdrant?.url ?? 'https://xyz.cloud.qdrant.io:6333'}
-                    onChange={({ detail }) => setUrl(detail.value)}
-                  />
-                </FormField>
-                <FormField label="API key (optional)">
-                  <Input
-                    value={apiKey}
-                    type="password"
-                    autoComplete={false}
-                    placeholder={qdrant?.keyHint ? `Saved (${qdrant.keyHint})` : undefined}
-                    onChange={({ detail }) => setApiKey(detail.value)}
-                  />
-                </FormField>
-              </ColumnLayout>
-              {save.isError && (
-                <Alert type="error" header="Couldn't connect">
-                  {describeError(save.error)}
-                </Alert>
-              )}
-              <Box float="right">
-                <SpaceBetween direction="horizontal" size="xs">
-                  {qdrant && (
-                    <Button onClick={() => setConfirmBack(true)}>Move back to OneBox</Button>
-                  )}
-                  <Button
-                    variant="primary"
-                    formAction="submit"
-                    disabled={!url.trim()}
-                    loading={save.isPending}
-                  >
-                    {qdrant ? 'Check and update' : 'Check and connect'}
-                  </Button>
-                </SpaceBetween>
-              </Box>
-            </SpaceBetween>
-          </form>
-        )}
+            Indexing storage
+          </Header>
+        }
+        filter={
+          <TextFilter
+            {...filterProps}
+            filteringPlaceholder="Search…"
+            filteringAriaLabel="Search vector databases"
+            onChange={({ detail }) => actions.setFiltering(detail.filteringText)}
+          />
+        }
+        pagination={<Pagination {...paginationProps} ariaLabels={PAGE_LABELS} />}
+        loading={stores.isPending}
+        loadingText="Loading vector databases"
+        items={items}
+        trackBy="id"
+        cardsPerRow={[{ cards: 1 }, { minWidth: 640, cards: 2 }]}
+        cardDefinition={{
+          header: (store) => (
+            <div className={styles.card}>
+              <ProviderMark
+                providerId={store.id === 'ONEBOX' ? 'onebox' : store.id.toLowerCase()}
+                icon={store.icon}
+                logoUrl={null}
+                name={store.name}
+              />
+              <div className={styles.cardText}>
+                <span className={styles.cardName}>{store.name}</span>
+                {status(store)}
+              </div>
+              {action(store)}
+            </div>
+          ),
+          sections: [
+            {
+              id: 'description',
+              content: (store) => (
+                <Box color="text-body-secondary" fontSize="body-s">
+                  {store.description}
+                </Box>
+              ),
+            },
+          ],
+        }}
+        empty={
+          stores.isError || current.isError ? (
+            <LoadError
+              error={stores.error ?? current.error}
+              header="Indexing storage could not be loaded"
+              onRetry={() => void Promise.all([stores.refetch(), current.refetch()])}
+            />
+          ) : (
+            <Box textAlign="center" color="inherit" padding="m">
+              <b>No vector databases match “{filterProps.filteringText}”</b>
+            </Box>
+          )
+        }
+      />
 
-        {shown === 'ONEBOX' && saved === 'QDRANT' && (
-          <Box float="right">
-            <Button variant="primary" onClick={() => setConfirmBack(true)}>
-              Move back to OneBox
-            </Button>
-          </Box>
-        )}
-      </SpaceBetween>
+      {configuring && (
+        <ConfigureStoreModal
+          store={configuring}
+          current={
+            isOwnStore(current.data) && current.data.provider === configuring.id
+              ? current.data
+              : null
+          }
+          onDismiss={() => setConfiguring(null)}
+          onSaved={() => {
+            setConfiguring(null);
+            flash({
+              type: 'success',
+              header: `${configuring.name} is connected`,
+              content:
+                'Your mail is being embedded into it; searches keep working meanwhile. You’ll get a notification once it’s finished.',
+            });
+          }}
+        />
+      )}
 
       <Modal
         visible={confirmBack}
@@ -192,10 +209,126 @@ export function IndexingStorageSection() {
         }
       >
         <Alert type="warning">
-          All your mail is embedded again on OneBox, and OneBox forgets your Qdrant’s address and
-          key. The vectors already in your Qdrant stay there.
+          All your mail is embedded again on OneBox, and OneBox forgets your store’s address and
+          keys. The vectors already in your store stay there.
         </Alert>
       </Modal>
-    </Container>
+    </>
+  );
+}
+
+// The store's own fields, as the catalogue describes them. Saved secrets are never shown; left
+// blank, they're kept.
+function ConfigureStoreModal({
+  store,
+  current,
+  onDismiss,
+  onSaved,
+}: {
+  store: VectorStoreInfo;
+  current: OwnIndexingStore | null;
+  onDismiss: () => void;
+  onSaved: () => void;
+}) {
+  const save = useSetIndexingStore();
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      store.fields.map((field): [string, string] => [
+        field.key,
+        field.secret ? '' : (current?.settings[field.key] ?? field.default ?? ''),
+      ]),
+    ),
+  );
+  const missing = store.fields.some(
+    (field) => field.required && !values[field.key]?.trim() && !(field.secret && current),
+  );
+
+  const submit = () =>
+    save.mutate(
+      {
+        provider: store.id,
+        settings: Object.fromEntries(
+          Object.entries(values).filter(([, value]) => value.trim() !== ''),
+        ),
+      },
+      { onSuccess: onSaved },
+    );
+
+  return (
+    <Modal
+      visible
+      onDismiss={onDismiss}
+      header={
+        <span className={styles.card}>
+          <ProviderMark
+            providerId={store.id.toLowerCase()}
+            icon={store.icon}
+            logoUrl={null}
+            name={store.name}
+            size={32}
+          />
+          {current ? `Edit ${store.name}` : `Connect ${store.name}`}
+        </span>
+      }
+      footer={
+        <Box float="right">
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button variant="link" onClick={onDismiss}>
+              Cancel
+            </Button>
+            <Button variant="primary" disabled={missing} loading={save.isPending} onClick={submit}>
+              {current ? 'Check and update' : 'Check and connect'}
+            </Button>
+          </SpaceBetween>
+        </Box>
+      }
+    >
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!missing) submit();
+        }}
+      >
+        <SpaceBetween size="m">
+          <Box color="text-body-secondary">
+            {store.description}{' '}
+            {store.docsUrl && (
+              <Link href={store.docsUrl} external>
+                Docs
+              </Link>
+            )}
+          </Box>
+          {store.fields.map((field) => (
+            <FormField
+              key={field.key}
+              label={field.required ? field.label : `${field.label} (optional)`}
+            >
+              <Input
+                value={values[field.key] ?? ''}
+                type={field.secret ? 'password' : 'text'}
+                autoComplete={false}
+                placeholder={
+                  field.secret && current
+                    ? current.keyHint
+                      ? `Saved (…${current.keyHint})`
+                      : 'Saved'
+                    : field.placeholder
+                }
+                onChange={({ detail }) =>
+                  setValues((before) => ({ ...before, [field.key]: detail.value }))
+                }
+              />
+            </FormField>
+          ))}
+          {save.isError && (
+            <Alert type="error" header="Couldn't connect">
+              {describeError(save.error)}
+            </Alert>
+          )}
+          {/* Enter submits. */}
+          <button type="submit" hidden />
+        </SpaceBetween>
+      </form>
+    </Modal>
   );
 }

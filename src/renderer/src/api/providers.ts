@@ -75,9 +75,34 @@ export interface UserModelInput {
 export type UserModelChanges = Partial<Omit<UserModelInput, 'kind' | 'providerId'>>;
 
 // Where semantic search keeps the user's vectors: OneBox's own, or their Qdrant.
-export type IndexingStore =
-  | { provider: 'ONEBOX' }
-  | { provider: 'QDRANT'; url: string; keyHint: string | null; updatedAt: string };
+export interface OwnIndexingStore {
+  provider: string;
+  settings: Record<string, string>;
+  keyHint: string | null;
+  updatedAt: string;
+}
+export type IndexingStore = { provider: 'ONEBOX' } | OwnIndexingStore;
+export const isOwnStore = (store: IndexingStore | undefined): store is OwnIndexingStore =>
+  Boolean(store && 'settings' in store);
+
+// A vector database search can keep vectors in, and the fields its form asks for.
+export interface VectorStoreField {
+  key: string;
+  label: string;
+  secret: boolean;
+  required: boolean;
+  address: boolean;
+  placeholder?: string;
+  default?: string;
+}
+export interface VectorStoreInfo {
+  id: string;
+  name: string;
+  description: string;
+  docsUrl: string;
+  icon: string | null;
+  fields: VectorStoreField[];
+}
 
 // Models the user picks as "user:<id>" wherever a hosted model could go.
 export const OWN_PREFIX = 'user:';
@@ -96,7 +121,9 @@ export const providersApi = {
     api.patch<UserModel>(`/llm/user-models/${id}`, changes),
   remove: (api: ApiClient, id: string) => api.delete<void>(`/llm/user-models/${id}`),
   indexing: (api: ApiClient) => api.get<IndexingStore>('/settings/indexing-storage'),
-  setIndexing: (api: ApiClient, body: { url: string; apiKey?: string }) =>
+  vectorStores: (api: ApiClient) =>
+    api.get<{ stores: VectorStoreInfo[] }>('/settings/indexing-storage/stores'),
+  setIndexing: (api: ApiClient, body: { provider: string; settings: Record<string, string> }) =>
     api.put<IndexingStore>('/settings/indexing-storage', body),
   clearIndexing: (api: ApiClient) => api.delete<void>('/settings/indexing-storage'),
 };
@@ -106,6 +133,7 @@ const keys = {
   provider: (id: string) => ['llm', 'providers', id] as const,
   userModels: ['llm', 'user-models'] as const,
   indexing: ['settings', 'indexing-storage'] as const,
+  vectorStores: ['settings', 'indexing-storage', 'stores'] as const,
 };
 
 // The provider list changes only when the catalogue does, so it is kept for the session.
@@ -178,6 +206,16 @@ export function useRemoveUserModel() {
   return useModelMutation((id: string) => providersApi.remove(api, id));
 }
 
+// The databases on offer change only with a release.
+export function useVectorStores() {
+  const { api } = useAuth();
+  return useQuery({
+    queryKey: keys.vectorStores,
+    queryFn: async () => (await providersApi.vectorStores(api)).stores,
+    staleTime: Infinity,
+  });
+}
+
 export function useIndexingStore() {
   const { api } = useAuth();
   return useQuery({ queryKey: keys.indexing, queryFn: () => providersApi.indexing(api) });
@@ -198,7 +236,7 @@ function useIndexingMutation<T, R>(mutationFn: (input: T) => Promise<R>) {
 
 export function useSetIndexingStore() {
   const { api } = useAuth();
-  return useIndexingMutation((body: { url: string; apiKey?: string }) =>
+  return useIndexingMutation((body: { provider: string; settings: Record<string, string> }) =>
     providersApi.setIndexing(api, body),
   );
 }
