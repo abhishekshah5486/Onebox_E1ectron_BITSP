@@ -61,6 +61,10 @@
   --ob-field-label: #444746;
   --ob-field-line: #c4c7c5;
   --ob-field-line-hover: #1f1f1f;
+  --ob-banner-bg: #fbeef1;
+  --ob-banner-border: #e3b4c0;
+  --ob-banner-text: #6d1a2e;
+  --ob-banner-accent: #8c1d3a;
 }
 
 :root[data-theme='dark'] {
@@ -129,6 +133,10 @@
   --ob-field-label: #c4c7c5;
   --ob-field-line: #5f6368;
   --ob-field-line-hover: #e3e3e3;
+  --ob-banner-bg: #3a1621;
+  --ob-banner-border: #6e2a3d;
+  --ob-banner-text: #f6d7df;
+  --ob-banner-accent: #f08aa3;
 }
 
 :root {

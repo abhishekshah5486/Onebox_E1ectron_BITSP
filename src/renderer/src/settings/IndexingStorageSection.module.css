@@ -1,0 +1,32 @@
+/* Which store answers searches, in the app's burgundy banner colours. */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--ob-banner-border);
+  border-radius: 12px;
+  background: var(--ob-banner-bg);
+  color: var(--ob-banner-text);
+}
+
+.bannerLabel {
+  color: var(--ob-banner-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bannerName {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Taller rows, room for a larger logo. */
+.store {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 14px;
+}

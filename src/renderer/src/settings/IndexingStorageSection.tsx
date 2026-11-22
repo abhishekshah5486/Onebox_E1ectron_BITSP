@@ -1,8 +1,8 @@
 import { useCollection } from '@cloudscape-design/collection-hooks';
 import Alert from '@cloudscape-design/components/alert';
-import Badge from '@cloudscape-design/components/badge';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
+import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import Cards from '@cloudscape-design/components/cards';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
@@ -28,8 +28,10 @@ import {
   type VectorStoreInfo,
 } from '../api/providers';
 import { describeError } from '../auth/errors';
+import tableStyles from '../ui/DataTable.module.css';
 import { LoadError } from '../ui/LoadError';
 import { useFlash } from './flash';
+import own from './IndexingStorageSection.module.css';
 import styles from './ModelProvidersSection.module.css';
 import { PAGE_LABELS } from './page-labels';
 import { ProviderMark } from './ProviderMark';
@@ -70,9 +72,20 @@ export function IndexingStorageSection() {
     info: VectorStoreInfo;
     editing: IndexingStore | null;
   } | null>(null);
-  const [removing, setRemoving] = useState<IndexingStore | null>(null);
+  const [removing, setRemoving] = useState<IndexingStore[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const mine = current.data?.stores ?? [];
-  const infoOf = (provider: string) => catalogue.data?.find((info) => info.id === provider);
+  const selected = mine.filter((store) => selectedIds.includes(store.id));
+  const searchStore = mine.find((store) => store.search);
+  // The search store keeps backing up, and OneBox's own can't be removed or edited.
+  const pausable = selected.filter((store) => !store.search);
+  const allPaused = pausable.length > 0 && pausable.every((store) => store.paused);
+  const removable = selected.filter((store) => store.id !== ONEBOX_STORE);
+  const editable = selected.length === 1 && removable.length === 1 ? removable[0] : undefined;
+  const editInfo = editable && infoOf(editable.provider);
+  function infoOf(provider: string) {
+    return catalogue.data?.find((info) => info.id === provider);
+  }
   const statusOf = (id: string) => semantic.data?.stores?.find((status) => status.id === id);
   const failed = (error: unknown) => flash({ type: 'error', content: describeError(error) });
 
@@ -86,20 +99,19 @@ export function IndexingStorageSection() {
     pagination: { pageSize: PAGE_SIZE },
   });
 
-  const setPaused = (store: IndexingStore, paused: boolean) =>
-    update.mutate(
-      { id: store.id, paused },
-      {
-        onSuccess: () =>
-          flash({
-            type: 'success',
-            content: paused
-              ? `${store.name} is paused. New mail isn’t backed up to it until you resume it.`
-              : `${store.name} is backing up again, starting with only the mail it missed.`,
-          }),
-        onError: failed,
-      },
+  const setPaused = (stores: IndexingStore[], paused: boolean) => {
+    const names = stores.map((store) => store.name).join(', ');
+    void Promise.all(stores.map((store) => update.mutateAsync({ id: store.id, paused }))).then(
+      () =>
+        flash({
+          type: 'success',
+          content: paused
+            ? `${names} paused. New mail isn’t backed up there until you resume.`
+            : `${names} backing up again, starting with only the mail missed.`,
+        }),
+      failed,
     );
+  };
 
   const switchSearch = (store: IndexingStore) =>
     searchWith.mutate(store.id, {
@@ -109,110 +121,127 @@ export function IndexingStorageSection() {
 
   return (
     <SpaceBetween size="l">
-      <Table
-        variant="container"
-        header={
-          <Header
-            variant="h2"
-            counter={mine.length ? `(${mine.length})` : undefined}
-            description="Your mail’s search vectors are backed up to every store that isn’t paused. Searches use the one marked Search."
-          >
-            Indexing storage
-          </Header>
-        }
-        loading={current.isPending}
-        loadingText="Loading your vector stores"
-        items={mine}
-        trackBy="id"
-        columnDefinitions={[
-          {
-            id: 'name',
-            header: 'Store',
-            cell: (store) => (
-              <span className={styles.modelCell}>
+      <div className={tableStyles.table}>
+        <Table
+          variant="container"
+          selectionType="multi"
+          selectedItems={selected}
+          onSelectionChange={({ detail }) =>
+            setSelectedIds(detail.selectedItems.map((store) => store.id))
+          }
+          ariaLabels={{
+            selectionGroupLabel: 'Vector stores',
+            itemSelectionLabel: (_, store) => store.name,
+            allItemsSelectionLabel: () => 'Select all vector stores',
+          }}
+          header={
+            <Header
+              variant="h2"
+              counter={mine.length ? `(${mine.length})` : undefined}
+              description="Your mail’s search vectors are backed up to every store that isn’t paused."
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    disabled={selected.length !== 1 || selected[0]!.search}
+                    loading={searchWith.isPending}
+                    onClick={() => switchSearch(selected[0]!)}
+                  >
+                    Use for search
+                  </Button>
+                  <ButtonDropdown
+                    disabled={selected.length === 0}
+                    items={[
+                      {
+                        id: 'pause',
+                        text: allPaused ? 'Resume backup' : 'Pause backup',
+                        disabled: pausable.length === 0,
+                      },
+                      { id: 'edit', text: 'Edit', disabled: !editInfo },
+                      { id: 'remove', text: 'Remove', disabled: removable.length === 0 },
+                    ]}
+                    onItemClick={({ detail }) => {
+                      if (detail.id === 'pause') {
+                        setPaused(
+                          pausable.filter((store) => store.paused === allPaused),
+                          !allPaused,
+                        );
+                      }
+                      if (detail.id === 'edit' && editable && editInfo) {
+                        setConfiguring({ info: editInfo, editing: editable });
+                      }
+                      if (detail.id === 'remove') setRemoving(removable);
+                    }}
+                  >
+                    Actions
+                  </ButtonDropdown>
+                </SpaceBetween>
+              }
+            >
+              Indexing storage
+            </Header>
+          }
+          filter={
+            searchStore && (
+              <div className={own.banner} role="status">
                 <ProviderMark
-                  providerId={markId(store.provider)}
-                  icon={infoOf(store.provider)?.icon}
+                  providerId={markId(searchStore.provider)}
+                  icon={infoOf(searchStore.provider)?.icon}
                   logoUrl={null}
-                  name={store.name}
-                  size={28}
+                  name={searchStore.name}
+                  size={32}
                 />
                 <span>
-                  <Box fontWeight="bold">
-                    {store.name} {store.search && <Badge color="blue">Search</Badge>}
-                  </Box>
-                  <Box color="text-body-secondary" fontSize="body-s">
-                    {store.provider === 'ONEBOX'
-                      ? 'Hosted by OneBox'
-                      : (infoOf(store.provider)?.name ?? store.provider)}
-                  </Box>
+                  <div className={own.bannerLabel}>Searching your mail with</div>
+                  <div className={own.bannerName}>{searchStore.name}</div>
                 </span>
-              </span>
-            ),
-          },
-          {
-            id: 'status',
-            header: 'Backup',
-            cell: (store) => <StatusCell store={store} status={statusOf(store.id)} />,
-          },
-          {
-            id: 'actions',
-            header: 'Actions',
-            cell: (store) => {
-              const info = infoOf(store.provider);
-              return (
-                <SpaceBetween direction="horizontal" size="xs">
-                  {!store.search && (
-                    <Button
-                      variant="inline-link"
-                      ariaLabel={`Search with ${store.name}`}
-                      onClick={() => switchSearch(store)}
-                    >
-                      Use for search
-                    </Button>
-                  )}
-                  {!store.search && (
-                    <Button
-                      variant="inline-link"
-                      ariaLabel={`${store.paused ? 'Resume' : 'Pause'} ${store.name}`}
-                      onClick={() => setPaused(store, !store.paused)}
-                    >
-                      {store.paused ? 'Resume' : 'Pause'}
-                    </Button>
-                  )}
-                  {store.id !== ONEBOX_STORE && info && (
-                    <Button
-                      variant="inline-link"
-                      ariaLabel={`Edit ${store.name}`}
-                      onClick={() => setConfiguring({ info, editing: store })}
-                    >
-                      Edit
-                    </Button>
-                  )}
-                  {store.id !== ONEBOX_STORE && (
-                    <Button
-                      variant="inline-link"
-                      ariaLabel={`Remove ${store.name}`}
-                      onClick={() => setRemoving(store)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </SpaceBetween>
-              );
+              </div>
+            )
+          }
+          loading={current.isPending}
+          loadingText="Loading your vector stores"
+          items={mine}
+          trackBy="id"
+          columnDefinitions={[
+            {
+              id: 'name',
+              header: 'Store',
+              cell: (store) => (
+                <span className={own.store}>
+                  <ProviderMark
+                    providerId={markId(store.provider)}
+                    icon={infoOf(store.provider)?.icon}
+                    logoUrl={null}
+                    name={store.name}
+                    size={40}
+                  />
+                  <span>
+                    <Box fontWeight="bold">{store.name}</Box>
+                    <Box color="text-body-secondary" fontSize="body-s">
+                      {store.provider === 'ONEBOX'
+                        ? 'Hosted by OneBox'
+                        : (infoOf(store.provider)?.name ?? store.provider)}
+                    </Box>
+                  </span>
+                </span>
+              ),
             },
-          },
-        ]}
-        empty={
-          current.isError ? (
-            <LoadError
-              error={current.error}
-              header="Your vector stores could not be loaded"
-              onRetry={() => void current.refetch()}
-            />
-          ) : null
-        }
-      />
+            {
+              id: 'status',
+              header: 'Backup',
+              cell: (store) => <StatusCell store={store} status={statusOf(store.id)} />,
+            },
+          ]}
+          empty={
+            current.isError ? (
+              <LoadError
+                error={current.error}
+                header="Your vector stores could not be loaded"
+                onRetry={() => void current.refetch()}
+              />
+            ) : null
+          }
+        />
+      </div>
 
       <Cards
         variant="container"
@@ -311,27 +340,34 @@ export function IndexingStorageSection() {
       )}
 
       <Modal
-        visible={removing !== null}
-        onDismiss={() => setRemoving(null)}
-        header={`Remove ${removing?.name ?? 'store'}?`}
+        visible={removing.length > 0}
+        onDismiss={() => setRemoving([])}
+        header={
+          removing.length === 1
+            ? `Remove ${removing[0]!.name}?`
+            : `Remove ${removing.length} stores?`
+        }
         footer={
           <Box float="right">
             <SpaceBetween direction="horizontal" size="xs">
-              <Button variant="link" onClick={() => setRemoving(null)}>
+              <Button variant="link" onClick={() => setRemoving([])}>
                 Cancel
               </Button>
               <Button
                 variant="primary"
                 loading={remove.isPending}
                 onClick={() =>
-                  removing &&
-                  remove.mutate(removing.id, {
-                    onSuccess: () => {
-                      flash({ type: 'success', content: `${removing.name} removed.` });
-                      setRemoving(null);
+                  void Promise.all(removing.map((store) => remove.mutateAsync(store.id))).then(
+                    () => {
+                      flash({
+                        type: 'success',
+                        content: `${removing.map((store) => store.name).join(', ')} removed.`,
+                      });
+                      setRemoving([]);
+                      setSelectedIds([]);
                     },
-                    onError: failed,
-                  })
+                    failed,
+                  )
                 }
               >
                 Remove
@@ -341,9 +377,9 @@ export function IndexingStorageSection() {
         }
       >
         <Alert type="warning">
-          OneBox forgets this store’s address and keys and stops backing up to it. The vectors
-          already in it stay there.
-          {removing?.search && ' Searches go back to OneBox’s own store.'}
+          OneBox forgets the address and keys of {removing.map((store) => store.name).join(', ')}{' '}
+          and stops backing up there. The vectors already stored stay.
+          {removing.some((store) => store.search) && ' Searches go back to OneBox’s own store.'}
         </Alert>
       </Modal>
     </SpaceBetween>
