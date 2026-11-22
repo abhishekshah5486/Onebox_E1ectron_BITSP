@@ -190,7 +190,10 @@ export function useSemanticStatus({ starting = false } = {}) {
     queryKey: aiKeys.semanticStatus,
     queryFn: () => aiApi.semanticStatus(api),
     refetchInterval: (query) =>
-      starting || query.state.data?.rebuild || query.state.data?.stores?.some((s) => s.catchup)
+      starting ||
+      query.state.data?.rebuild ||
+      // A store behind, being filled or about to be.
+      query.state.data?.stores?.some((s) => s.catchup || (!s.paused && !s.upToDate))
         ? 2_000
         : false,
   });

@@ -1,32 +1,31 @@
-/* Which store answers searches, in the app's burgundy banner colours. */
+/* Info banners across the table, in violet: which store answers searches, and backups running. */
 .banner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 10px 16px;
   border: 1px solid var(--ob-banner-border);
   border-radius: 12px;
   background: var(--ob-banner-bg);
   color: var(--ob-banner-text);
 }
 
-.bannerLabel {
-  color: var(--ob-banner-accent);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.banner > span:last-child {
+  flex: 1;
+  min-width: 0;
 }
 
-.bannerName {
-  font-size: 15px;
-  font-weight: 700;
+.track {
+  overflow: hidden;
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ob-banner-accent) 25%, transparent);
 }
 
-/* Taller rows, room for a larger logo. */
-.store {
-  display: flex;
-  min-height: 56px;
-  align-items: center;
-  gap: 14px;
+.fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ob-banner-accent);
+  transition: width 0.4s ease;
 }

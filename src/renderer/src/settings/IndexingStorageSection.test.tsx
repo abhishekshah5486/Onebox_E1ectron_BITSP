@@ -148,7 +148,12 @@ describe('IndexingStorageSection', () => {
     const patch = vi.fn(async () => listOf(ONEBOX));
     const put = vi.fn(async () => listOf(ONEBOX));
     setup(
-      listOf(ONEBOX, milvus('a', 'Milvus', false), milvus('b', 'Milvus 2', true)),
+      listOf(
+        ONEBOX,
+        milvus('a', 'Milvus', false),
+        milvus('b', 'Milvus 2', true),
+        milvus('c', 'Milvus 3', false),
+      ),
       { patch: patch as ApiClient['patch'], put: put as ApiClient['put'] },
       {
         stores: [
@@ -161,51 +166,52 @@ describe('IndexingStorageSection', () => {
             catchup: { done: 120, total: 500 },
           },
           { id: 'b', paused: true, search: false, upToDate: false, catchup: null },
+          { id: 'c', paused: false, search: false, upToDate: false, catchup: null },
         ],
       },
     );
-    expect(await screen.findByText('Backing up 120 of 500')).toBeVisible();
+    // Each store's state, and a banner per backup running, with how far it has got.
+    expect(await screen.findByText('Backing up · 24%')).toBeVisible();
+    expect(screen.getByText('Backup in progress')).toBeVisible();
     expect(screen.getByText('Paused')).toBeVisible();
     expect(screen.getByText('Backed up')).toBeVisible();
-    const banner = screen.getByRole('status');
-    expect(within(banner).getByText('OneBox hosted')).toBeVisible();
-
-    // The search store can't be paused: picking only it leaves nothing to pause.
-    const pick = (name: string) => userEvent.click(screen.getByRole('checkbox', { name }));
-    const action = async (name: string) => {
-      await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
-      await userEvent.click(await screen.findByRole('menuitem', { name }));
-    };
-    await pick('OneBox hosted');
-    expect(screen.getByRole('button', { name: 'Use for search' })).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
-    expect(await screen.findByRole('menuitem', { name: 'Pause backup' })).toHaveAttribute(
-      'aria-disabled',
-      'true',
+    expect(screen.getByRole('status', { name: 'Backup to Milvus' })).toHaveTextContent(
+      '120 of 500 emails (24%)',
     );
-    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('status', { name: 'Backup to Milvus 3' })).toHaveTextContent(
+      'Starting the backup',
+    );
+    expect(screen.getByRole('status', { name: 'Search store' })).toHaveTextContent(
+      'Searches across your mail use OneBox hosted.',
+    );
+
+    const pick = (name: string) => userEvent.click(screen.getByRole('checkbox', { name }));
+    const button = (name: string) => screen.getByRole('button', { name });
+    // The search store can't be paused, removed or moved off.
+    await pick('OneBox hosted');
+    expect(button('Use for search')).toBeDisabled();
+    expect(button('Pause')).toBeDisabled();
+    expect(button('Remove')).toBeDisabled();
     await pick('OneBox hosted');
 
     await pick('Milvus 2');
-    await action('Resume backup');
+    await userEvent.click(button('Resume'));
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/settings/indexing-storage/b', { paused: false }),
     );
     expect(
       await screen.findByText(/backing up again, starting with only the mail missed/),
     ).toBeInTheDocument();
-    await pick('Milvus 2');
 
-    // Several picked, some paused: one action pauses the rest.
+    // Several picked, some paused: one click pauses the rest.
     await pick('Milvus');
-    await pick('Milvus 2');
-    await action('Pause backup');
+    await userEvent.click(button('Pause'));
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/settings/indexing-storage/a', { paused: true }),
     );
     expect(patch).not.toHaveBeenCalledWith('/settings/indexing-storage/b', { paused: true });
     await pick('Milvus 2');
-    await userEvent.click(screen.getByRole('button', { name: 'Use for search' }));
+    await userEvent.click(button('Use for search'));
     await waitFor(() =>
       expect(put).toHaveBeenCalledWith('/settings/indexing-storage/search', { storeId: 'a' }),
     );
@@ -225,8 +231,7 @@ describe('IndexingStorageSection', () => {
     };
     setup(listOf(ONEBOX, qdrant), { delete: del as ApiClient['delete'] });
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Qdrant' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
     const dialog = await screen.findByRole('dialog', { name: /Edit Qdrant/ });
     expect(within(dialog).getByLabelText('URL')).toHaveValue('https://q.example.com');
     expect(within(dialog).getByLabelText('API key (optional)')).toHaveAttribute(
@@ -235,8 +240,7 @@ describe('IndexingStorageSection', () => {
     );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
-    await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
     const confirm = await screen.findByRole('dialog', { name: 'Remove Qdrant?' });
     await userEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(del).toHaveBeenCalledWith('/settings/indexing-storage/q1'));

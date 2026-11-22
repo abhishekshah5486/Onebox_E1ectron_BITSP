@@ -61,10 +61,10 @@
   --ob-field-label: #444746;
   --ob-field-line: #c4c7c5;
   --ob-field-line-hover: #1f1f1f;
-  --ob-banner-bg: #fbeef1;
-  --ob-banner-border: #e3b4c0;
-  --ob-banner-text: #6d1a2e;
-  --ob-banner-accent: #8c1d3a;
+  --ob-banner-bg: #f5f1ff;
+  --ob-banner-border: #8b6cf0;
+  --ob-banner-text: #33206e;
+  --ob-banner-accent: #6d4ae0;
 }
 
 :root[data-theme='dark'] {
@@ -133,10 +133,10 @@
   --ob-field-label: #c4c7c5;
   --ob-field-line: #5f6368;
   --ob-field-line-hover: #e3e3e3;
-  --ob-banner-bg: #3a1621;
-  --ob-banner-border: #6e2a3d;
-  --ob-banner-text: #f6d7df;
-  --ob-banner-accent: #f08aa3;
+  --ob-banner-bg: #1d1536;
+  --ob-banner-border: #7b5ce0;
+  --ob-banner-text: #e6deff;
+  --ob-banner-accent: #b9a4ff;
 }
 
 :root {

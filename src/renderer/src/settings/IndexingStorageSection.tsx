@@ -2,10 +2,10 @@ import { useCollection } from '@cloudscape-design/collection-hooks';
 import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
-import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import Cards from '@cloudscape-design/components/cards';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
+import Icon from '@cloudscape-design/components/icon';
 import Input from '@cloudscape-design/components/input';
 import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
@@ -47,15 +47,41 @@ function StatusCell({ store, status }: { store: IndexingStore; status?: StoreSta
   if (store.paused) return <StatusIndicator type="stopped">Paused</StatusIndicator>;
   if (status?.catchup) {
     return (
-      <StatusIndicator type="in-progress">
-        Backing up {status.catchup.done.toLocaleString()} of {status.catchup.total.toLocaleString()}
-      </StatusIndicator>
+      <StatusIndicator type="in-progress">Backing up · {percent(status.catchup)}%</StatusIndicator>
     );
   }
   if (status && !status.upToDate) {
-    return <StatusIndicator type="pending">Waiting to back up</StatusIndicator>;
+    return <StatusIndicator type="in-progress">Backup in progress</StatusIndicator>;
   }
   return <StatusIndicator type="success">Backed up</StatusIndicator>;
+}
+
+const percent = ({ done, total }: { done: number; total: number }) =>
+  total ? Math.min(100, Math.floor((done / total) * 100)) : 0;
+
+// A store still filling: how far it has got, once the job reports its total.
+function BackupBanner({ store, status }: { store: IndexingStore; status: StoreStatus }) {
+  const progress = status.catchup;
+  return (
+    <div className={own.banner} role="status" aria-label={`Backup to ${store.name}`}>
+      <Icon name="status-in-progress" />
+      <span>
+        {progress ? (
+          <>
+            Backing up your mail to <b>{store.name}</b> · {progress.done.toLocaleString()} of{' '}
+            {progress.total.toLocaleString()} emails ({percent(progress)}%)
+          </>
+        ) : (
+          <>
+            Starting the backup of your mail to <b>{store.name}</b>…
+          </>
+        )}
+        <div className={own.track}>
+          <div className={own.fill} style={{ width: `${progress ? percent(progress) : 0}%` }} />
+        </div>
+      </span>
+    </div>
+  );
 }
 
 // Where semantic search keeps the vectors made from the user's mail: OneBox's own store and any
@@ -135,67 +161,72 @@ export function IndexingStorageSection() {
             allItemsSelectionLabel: () => 'Select all vector stores',
           }}
           header={
-            <Header
-              variant="h2"
-              counter={mine.length ? `(${mine.length})` : undefined}
-              description="Your mail’s search vectors are backed up to every store that isn’t paused."
-              actions={
-                <SpaceBetween direction="horizontal" size="xs">
-                  <Button
-                    disabled={selected.length !== 1 || selected[0]!.search}
-                    loading={searchWith.isPending}
-                    onClick={() => switchSearch(selected[0]!)}
-                  >
-                    Use for search
-                  </Button>
-                  <ButtonDropdown
-                    disabled={selected.length === 0}
-                    items={[
-                      {
-                        id: 'pause',
-                        text: allPaused ? 'Resume backup' : 'Pause backup',
-                        disabled: pausable.length === 0,
-                      },
-                      { id: 'edit', text: 'Edit', disabled: !editInfo },
-                      { id: 'remove', text: 'Remove', disabled: removable.length === 0 },
-                    ]}
-                    onItemClick={({ detail }) => {
-                      if (detail.id === 'pause') {
+            <SpaceBetween size="m">
+              <Header
+                variant="h2"
+                counter={mine.length ? `(${mine.length})` : undefined}
+                description="Your mail’s search vectors are backed up to every store that isn’t paused."
+                actions={
+                  <SpaceBetween direction="horizontal" size="xs">
+                    <Button
+                      iconName="refresh"
+                      ariaLabel="Reload vector stores"
+                      onClick={() => void Promise.all([current.refetch(), semantic.refetch()])}
+                    />
+                    <Button
+                      disabled={selected.length !== 1 || selected[0]!.search}
+                      loading={searchWith.isPending}
+                      onClick={() => switchSearch(selected[0]!)}
+                    >
+                      Use for search
+                    </Button>
+                    <Button
+                      disabled={pausable.length === 0}
+                      onClick={() =>
                         setPaused(
                           pausable.filter((store) => store.paused === allPaused),
                           !allPaused,
-                        );
+                        )
                       }
-                      if (detail.id === 'edit' && editable && editInfo) {
-                        setConfiguring({ info: editInfo, editing: editable });
+                    >
+                      {allPaused ? 'Resume' : 'Pause'}
+                    </Button>
+                    <Button
+                      disabled={!editInfo}
+                      onClick={() =>
+                        editable &&
+                        editInfo &&
+                        setConfiguring({ info: editInfo, editing: editable })
                       }
-                      if (detail.id === 'remove') setRemoving(removable);
-                    }}
-                  >
-                    Actions
-                  </ButtonDropdown>
-                </SpaceBetween>
-              }
-            >
-              Indexing storage
-            </Header>
-          }
-          filter={
-            searchStore && (
-              <div className={own.banner} role="status">
-                <ProviderMark
-                  providerId={markId(searchStore.provider)}
-                  icon={infoOf(searchStore.provider)?.icon}
-                  logoUrl={null}
-                  name={searchStore.name}
-                  size={32}
-                />
-                <span>
-                  <div className={own.bannerLabel}>Searching your mail with</div>
-                  <div className={own.bannerName}>{searchStore.name}</div>
-                </span>
-              </div>
-            )
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      disabled={removable.length === 0}
+                      onClick={() => setRemoving(removable)}
+                    >
+                      Remove
+                    </Button>
+                  </SpaceBetween>
+                }
+              >
+                Indexing storage
+              </Header>
+              {searchStore && (
+                <div className={own.banner} role="status" aria-label="Search store">
+                  <Icon name="status-info" />
+                  <span>
+                    Searches across your mail use <b>{searchStore.name}</b>.
+                  </span>
+                </div>
+              )}
+              {mine.map((store) => {
+                const status = statusOf(store.id);
+                return status && !store.paused && !status.upToDate ? (
+                  <BackupBanner key={store.id} store={store} status={status} />
+                ) : null;
+              })}
+            </SpaceBetween>
           }
           loading={current.isPending}
           loadingText="Loading your vector stores"
@@ -204,26 +235,28 @@ export function IndexingStorageSection() {
           columnDefinitions={[
             {
               id: 'name',
-              header: 'Store',
+              header: 'Name',
               cell: (store) => (
-                <span className={own.store}>
+                <span className={tableStyles.withLogo}>
                   <ProviderMark
                     providerId={markId(store.provider)}
                     icon={infoOf(store.provider)?.icon}
                     logoUrl={null}
                     name={store.name}
-                    size={40}
+                    size={20}
+                    bare
                   />
-                  <span>
-                    <Box fontWeight="bold">{store.name}</Box>
-                    <Box color="text-body-secondary" fontSize="body-s">
-                      {store.provider === 'ONEBOX'
-                        ? 'Hosted by OneBox'
-                        : (infoOf(store.provider)?.name ?? store.provider)}
-                    </Box>
-                  </span>
+                  <Box fontWeight="bold">{store.name}</Box>
                 </span>
               ),
+            },
+            {
+              id: 'type',
+              header: 'Database',
+              cell: (store) =>
+                store.provider === 'ONEBOX'
+                  ? 'Hosted by OneBox'
+                  : (infoOf(store.provider)?.name ?? store.provider),
             },
             {
               id: 'status',
