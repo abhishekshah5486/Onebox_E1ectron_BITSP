@@ -25,6 +25,17 @@ describe('ProviderMark', () => {
     expect(chroma.container.textContent).toBe('');
   });
 
+  it('shows the logo fetched from a catalogue provider’s own site', () => {
+    const { container } = render(
+      <ProviderMark
+        providerId="cloudflare-workers-ai"
+        logoUrl={null}
+        name="Cloudflare Workers AI"
+      />,
+    );
+    expect(container.querySelectorAll('img')).toHaveLength(2);
+  });
+
   it('draws other brands from Simple Icons, in their colour', async () => {
     const { container } = render(
       <ProviderMark providerId="zilliz" icon="zilliz" logoUrl={null} name="Zilliz" />,

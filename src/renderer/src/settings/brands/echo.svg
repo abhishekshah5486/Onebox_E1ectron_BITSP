@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Tracer mark</title>
+  <desc id="desc">The blue, orange, and red Tracer signal dots on an ink background.</desc>
+  <rect width="1024" height="1024" fill="#11110f"/>
+  <circle cx="248" cy="512" r="82" fill="#38bdf8"/>
+  <circle cx="512" cy="512" r="82" fill="#ff7a38"/>
+  <circle cx="776" cy="512" r="82" fill="#f04444"/>
+</svg>

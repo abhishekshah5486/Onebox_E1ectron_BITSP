@@ -1,0 +1,24 @@
+<svg
+  viewBox="-53 0 364 364"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">KoRouter K logo</title>
+  <desc id="desc">A minimalist solid K symbol with curved arms and a circular accent.</desc>
+  <style>
+    .signal { fill: #D87943; }
+    .mark { fill: #111111; }
+
+    @media (prefers-color-scheme: dark) {
+      .signal { fill: #E78A53; }
+      .mark { fill: #F2F2F2; }
+    }
+  </style>
+  <circle class="signal" cx="49" cy="51" r="42" />
+  <path
+    class="mark"
+    d="M0 131H66C100 131 123 116 139 89C156 60 170 30 183 0H258C239 48 216 91 187 126C165 153 140 171 109 183C141 189 167 204 187 229C214 263 235 310 255 364H178C165 327 150 291 133 264C117 239 96 227 66 227V364H0V131Z"
+  />
+</svg>

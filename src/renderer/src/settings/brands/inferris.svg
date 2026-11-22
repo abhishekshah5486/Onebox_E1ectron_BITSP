@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Inferris">
+<!--
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+
+Inferris modification (AGPL-3.0 section 7(c)), 2026-10-10: Inferris logo mark (default Logo).
+-->
+  <title>Inferris</title>
+  <!-- 与站点页眉 InferrisMark 同一图形：三层叠片，顶层为品牌信号青色；石墨底圆角方块 -->
+  <rect width="64" height="64" rx="14" fill="#0f1216"/>
+  <g transform="translate(0 -1) scale(2)" fill="none" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M16 19.5 4.5 13.75 16 8l11.5 5.75L16 19.5Z" fill="#8fe0ef" fill-opacity="0.18" stroke="#8fe0ef"/>
+    <path d="m4.5 18 11.5 5.75L27.5 18" stroke="#eceef1" stroke-opacity="0.8"/>
+    <path d="m4.5 22.25 11.5 5.75 11.5-5.75" stroke="#eceef1" stroke-opacity="0.5"/>
+  </g>
+</svg>

@@ -1,0 +1,16 @@
+<!-- The Outer Labs mark, byte-identical to design-system/assets/favicon.svg,
+     which GUIDELINES.md line 59 names as "the final 14a mark". Keep them
+     identical: `npm run test` asserts it, because the two drifting apart is
+     exactly what shipped here before.
+
+     What was here until now was a five-bar lattice that no other surface used.
+     The nav in Shell.tsx, the admin rail in AdminApp.tsx and DemoAgent.tsx all
+     already drew this viewfinder monogram, so the favicon was the only place
+     still showing the old mark, and the tab is the one place a user sees the
+     brand on every single page.
+
+     Fixed fills rather than currentColor or a prefers-color-scheme swap: a
+     favicon is composited against browser chrome we do not control, and the
+     carbon tile keeps the green legible on a light or a dark tab strip alike.
+     The previous file swapped fill on scheme and vanished against mid greys. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28"><rect width="28" height="28" fill="#1E1E1E"></rect><g transform="translate(4.2,4.2) scale(0.7)"><path d="M0 0H10.5V3.5H3.5V10.5H0V0ZM17.5 0H28V10.5H24.5V3.5H17.5V0ZM24.5 17.5H28V28H17.5V24.5H24.5V17.5ZM0 17.5H3.5V24.5H10.5V28H0V17.5Z" fill="#91FF01"></path><rect x="10.5" y="10.5" width="7" height="7" fill="#91FF01"></rect></g></svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 130">
+  <rect width="130" height="130" rx="24" fill="#faf8f5"/>
+  <circle cx="65" cy="14" r="5" fill="#5b8c5a"/>
+  <circle cx="58" cy="30" r="6" fill="#7ab87a"/>
+  <circle cx="74" cy="30" r="4" fill="#6ba86b"/>
+  <circle cx="51.5" cy="46" r="6.5" fill="#5b8c5a"/>
+  <circle cx="65" cy="46" r="5" fill="#7ab87a"/>
+  <circle cx="81" cy="46" r="4" fill="#6ba86b"/>
+  <circle cx="44" cy="62" r="7" fill="#6ba86b"/>
+  <circle cx="61" cy="62" r="5.5" fill="#5b8c5a"/>
+  <circle cx="76" cy="62" r="4.5" fill="#7ab87a"/>
+  <circle cx="89.5" cy="62" r="3.5" fill="#6ba86b"/>
+  <circle cx="36.5" cy="78" r="7.5" fill="#5b8c5a"/>
+  <circle cx="54" cy="78" r="6" fill="#7ab87a"/>
+  <circle cx="70" cy="78" r="5" fill="#6ba86b"/>
+  <circle cx="84" cy="78" r="4" fill="#5b8c5a"/>
+  <circle cx="97.5" cy="78" r="3.5" fill="#7ab87a"/>
+  <circle cx="44" cy="94" r="6.5" fill="#6ba86b"/>
+  <circle cx="61" cy="94" r="5.5" fill="#5b8c5a"/>
+  <circle cx="76" cy="94" r="4.5" fill="#7ab87a"/>
+  <circle cx="89.5" cy="94" r="3.5" fill="#6ba86b"/>
+  <circle cx="51.5" cy="110" r="5.5" fill="#5b8c5a"/>
+  <circle cx="65" cy="110" r="4.5" fill="#7ab87a"/>
+  <circle cx="81" cy="110" r="3.5" fill="#6ba86b"/>
+</svg>

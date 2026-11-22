@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="OpenReason">
+  <title>OpenReason</title>
+  <!-- The favicon cut, and the differences are deliberate: stroke goes 4 to 5 and the margin goes
+       3 to 2, because a mark loses weight before it loses shape when it is scaled to 16 pixels. -->
+  <path d="M12 4.5 L8 4.5 A3.5 3.5 0 0 0 4.5 8 L4.5 16 A3.5 3.5 0 0 0 8 19.5 L16 19.5 A3.5 3.5 0 0 0 19.5 16 L19.5 8 A3.5 3.5 0 0 0 16 4.5"
+        fill="none" stroke="#0b7a58" stroke-width="5" stroke-linecap="butt"/>
+</svg>

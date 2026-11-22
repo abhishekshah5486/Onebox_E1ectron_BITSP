@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!--
+    Favicon. Geometry matches components/logo.tsx: three server racks of
+    ascending height built from stacked units, the tallest carrying a tittle so
+    it reads as a lowercase "i".
+
+    One deliberate difference from the component: the faded racks use solid
+    flattened colours instead of opacity on currentColor. A favicon is
+    composited onto the browser's tab background, and indigo at 35% opacity over
+    a dark tab is very nearly the tab — the shortest rack would vanish in dark
+    mode. These are the same opacities pre-flattened against white.
+
+    The vents are gaps rather than drawn lines, so they take the tab colour
+    rather than a hardcoded white that would look wrong on dark chrome.
+  -->
+  <rect x="2.5" y="19.4" width="5" height="2.6" rx="1.2" fill="#c1bef6"/>
+  <rect x="2.5" y="15.8" width="5" height="2.6" rx="1.2" fill="#c1bef6"/>
+
+  <rect x="9.5" y="19.4" width="5" height="2.6" rx="1.2" fill="#8d87ee"/>
+  <rect x="9.5" y="15.8" width="5" height="2.6" rx="1.2" fill="#8d87ee"/>
+  <rect x="9.5" y="12.2" width="5" height="2.6" rx="1.2" fill="#8d87ee"/>
+
+  <rect x="16.5" y="19.4" width="5" height="2.6" rx="1.2" fill="#4f46e5"/>
+  <rect x="16.5" y="15.8" width="5" height="2.6" rx="1.2" fill="#4f46e5"/>
+  <rect x="16.5" y="12.2" width="5" height="2.6" rx="1.2" fill="#4f46e5"/>
+  <rect x="16.5" y="8.6" width="5" height="2.6" rx="1.2" fill="#4f46e5"/>
+
+  <rect x="16.5" y="1.2" width="5" height="4" rx="2" fill="#4f46e5"/>
+</svg>

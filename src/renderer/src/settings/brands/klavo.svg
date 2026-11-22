@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="92 65 210 210">
+  <style>
+    .n { fill: #001438; }
+    .n2 { fill: #001a47; }
+    /* White edge under the fill: unseen on a light page, it keeps the dark parts visible where the icon is drawn
+       without the dark media query, e.g. in the dark theme of search results. */
+    .n, .n2 { stroke: #ffffff; stroke-width: 14; stroke-linejoin: round; paint-order: stroke; }
+    @media (prefers-color-scheme: dark) {
+      .n, .n2 { fill: #f4f6f8; stroke: none; }
+    }
+  </style>
+  <path class="n" d="M112 127Q112 117 122 117H175L112 182Z"/>
+  <path fill="#fd4b3c" d="M239 73H323L195 188H116Z"/>
+  <path class="n2" d="M117 188H196L284 268H193L114 195Q111 189 117 188Z"/>
+</svg>
