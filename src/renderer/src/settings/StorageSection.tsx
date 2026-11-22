@@ -15,17 +15,20 @@ import {
   useStorage,
   useUpdateStorageAccount,
 } from '../api/queries';
-import type {
-  StorageAccount,
-  StorageProviderId,
-  StorageSignInFailure,
-  StorageStatus,
+import {
+  isKeyStorage,
+  type KeyStorageProviderId,
+  type StorageAccount,
+  type StorageProviderId,
+  type StorageSignInFailure,
+  type StorageStatus,
 } from '../api/settings';
 import { describeError } from '../auth/errors';
 import { ProviderLogo } from '../storage/ProviderLogo';
 import { PLANNED_PROVIDERS, STORAGE_PROVIDERS, storagePathLabel } from '../storage/providers';
 import tableStyles from '../ui/DataTable.module.css';
 import { useFlash } from './flash';
+import { KeyStorageModal } from './KeyStorageModal';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -134,6 +137,7 @@ export function StorageSection() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editing, setEditing] = useState<StorageAccount | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [withKeys, setWithKeys] = useState<KeyStorageProviderId | null>(null);
   const [reloading, setReloading] = useState(false);
   const finished = useRef<number | null>(null);
   const startRef = useRef<(provider: StorageProviderId) => void>(() => {});
@@ -261,6 +265,10 @@ export function StorageSection() {
   }, [waiting, finish, flash]);
 
   const start = (provider: StorageProviderId) => {
+    if (isKeyStorage(provider)) {
+      setWithKeys(provider);
+      return;
+    }
     const name = STORAGE_PROVIDERS[provider].name;
     connect.mutate(provider, {
       onSuccess: ({ url, expiresAt }) => {
@@ -402,7 +410,7 @@ export function StorageSection() {
               <b>{available.length ? 'No storage connected' : 'Cloud storage is not set up'}</b>
               <Box color="inherit">
                 {available.length
-                  ? 'Connect Google Drive, OneDrive or Dropbox to save attachments there.'
+                  ? 'Connect a drive, an S3-compatible bucket or an Azure container to save attachments there.'
                   : 'Add a storage provider’s OAuth client to the server to turn this on.'}
               </Box>
               {waiting !== null && (
@@ -412,6 +420,23 @@ export function StorageSection() {
           </Box>
         }
       />
+
+      {withKeys && (
+        <KeyStorageModal
+          provider={withKeys}
+          presets={status.data?.s3Presets ?? []}
+          onDismiss={() => setWithKeys(null)}
+          onConnected={(account) => {
+            setWithKeys(null);
+            flash({
+              type: 'success',
+              header: `${STORAGE_PROVIDERS[account.provider].name} connected.`,
+              content: `${account.email} is ready.`,
+              action: { label: 'Set default folder', onClick: () => setEditing(account) },
+            });
+          }}
+        />
+      )}
 
       {editing && <FolderModal account={editing} onDismiss={() => setEditing(null)} />}
 

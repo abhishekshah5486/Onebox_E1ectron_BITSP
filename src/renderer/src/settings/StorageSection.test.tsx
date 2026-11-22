@@ -1,3 +1,4 @@
+import { ApiError } from '../api/client';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -36,9 +37,25 @@ function setup(accounts: StorageAccount[], overrides: Partial<ApiClient> = {}) {
     restoreSession: vi.fn(async () => testUser),
     get: routedGet({
       '/settings/storage': () => ({
-        providers: ['GOOGLE_DRIVE', 'ONEDRIVE', 'DROPBOX'],
+        providers: ['GOOGLE_DRIVE', 'ONEDRIVE', 'DROPBOX', 'S3', 'AZURE_BLOB'],
         accounts,
         failures: server.failures,
+        s3Presets: [
+          {
+            id: 'aws',
+            name: 'Amazon S3',
+            region: 'us-east-1',
+            needsAccount: false,
+            needsEndpoint: false,
+          },
+          {
+            id: 'r2',
+            name: 'Cloudflare R2',
+            region: 'auto',
+            needsAccount: true,
+            needsEndpoint: false,
+          },
+        ],
       }),
     }),
     ...overrides,
@@ -184,5 +201,48 @@ describe('StorageSection', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Disconnect storage account' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith('/settings/storage/g1'));
+  });
+
+  it('connects a Cloudflare R2 bucket with keys, saying what was wrong first', async () => {
+    const post = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiError(400, 'STORAGE_CHECK_FAILED', 'The storage service rejected these keys'),
+      )
+      .mockResolvedValueOnce(
+        account({ id: 's1', provider: 'S3', email: 'receipts (Cloudflare R2)', defaultPath: '' }),
+      );
+    setup([], { post: post as ApiClient['post'] });
+    await userEvent.click(await screen.findByRole('button', { name: 'Connect storage' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /S3 storage/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Connect S3 storage' });
+    const connect = within(dialog).getByRole('button', { name: 'Check and connect' });
+    expect(connect).toBeDisabled();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: /Amazon S3/ }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Cloudflare R2' }));
+    expect(within(dialog).getByLabelText('Region')).toHaveValue('auto');
+    await userEvent.type(within(dialog).getByLabelText('Account ID'), 'a'.repeat(32));
+    await userEvent.type(within(dialog).getByLabelText('Bucket'), 'receipts');
+    await userEvent.type(within(dialog).getByLabelText('Access key ID'), 'AKIA');
+    await userEvent.type(within(dialog).getByLabelText('Secret access key'), 'shh');
+    await userEvent.click(connect);
+    expect(
+      await within(dialog).findByText('The storage service rejected these keys'),
+    ).toBeVisible();
+
+    await userEvent.click(connect);
+    expect(await screen.findByText('receipts (Cloudflare R2) is ready.')).toBeVisible();
+    expect(post).toHaveBeenLastCalledWith('/settings/storage/keys', {
+      provider: 'S3',
+      credentials: {
+        preset: 'r2',
+        account: 'a'.repeat(32),
+        bucket: 'receipts',
+        region: 'auto',
+        accessKeyId: 'AKIA',
+        secretAccessKey: 'shh',
+      },
+    });
   });
 });

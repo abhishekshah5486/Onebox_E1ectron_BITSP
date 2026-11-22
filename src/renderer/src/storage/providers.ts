@@ -1,4 +1,6 @@
 import type { StorageProviderId } from '../api/settings';
+import awsLogo from '@lobehub/icons-static-svg/icons/aws-color.svg?url';
+import azureLogo from '@lobehub/icons-static-svg/icons/azure-color.svg?url';
 import dropboxLogo from './dropbox.svg';
 import googleDriveLogo from './google-drive.png';
 import oneDriveLogo from './onedrive.svg';
@@ -31,6 +33,18 @@ export const STORAGE_PROVIDERS: Record<StorageProviderId, StorageProviderInfo> =
     shortName: 'Dropbox',
     rootName: 'Dropbox',
     logo: dropboxLogo,
+  },
+  S3: {
+    name: 'S3 storage',
+    shortName: 'bucket',
+    rootName: 'Bucket',
+    logo: awsLogo,
+  },
+  AZURE_BLOB: {
+    name: 'Azure Blob Storage',
+    shortName: 'Azure',
+    rootName: 'Container',
+    logo: azureLogo,
   },
 };
 

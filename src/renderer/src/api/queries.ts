@@ -6,7 +6,8 @@ import {
   settingsApi,
   type CreateIntegrationInput,
   type Preferences,
-  type StorageProviderId,
+  type KeyStorageConnect,
+  type OAuthStorageProviderId,
   type UpdateIntegrationInput,
 } from './settings';
 
@@ -152,7 +153,16 @@ export function useStorage(pollMs: number | false = false) {
 export function useConnectStorage() {
   const api = useApi();
   return useMutation({
-    mutationFn: (provider: StorageProviderId) => settingsApi.connectStorage(api, provider),
+    mutationFn: (provider: OAuthStorageProviderId) => settingsApi.connectStorage(api, provider),
+  });
+}
+
+export function useConnectStorageKeys() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: KeyStorageConnect) => settingsApi.connectStorageKeys(api, body),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.storage }),
   });
 }
 

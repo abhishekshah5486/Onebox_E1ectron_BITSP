@@ -60,9 +60,41 @@ export interface IntegrationTestResult {
   integration: Integration;
 }
 
-export type StorageProviderId = 'GOOGLE_DRIVE' | 'ONEDRIVE' | 'DROPBOX';
+export type OAuthStorageProviderId = 'GOOGLE_DRIVE' | 'ONEDRIVE' | 'DROPBOX';
+// Buckets and containers connected with keys rather than a sign-in.
+export type KeyStorageProviderId = 'S3' | 'AZURE_BLOB';
+export type StorageProviderId = OAuthStorageProviderId | KeyStorageProviderId;
+export const isKeyStorage = (id: StorageProviderId): id is KeyStorageProviderId =>
+  id === 'S3' || id === 'AZURE_BLOB';
 
-// A connected cloud storage account: Google Drive, OneDrive or Dropbox.
+// An S3-compatible service the key form offers, and what it needs typed in.
+export interface S3Preset {
+  id: string;
+  name: string;
+  region: string;
+  needsAccount: boolean;
+  needsEndpoint: boolean;
+}
+
+export type KeyStorageConnect =
+  | {
+      provider: 'S3';
+      credentials: {
+        preset: string;
+        bucket: string;
+        region: string;
+        account?: string;
+        endpoint?: string;
+        accessKeyId: string;
+        secretAccessKey: string;
+      };
+    }
+  | {
+      provider: 'AZURE_BLOB';
+      credentials: { accountName: string; accountKey: string; container: string };
+    };
+
+// A connected cloud storage account; for buckets, "email" names the bucket and service.
 export interface StorageAccount {
   id: string;
   provider: StorageProviderId;
@@ -86,11 +118,14 @@ export interface StorageStatus {
   providers: StorageProviderId[];
   accounts: StorageAccount[];
   failures: StorageSignInFailure[];
+  s3Presets: S3Preset[];
 }
 
 export const settingsApi = {
   storage: (api: ApiClient) => api.get<StorageStatus>('/settings/storage'),
-  connectStorage: (api: ApiClient, provider: StorageProviderId) =>
+  connectStorageKeys: (api: ApiClient, body: KeyStorageConnect) =>
+    api.post<StorageAccount>('/settings/storage/keys', body),
+  connectStorage: (api: ApiClient, provider: OAuthStorageProviderId) =>
     api.post<{ url: string; expiresAt: string }>('/settings/storage/connect', { provider }),
   updateStorageAccount: (api: ApiClient, id: string, defaultPath: string) =>
     api.patch<StorageAccount>(`/settings/storage/${id}`, { defaultPath }),
