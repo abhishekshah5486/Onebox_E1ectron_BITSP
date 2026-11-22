@@ -1,0 +1,19 @@
+.logo {
+  display: block;
+  flex: none;
+  object-fit: contain;
+}
+
+/* The catalogue's logos are black line art; they're lightened to read on dark backgrounds. */
+:root[data-theme='dark'] .logo {
+  filter: invert(1);
+}
+
+.initial {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--color-background-container-header, #f2f3f3);
+  font-weight: 700;
+}

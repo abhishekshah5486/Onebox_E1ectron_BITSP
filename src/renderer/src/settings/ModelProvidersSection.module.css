@@ -1,0 +1,17 @@
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cardName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
