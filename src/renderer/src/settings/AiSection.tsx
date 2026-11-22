@@ -1,4 +1,6 @@
+import Alert from '@cloudscape-design/components/alert';
 import Box from '@cloudscape-design/components/box';
+import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Container from '@cloudscape-design/components/container';
@@ -6,19 +8,28 @@ import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
 import Icon from '@cloudscape-design/components/icon';
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
+import Modal from '@cloudscape-design/components/modal';
 import Pagination from '@cloudscape-design/components/pagination';
+import Popover from '@cloudscape-design/components/popover';
+import ProgressBar from '@cloudscape-design/components/progress-bar';
 import Select, { type SelectProps } from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
+import Tiles from '@cloudscape-design/components/tiles';
 import TextFilter from '@cloudscape-design/components/text-filter';
-import { useMemo, useState } from 'react';
+import { formatDistanceStrict } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AUTO_MODEL,
+  useChooseEmbedding,
   useChooseModel,
+  useEmbeddingEstimate,
+  useEmbeddings,
   useModels,
+  useSemanticStatus,
   useUsage,
-  type EmbeddingModel,
+  type EmbeddingOption,
   type ModelOption,
   type ModelProvider,
   type ModelPurpose,
@@ -169,52 +180,309 @@ export function AiSection() {
           </SpaceBetween>
         </Container>
       </PlanGate>
-      {models.data?.embedding && <SemanticSearchModel model={models.data.embedding} />}
+      <SemanticSearchSection />
       <UsageTable />
     </SpaceBetween>
   );
 }
 
-// Not a per-user choice: every mailbox is indexed with the same model.
-function SemanticSearchModel({ model }: { model: EmbeddingModel }) {
-  const [provider = '', apiName = model.name] = model.id.split('/');
+const EMBEDDING_PROVIDER: Record<string, string> = {
+  ollama: 'Ollama',
+  openai: 'OpenAI',
+  gemini: 'Google Gemini',
+};
+
+const perMillion = (usd: number) => `$${usd} per 1M tokens`;
+
+// Every way a model differs that matters when picking one.
+const providerName = (model: EmbeddingOption) =>
+  EMBEDDING_PROVIDER[model.provider] ?? model.provider;
+
+// The gist on the tile; the rest is behind its info icon.
+function embeddingSummary(model: EmbeddingOption) {
+  if (!model.available) return `${providerName(model)} key needed`;
+  const cost = model.local ? 'Free · local' : `$${model.usdPerMillionTokens} / 1M tokens`;
+  return `${cost} · ${model.dimensions.toLocaleString()} dims`;
+}
+
+function EmbeddingDetails({ model }: { model: EmbeddingOption }) {
+  return (
+    <KeyValuePairs
+      columns={1}
+      items={[
+        {
+          label: 'Runs on',
+          value: model.local ? 'This server, with Ollama' : `${providerName(model)} (hosted)`,
+        },
+        {
+          label: 'Cost',
+          value: model.local
+            ? 'Free; your mail never leaves this server'
+            : `${perMillion(model.usdPerMillionTokens)}, charged per search`,
+        },
+        { label: 'Vector size', value: `${model.dimensions.toLocaleString()} dimensions` },
+        ...(model.description ? [{ label: 'About', value: model.description }] : []),
+        ...(model.available
+          ? []
+          : [
+              {
+                label: 'Unavailable',
+                value: `The server needs a working ${providerName(model)} API key.`,
+              },
+            ]),
+      ]}
+    />
+  );
+}
+
+const duration = (seconds: number) =>
+  seconds < 60
+    ? 'under a minute'
+    : `about ${formatDistanceStrict(0, seconds * 1000, { roundingMethod: 'ceil' })}`;
+
+// Time left from the pace so far.
+function timeLeft({ done, total, startedAt }: { done: number; total: number; startedAt: string }) {
+  const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
+  if (done === 0 || elapsed <= 0) return 'working out the time left';
+  return `${duration(((total - done) * elapsed) / done)} left`;
+}
+
+// Which model semantic search embeds the user's mail with. Switching embeds all of it again, so
+// it is confirmed with a measured estimate first; progress and the result show as banners, and
+// searches keep the old model until the new one has everything.
+function SemanticSearchSection() {
+  const embeddings = useEmbeddings();
+  // The model a switch was just confirmed for, until its rebuild shows up (or is already done).
+  const [starting, setStarting] = useState<string | null>(null);
+  const status = useSemanticStatus({ starting: starting !== null });
+  const choose = useChooseEmbedding();
+  const flash = useFlash();
+  const [picked, setPicked] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const chosen = embeddings.data?.chosen;
+  const value = picked ?? chosen ?? null;
+  const items = embeddings.data?.items ?? [];
+  const nameOf = (id: string) => items.find((item) => item.id === id)?.name ?? id;
+  const rebuild = status.data?.rebuild ?? null;
+  const active = status.data?.active;
+
+  // A started switch shows a progress banner until searches have moved to the new model.
+  const [watching, setWatching] = useState<string | null>(null);
+  if (rebuild && watching !== rebuild.modelId) setWatching(rebuild.modelId);
+  if (starting && rebuild) setStarting(null);
+  const target = watching ?? starting;
+  const finished = target !== null && !rebuild && active?.id === target;
+  if (finished) {
+    setWatching(null);
+    setStarting(null);
+  }
+  const progressKey = rebuild ? `${rebuild.modelId}:${rebuild.done}` : null;
+  useEffect(() => {
+    if (!rebuild) return;
+    flash({
+      id: 'reembed',
+      type: 'info',
+      loading: true,
+      header: `Re-embedding your mail with ${nameOf(rebuild.modelId)}`,
+      content: (
+        <ProgressBar
+          variant="flash"
+          value={rebuild.total ? Math.round((rebuild.done / rebuild.total) * 100) : 0}
+          additionalInfo={`${rebuild.done.toLocaleString()} of ${rebuild.total.toLocaleString()} emails, ${timeLeft(rebuild)}. Searches use ${active?.name ?? 'the current model'} until then.`}
+        />
+      ),
+    });
+    // Only a change in progress needs a new banner.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressKey]);
+  const [announced, setAnnounced] = useState<string | null>(null);
+  if (finished && active && announced !== active.id) setAnnounced(active.id);
+  useEffect(() => {
+    if (!announced) return;
+    flash({
+      id: 'reembed',
+      type: 'success',
+      header: 'Semantic search is ready',
+      content: `All your mail is embedded with ${nameOf(announced)}, and searches now use it.`,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [announced]);
+
+  const apply = () => {
+    if (!value) return;
+    choose.mutate(value, {
+      onSuccess: () => {
+        setPicked(null);
+        setConfirming(false);
+        setStarting(value);
+        setAnnounced(null);
+      },
+      onError: (error) => {
+        setConfirming(false);
+        flash({ type: 'error', content: describeError(error) });
+      },
+    });
+  };
+
   return (
     <Container
       header={
         <Header
           variant="h2"
-          description="Semantic search turns each email into a vector with this model and finds mail by meaning."
+          description="The embedding model turns each email into a vector so semantic search can find mail by meaning. Local models are free and keep your mail on this server; hosted ones charge credits per search."
+          actions={
+            <Button
+              variant="primary"
+              disabled={!value || value === chosen || Boolean(rebuild)}
+              onClick={() => setConfirming(true)}
+            >
+              Use this model
+            </Button>
+          }
         >
           Semantic search
         </Header>
       }
     >
-      <KeyValuePairs
-        columns={4}
-        items={[
-          { label: 'Embedding model', value: apiName },
-          {
-            label: 'Runs on',
-            value: model.local
-              ? `This server (${provider === 'ollama' ? 'Ollama' : provider})`
-              : (PROVIDER_NAME[provider] ?? provider),
-          },
-          { label: 'Vector size', value: `${model.dimensions.toLocaleString()} dimensions` },
-          {
-            label: 'Cost',
-            value: model.local ? (
-              <StatusIndicator type="success">Free, runs locally</StatusIndicator>
-            ) : (
-              'Uses credits per search'
-            ),
-          },
-        ]}
-      />
+      <SpaceBetween size="l">
+        {embeddings.isPending && (
+          <StatusIndicator type="loading">Loading embedding models</StatusIndicator>
+        )}
+        {embeddings.isError && (
+          <LoadError
+            error={embeddings.error}
+            header="Embedding models could not be loaded"
+            onRetry={() => void embeddings.refetch()}
+          />
+        )}
+        {rebuild ? (
+          <StatusIndicator type="in-progress">
+            Moving to {nameOf(rebuild.modelId)}: {rebuild.done.toLocaleString()} of{' '}
+            {rebuild.total.toLocaleString()} emails embedded
+          </StatusIndicator>
+        ) : (
+          active && <StatusIndicator type="success">Searching with {active.name}</StatusIndicator>
+        )}
+        {items.length > 0 && (
+          <Tiles
+            ariaLabel="Embedding model"
+            columns={3}
+            value={value}
+            onChange={({ detail }) => setPicked(detail.value)}
+            items={items.map((model) => ({
+              value: model.id,
+              disabled: !model.available,
+              label: (
+                <span className={styles.modelName}>
+                  <ModelLogo
+                    model={model.id.split('/')[1]}
+                    provider={model.provider.toUpperCase()}
+                  />
+                  {model.name}
+                  {model.id === embeddings.data?.default && ' (default)'}
+                  {/* Opening the details shouldn't pick the tile. */}
+                  <span
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                  >
+                    <Popover
+                      header={model.name}
+                      size="medium"
+                      triggerType="custom"
+                      content={<EmbeddingDetails model={model} />}
+                    >
+                      <Button
+                        variant="inline-icon"
+                        iconName="status-info"
+                        ariaLabel={`About ${model.name}`}
+                      />
+                    </Popover>
+                  </span>
+                </span>
+              ),
+              description: embeddingSummary(model),
+            }))}
+          />
+        )}
+        <Box variant="small" color="text-body-secondary">
+          More local models can be added on the server with <Box variant="code">ollama pull</Box>,
+          for example <Box variant="code">ollama pull mxbai-embed-large</Box>.
+        </Box>
+      </SpaceBetween>
+      {confirming && value && (
+        <SwitchEmbeddingModal
+          model={items.find((item) => item.id === value) ?? null}
+          modelId={value}
+          applying={choose.isPending}
+          onConfirm={apply}
+          onDismiss={() => setConfirming(false)}
+        />
+      )}
     </Container>
   );
 }
 
-const PROVIDER_NAME: Record<string, string> = { openai: 'OpenAI', gemini: 'Google Gemini' };
+// Warns that switching re-embeds every email, with the time it would take measured on the
+// user's own mail.
+function SwitchEmbeddingModal({
+  model,
+  modelId,
+  applying,
+  onConfirm,
+  onDismiss,
+}: {
+  model: EmbeddingOption | null;
+  modelId: string;
+  applying: boolean;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) {
+  const estimate = useEmbeddingEstimate(modelId);
+  const name = model?.name ?? modelId;
+  return (
+    <Modal
+      visible
+      header={`Switch semantic search to ${name}?`}
+      onDismiss={onDismiss}
+      footer={
+        <Box float="right">
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button variant="link" onClick={onDismiss}>
+              Cancel
+            </Button>
+            <Button variant="primary" loading={applying} onClick={onConfirm}>
+              Re-embed all mail
+            </Button>
+          </SpaceBetween>
+        </Box>
+      }
+    >
+      <SpaceBetween size="m">
+        <Alert type="warning" header="All your mail will be embedded again">
+          {estimate.isPending ? (
+            <StatusIndicator type="loading">Timing {name} on a sample of your mail</StatusIndicator>
+          ) : estimate.data ? (
+            <>
+              {estimate.data.emails.toLocaleString()} emails will be embedded with {name}. Expected
+              time: <strong>{duration(estimate.data.seconds)}</strong>, measured on your own mail.
+            </>
+          ) : (
+            `Every email will be embedded with ${name}. The time could not be measured: ${describeError(estimate.error)}`
+          )}
+        </Alert>
+        <Box variant="p">
+          Searches keep using the current model until it&apos;s done, so nothing stops working
+          meanwhile. Progress shows in a banner.
+          {model &&
+            !model.local &&
+            ` ${name} is hosted by ${providerName(model)}: each search will use credits (${perMillion(model.usdPerMillionTokens)}).`}
+        </Box>
+      </SpaceBetween>
+    </Modal>
+  );
+}
 
 // A model id with its maker's logo, as in the model picker.
 function ModelName({ model, suffix = '' }: { model: string; suffix?: string }) {

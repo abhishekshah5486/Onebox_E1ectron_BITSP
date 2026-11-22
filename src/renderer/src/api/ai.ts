@@ -54,19 +54,40 @@ export interface UsageSummary {
   limit: number;
 }
 
-// What semantic search embeds mail with; the server sets it.
-export interface EmbeddingModel {
-  id: string;
-  name: string;
-  dimensions: number;
-  local: boolean;
-}
-
 interface Models {
   items: ModelOption[];
   purposes: ModelPurpose[];
   choices: Record<string, string>;
-  embedding?: EmbeddingModel;
+}
+
+// A model semantic search can embed mail with: local (Ollama, free) or hosted (credits).
+export interface EmbeddingOption {
+  id: string;
+  provider: string;
+  name: string;
+  description: string;
+  dimensions: number;
+  local: boolean;
+  available: boolean;
+  usdPerMillionTokens: number;
+}
+
+interface Embeddings {
+  items: EmbeddingOption[];
+  chosen: string;
+  default: string;
+}
+
+// The model the user's mail is searched with, and a switch to another under way.
+export interface SemanticStatus {
+  active: { id: string; name: string; dimensions: number; local: boolean };
+  rebuild: { modelId: string; done: number; total: number; startedAt: string } | null;
+}
+
+// How long re-embedding all the user's mail with a model would take, measured on a sample.
+export interface EmbeddingEstimate {
+  emails: number;
+  seconds: number;
 }
 
 export type AiMode = 'auto' | 'suggest' | 'off';
@@ -106,6 +127,12 @@ export const aiApi = {
   choose: (api: ApiClient, purpose: ModelPurpose, modelId: string) =>
     api.put<void>(`/llm/choices/${purpose}`, { modelId }),
   usage: (api: ApiClient, days: number) => api.get<UsageSummary>(`/llm/usage?days=${days}`),
+  embeddings: (api: ApiClient) => api.get<Embeddings>('/llm/embeddings'),
+  chooseEmbedding: (api: ApiClient, modelId: string) =>
+    api.put<{ chosen: string }>('/llm/embeddings/choice', { modelId }),
+  semanticStatus: (api: ApiClient) => api.get<SemanticStatus>('/search/semantic'),
+  estimate: (api: ApiClient, modelId: string) =>
+    api.get<EmbeddingEstimate>(`/search/semantic/estimate?model=${encodeURIComponent(modelId)}`),
   rules: (api: ApiClient) => api.get<{ items: LabelRule[] }>('/ai/labels'),
   saveRule: (api: ApiClient, rule: Omit<LabelRule, 'threshold'> & { threshold?: number }) =>
     api.put<LabelRule>('/ai/labels', rule),
@@ -128,6 +155,8 @@ export const aiApi = {
 
 const aiKeys = {
   models: ['llm', 'models'] as const,
+  embeddings: ['llm', 'embeddings'] as const,
+  semanticStatus: ['search', 'semantic'] as const,
   usage: (days: number) => ['llm', 'usage', days] as const,
   rules: ['ai', 'rules'] as const,
   suggestions: ['ai', 'suggestions'] as const,
@@ -136,6 +165,45 @@ const aiKeys = {
 export function useModels() {
   const { api } = useAuth();
   return useQuery({ queryKey: aiKeys.models, queryFn: () => aiApi.models(api) });
+}
+
+export function useEmbeddings() {
+  const { api } = useAuth();
+  return useQuery({ queryKey: aiKeys.embeddings, queryFn: () => aiApi.embeddings(api) });
+}
+
+// Polled while a switch is re-embedding the user's mail (or about to), so its progress moves.
+export function useSemanticStatus({ starting = false } = {}) {
+  const { api } = useAuth();
+  return useQuery({
+    queryKey: aiKeys.semanticStatus,
+    queryFn: () => aiApi.semanticStatus(api),
+    refetchInterval: (query) => (starting || query.state.data?.rebuild ? 2_000 : false),
+  });
+}
+
+// Timing a model costs a few seconds of embedding, so it runs only when asked and is kept.
+export function useEmbeddingEstimate(modelId: string | null) {
+  const { api } = useAuth();
+  return useQuery({
+    queryKey: ['search', 'semantic', 'estimate', modelId],
+    queryFn: () => aiApi.estimate(api, modelId!),
+    enabled: modelId !== null,
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+}
+
+export function useChooseEmbedding() {
+  const { api } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (modelId: string) => aiApi.chooseEmbedding(api, modelId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: aiKeys.embeddings });
+      await queryClient.invalidateQueries({ queryKey: aiKeys.semanticStatus });
+    },
+  });
 }
 
 export function useChooseModel() {

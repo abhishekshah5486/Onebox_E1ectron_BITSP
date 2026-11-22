@@ -1,9 +1,11 @@
+import baai from '@lobehub/icons-static-svg/icons/baai.svg?raw';
 import claude from '@lobehub/icons-static-svg/icons/claude-color.svg?raw';
 import deepseek from '@lobehub/icons-static-svg/icons/deepseek-color.svg?raw';
 import gemini from '@lobehub/icons-static-svg/icons/gemini-color.svg?raw';
 import grok from '@lobehub/icons-static-svg/icons/grok.svg?raw';
 import kimi from '@lobehub/icons-static-svg/icons/kimi.svg?raw';
 import nvidia from '@lobehub/icons-static-svg/icons/nvidia-color.svg?raw';
+import ollama from '@lobehub/icons-static-svg/icons/ollama.svg?raw';
 import openai from '@lobehub/icons-static-svg/icons/openai.svg?raw';
 import perplexity from '@lobehub/icons-static-svg/icons/perplexity-color.svg?raw';
 import zai from '@lobehub/icons-static-svg/icons/zai.svg?raw';
@@ -20,6 +22,7 @@ const LOGOS: [RegExp, string][] = [
   [/glm/, zai],
   [/deepseek/, deepseek],
   [/nemotron/, nvidia],
+  [/^bge-/, baai],
 ];
 
 const PROVIDER_LOGOS: Record<string, string> = {
@@ -27,6 +30,7 @@ const PROVIDER_LOGOS: Record<string, string> = {
   GEMINI: gemini,
   ANTHROPIC: claude,
   PERPLEXITY: perplexity,
+  OLLAMA: ollama,
 };
 
 export function ModelLogo({ model, provider }: { model?: string; provider?: string }) {

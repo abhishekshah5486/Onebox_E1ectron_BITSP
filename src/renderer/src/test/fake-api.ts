@@ -39,6 +39,14 @@ const defaultGet = async (path: string): Promise<unknown> => {
   if (path.startsWith('/ai/suggestions')) return { items: [], total: 0, page: 1, pageSize: 50 };
   if (path === '/ai/labels') return { items: [] };
   if (path === '/llm/models') return { items: [], purposes: [], choices: {} };
+  if (path === '/llm/embeddings')
+    return { items: [], chosen: 'ollama/bge-m3', default: 'ollama/bge-m3' };
+  if (path === '/search/semantic') {
+    return {
+      active: { id: 'ollama/bge-m3', name: 'bge-m3', dimensions: 1024, local: true },
+      rebuild: null,
+    };
+  }
   if (path === '/mail/stats') return { unreadThreads: 0, starredThreads: 0, totalThreads: 0 };
   if (path.startsWith('/search?')) return { mode: 'keyword', items: [], total: 0, nextPage: null };
   throw new Error(`fakeApi: unexpected GET ${path}`);
