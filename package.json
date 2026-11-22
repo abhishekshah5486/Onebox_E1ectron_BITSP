@@ -24,7 +24,8 @@
     "dev:web": "vite --config vite.web.config.ts",
     "build:web": "vite build --config vite.web.config.ts",
     "preview:web": "vite preview --config vite.web.config.ts",
-    "icons": "node scripts/gen-file-icons.mjs"
+    "icons": "node scripts/gen-file-icons.mjs",
+    "logos": "node scripts/fetch-brand-logos.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",

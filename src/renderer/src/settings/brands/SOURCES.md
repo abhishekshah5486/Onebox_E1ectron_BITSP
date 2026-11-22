@@ -1,5 +1,10 @@
 # Brand logos
 
+The table lists logos picked by hand. Model providers' logos are fetched by
+`npm run logos` (scripts/fetch-brand-logos.mjs) from svgl.app or the provider's own website,
+with each file's source in sources.json. `lobehub-names.json` maps catalogue ids to LobeHub
+icon names.
+
 Official logos, each from the brand's own repository or site, or from svgl.app (a curated
 library of brand SVGs). A `-dark` file is the brand's own dark-mode version, or for an all-black
 mark, the same mark in white. Pinecone's and Weaviate's marks are cropped from their full logos.

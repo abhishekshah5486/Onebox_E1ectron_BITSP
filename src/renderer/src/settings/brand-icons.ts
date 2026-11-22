@@ -1,3 +1,4 @@
+import lobehubNames from './brands/lobehub-names.json';
 // Brand logos from two icon sets, each file loaded only when shown: LobeHub (MIT), which draws
 // AI providers in colour, and Simple Icons (CC0), which has most other brands with their colour.
 const LOBEHUB = import.meta.glob<string>(
@@ -13,13 +14,15 @@ const lobehub = (name: string) =>
 const simple = (slug: string) => SIMPLE[`../../../../node_modules/simple-icons/icons/${slug}.svg`];
 
 // Official logos kept in ./brands (see SOURCES.md), by id; "<id>-dark" is for dark mode.
-const OFFICIAL = import.meta.glob<string>('./brands/*.{svg,png}', {
+const OFFICIAL = import.meta.glob<string>('./brands/*.{svg,png,jpg,webp,ico}', {
   query: '?url',
   import: 'default',
   eager: true,
 });
 const official = (name: string) =>
-  OFFICIAL[`./brands/${name}.svg`] ?? OFFICIAL[`./brands/${name}.png`];
+  ['svg', 'png', 'webp', 'jpg', 'ico']
+    .map((ext) => OFFICIAL[`./brands/${name}.${ext}`])
+    .find(Boolean);
 
 // A brand's own logo file, with its dark-mode version where it has one.
 export function officialLogo(id: string) {
@@ -28,16 +31,7 @@ export function officialLogo(id: string) {
 }
 
 // Catalogue ids whose LobeHub icon goes by another name.
-const LOBEHUB_NAME: Record<string, string> = {
-  anthropic: 'claude',
-  google: 'gemini',
-  'google-vertex': 'vertexai',
-  'amazon-bedrock': 'bedrock',
-  togetherai: 'together',
-  'fireworks-ai': 'fireworks',
-  'openai-compatible': 'openai',
-};
-
+const LOBEHUB_NAME: Record<string, string> = lobehubNames;
 // Simple Icons' brand colours, by brand title (each of its SVGs carries the title).
 let hexes: Promise<Map<string, string>> | null = null;
 const brandHexes = () =>

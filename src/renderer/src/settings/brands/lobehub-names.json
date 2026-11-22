@@ -1,0 +1,9 @@
+{
+  "anthropic": "claude",
+  "google": "gemini",
+  "google-vertex": "vertexai",
+  "amazon-bedrock": "bedrock",
+  "togetherai": "together",
+  "fireworks-ai": "fireworks",
+  "openai-compatible": "openai"
+}
