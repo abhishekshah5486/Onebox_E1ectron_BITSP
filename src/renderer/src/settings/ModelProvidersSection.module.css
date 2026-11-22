@@ -1,11 +1,40 @@
-.cardHeader {
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.search {
+  display: flex;
+  flex: 0 1 380px;
+  align-items: center;
+  gap: 8px;
+}
+
+.search > :last-child {
+  flex: 1;
+}
+
+.card {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  font-weight: normal;
+}
+
+.cardText {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
 }
 
 .cardName {
   overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

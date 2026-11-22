@@ -3,7 +3,6 @@ import Button from '@cloudscape-design/components/button';
 import Cards from '@cloudscape-design/components/cards';
 import Header from '@cloudscape-design/components/header';
 import Modal from '@cloudscape-design/components/modal';
-import Pagination from '@cloudscape-design/components/pagination';
 import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table from '@cloudscape-design/components/table';
@@ -24,18 +23,16 @@ import { useFlash } from './flash';
 import styles from './ModelProvidersSection.module.css';
 import { ProviderMark } from './ProviderMark';
 
-const PAGE_SIZE = 12;
-
 const COPY: Record<ModelKind, { title: string; description: string; noun: string }> = {
   llm: {
     title: 'AI models',
     description:
-      'Bring your own API key for any provider. Your models can then be picked for each task above.',
+      'Add models from OpenAI, Claude, Gemini and more with your own API key, then pick them for any task in Settings > AI.',
     noun: 'model',
   },
   embedding: {
     title: 'Embedding models',
-    description: 'Use your own embedding model for semantic search, with your own key.',
+    description: 'Use your own embedding model for semantic search. Pick it in Settings > AI.',
     noun: 'embedding model',
   },
 };
@@ -54,7 +51,6 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
   const flash = useFlash();
   const [view, setView] = useState<View>('providers');
   const [filter, setFilter] = useState('');
-  const [page, setPage] = useState(1);
   const [configuring, setConfiguring] = useState<{
     providerId: string;
     editing: UserModel | null;
@@ -67,30 +63,44 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
     (provider) => kind === 'llm' || provider.embeddings,
   );
   const shown = offered.filter((provider) => matches(provider, filter));
-  const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
-  const visible = shown.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const configuredCount = (providerId: string) =>
     mine.filter((model) => model.providerId === providerId).length;
 
-  const header = (
-    <Header
-      variant="h2"
-      description={copy.description}
-      counter={view === 'providers' ? `(${shown.length})` : `(${mine.length})`}
-      actions={
-        <SegmentedControl
-          label={`${copy.title} view`}
-          selectedId={view}
-          onChange={({ detail }) => setView(detail.selectedId as View)}
-          options={[
-            { id: 'providers', text: 'Providers' },
-            { id: 'configured', text: `Configured (${mine.length})` },
-          ]}
+  const toolbar = (
+    <div className={styles.toolbar}>
+      <SegmentedControl
+        label={`${copy.title} view`}
+        selectedId={view}
+        onChange={({ detail }) => setView(detail.selectedId as View)}
+        options={[
+          { id: 'providers', text: 'Model providers' },
+          { id: 'configured', text: `Configured models (${mine.length})` },
+        ]}
+      />
+      <div className={styles.search}>
+        <Button
+          iconName="refresh"
+          ariaLabel={`Reload ${copy.title.toLowerCase()}`}
+          onClick={() => void Promise.all([providers.refetch(), userModels.refetch()])}
         />
-      }
-    >
+        <TextFilter
+          filteringText={filter}
+          filteringPlaceholder="Search…"
+          filteringAriaLabel="Search providers"
+          onChange={({ detail }) => setFilter(detail.filteringText)}
+        />
+      </div>
+    </div>
+  );
+  const header = (
+    <Header variant="h2" description={copy.description}>
       {copy.title}
     </Header>
+  );
+  const shownModels = mine.filter((model) =>
+    `${model.name} ${model.modelId} ${model.providerName}`
+      .toLowerCase()
+      .includes(filter.trim().toLowerCase()),
   );
 
   return (
@@ -99,64 +109,38 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
         <Cards
           variant="container"
           header={header}
+          filter={toolbar}
           loading={providers.isPending}
           loadingText="Loading providers"
-          items={visible}
+          items={shown}
           trackBy="id"
-          cardsPerRow={[{ cards: 1 }, { minWidth: 500, cards: 2 }, { minWidth: 900, cards: 3 }]}
-          filter={
-            <TextFilter
-              filteringText={filter}
-              filteringPlaceholder="Search providers"
-              filteringAriaLabel="Search providers"
-              countText={`${shown.length} ${shown.length === 1 ? 'match' : 'matches'}`}
-              onChange={({ detail }) => {
-                setFilter(detail.filteringText);
-                setPage(1);
-              }}
-            />
-          }
-          pagination={
-            <Pagination
-              currentPageIndex={page}
-              pagesCount={pages}
-              onChange={({ detail }) => setPage(detail.currentPageIndex)}
-            />
-          }
+          cardsPerRow={[{ cards: 1 }, { minWidth: 640, cards: 2 }]}
           cardDefinition={{
             header: (provider) => (
-              <div className={styles.cardHeader}>
-                <ProviderMark logoUrl={provider.logoUrl} name={provider.name} />
-                <span className={styles.cardName}>{provider.name}</span>
+              <div className={styles.card}>
+                <ProviderMark
+                  providerId={provider.id}
+                  logoUrl={provider.logoUrl}
+                  name={provider.name}
+                />
+                <div className={styles.cardText}>
+                  <span className={styles.cardName}>{provider.name}</span>
+                  <Box color="text-body-secondary" fontSize="body-s">
+                    {configuredCount(provider.id)
+                      ? `${configuredCount(provider.id)} configured`
+                      : 'Model provider'}
+                  </Box>
+                </div>
+                <Button
+                  iconName="add-plus"
+                  ariaLabel={`Configure ${provider.name}`}
+                  onClick={() => setConfiguring({ providerId: provider.id, editing: null })}
+                >
+                  Configure
+                </Button>
               </div>
             ),
-            sections: [
-              {
-                id: 'models',
-                content: (provider) => {
-                  const added = configuredCount(provider.id);
-                  return (
-                    <Box color="text-body-secondary" fontSize="body-s">
-                      {provider.modelCount
-                        ? `${provider.modelCount.toLocaleString()} models`
-                        : 'Any model it serves'}
-                      {added > 0 && ` · ${added} configured`}
-                    </Box>
-                  );
-                },
-              },
-              {
-                id: 'configure',
-                content: (provider) => (
-                  <Button
-                    ariaLabel={`Configure ${provider.name}`}
-                    onClick={() => setConfiguring({ providerId: provider.id, editing: null })}
-                  >
-                    Configure
-                  </Button>
-                ),
-              },
-            ],
+            sections: [],
           }}
           empty={
             providers.isError ? (
@@ -176,9 +160,10 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
         <Table
           variant="container"
           header={header}
+          filter={toolbar}
           loading={userModels.isPending}
           loadingText={`Loading your ${copy.noun}s`}
-          items={mine}
+          items={shownModels}
           trackBy="id"
           columnDefinitions={[
             {
@@ -186,7 +171,12 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
               header: 'Model',
               cell: (model) => (
                 <span className={styles.modelCell}>
-                  <ProviderMark logoUrl={model.logoUrl} name={model.providerName} size={20} />
+                  <ProviderMark
+                    providerId={model.providerId}
+                    logoUrl={model.logoUrl}
+                    name={model.providerName}
+                    size={28}
+                  />
                   <span>
                     <Box fontWeight="bold">{model.name}</Box>
                     <Box color="text-body-secondary" fontSize="body-s">
@@ -257,8 +247,8 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
               content: configuring.editing
                 ? `${model.name} saved.`
                 : kind === 'llm'
-                  ? `${model.name} added. Pick it for any task in Models.`
-                  : `${model.name} added. Pick it under Semantic search.`,
+                  ? `${model.name} added. Pick it for any task in Settings > AI.`
+                  : `${model.name} added. Pick it under Semantic search in Settings > AI.`,
             });
           }}
         />

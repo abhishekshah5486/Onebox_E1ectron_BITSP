@@ -186,7 +186,12 @@ export function ConfigureModelModal({
       onDismiss={onDismiss}
       header={
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <ProviderMark logoUrl={provider.data?.logoUrl ?? null} name={title} size={24} />
+          <ProviderMark
+            providerId={providerId}
+            logoUrl={provider.data?.logoUrl ?? null}
+            name={title}
+            size={28}
+          />
           {editing ? `Edit ${editing.name}` : `Configure ${title}`}
         </span>
       }
@@ -256,9 +261,7 @@ export function ConfigureModelModal({
                   value={modelId}
                   options={options}
                   ariaLabel="Model"
-                  placeholder={
-                    kind === 'embedding' ? 'text-embedding-3-small' : 'Pick or type a model'
-                  }
+                  placeholder="Select or type a model name"
                   enteredTextLabel={(value) => `Use "${value}"`}
                   empty="No models listed"
                   onChange={({ detail }) => pick(detail.value)}

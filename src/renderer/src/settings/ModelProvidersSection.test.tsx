@@ -111,7 +111,7 @@ describe('ModelProvidersSection', () => {
     expect(await within(dialog).findByText('Groq rejected this API key')).toBeVisible();
     await userEvent.click(add);
     expect(
-      await screen.findByText('Llama 3.3 70B added. Pick it for any task in Models.'),
+      await screen.findByText('Llama 3.3 70B added. Pick it for any task in Settings > AI.'),
     ).toBeVisible();
     expect(post).toHaveBeenLastCalledWith('/llm/user-models', {
       kind: 'llm',
@@ -137,7 +137,7 @@ describe('ModelProvidersSection', () => {
       patch: patch as ApiClient['patch'],
       delete: del as ApiClient['delete'],
     });
-    await userEvent.click((await screen.findAllByText('Configured (1)'))[0]!);
+    await userEvent.click((await screen.findAllByText('Configured models (1)'))[0]!);
     expect(await screen.findByText('gsk_…9f2a')).toBeVisible();
 
     await userEvent.click(screen.getByRole('button', { name: 'Edit Llama 3.3 70B' }));
