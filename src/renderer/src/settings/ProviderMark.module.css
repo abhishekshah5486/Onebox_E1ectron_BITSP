@@ -1,19 +1,36 @@
-.logo {
-  display: block;
+.tile {
+  display: inline-grid;
   flex: none;
+  place-items: center;
+  border-radius: 10px;
+  background: #f2f3f3;
+  color: #0f141a;
+}
+
+:root[data-theme='dark'] .tile {
+  background: #232b37;
+  color: #f9f9fa;
+}
+
+.svg {
+  display: flex;
+}
+
+.svg svg {
+  width: var(--icon);
+  height: var(--icon);
+}
+
+.img {
+  display: block;
   object-fit: contain;
 }
 
-/* The catalogue's logos are black line art; they're lightened to read on dark backgrounds. */
-:root[data-theme='dark'] .logo {
+/* The catalogue's logos are black line art; they're lightened on dark backgrounds. */
+:root[data-theme='dark'] .img {
   filter: invert(1);
 }
 
 .initial {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--color-background-container-header, #f2f3f3);
   font-weight: 700;
 }
