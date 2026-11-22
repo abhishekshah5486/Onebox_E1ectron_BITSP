@@ -23,6 +23,8 @@ export interface Preferences {
   chipsHidden: string[];
   // Gmail inbox tabs shown besides Primary.
   inboxTabs: string[];
+  // The first-run setup was finished or skipped.
+  setupDone: boolean;
   updatedAt: string | null;
 }
 

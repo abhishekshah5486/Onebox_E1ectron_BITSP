@@ -24,6 +24,7 @@ import { useUiVersion } from './theme/UiVersionProvider';
 const SettingsPage = lazy(() => import('./settings/SettingsPage'));
 const SuggestionsPage = lazy(() => import('./suggestions/SuggestionsPage'));
 const PlansPage = lazy(() => import('./billing/PlansPage'));
+const SetupWizard = lazy(() => import('./settings/SetupWizard'));
 const loadConsole = () => import('./console');
 const ConsoleShell = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleShell })));
 const ConsoleUnifiedMailbox = lazy(() =>
@@ -114,7 +115,18 @@ export function AppRoutes() {
         <Route path="/signup" element={<SignUpPage />} />
       </Route>
       <Route element={<RequireAuth />}>
-        <Route element={loading('Loading', <Shell />)}>
+        <Route
+          element={loading(
+            'Loading',
+            <>
+              <Shell />
+              {/* Loads on its own, so the app never waits for it. */}
+              <Suspense fallback={null}>
+                <SetupWizard />
+              </Suspense>
+            </>,
+          )}
+        >
           {unified('inbox', { filter: 'all', title: 'All inboxes', basePath: '/inbox' })}
           {unified('starred', { filter: 'starred', title: 'Starred', basePath: '/starred' })}
           {UNIFIED_FOLDERS.flatMap((folder) =>

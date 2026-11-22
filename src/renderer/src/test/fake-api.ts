@@ -17,6 +17,7 @@ export const defaultPreferences = {
   sidebarHidden: ['category:social', 'category:updates', 'category:forums', 'category:promotions'],
   chipsHidden: [],
   inboxTabs: ['promotions', 'social', 'updates', 'forums'],
+  setupDone: true,
   updatedAt: null,
 };
 
