@@ -31,6 +31,7 @@ import {
 } from '../api/providers';
 import { describeError } from '../auth/errors';
 import tableStyles from '../ui/DataTable.module.css';
+import { formatMessageDate } from '../mail/format';
 import { LoadError } from '../ui/LoadError';
 import { useFlash } from './flash';
 import own from './IndexingStorageSection.module.css';
@@ -293,6 +294,14 @@ export function IndexingStorageSection() {
               id: 'status',
               header: 'Backup',
               cell: (store) => <StatusCell store={store} status={statusOf(store.id)} />,
+            },
+            {
+              id: 'lastBackup',
+              header: 'Last backed up',
+              cell: (store) => {
+                const at = statusOf(store.id)?.lastBackedUpAt;
+                return at ? formatMessageDate(at) : '—';
+              },
             },
           ]}
           empty={

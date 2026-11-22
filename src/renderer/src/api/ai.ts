@@ -91,6 +91,8 @@ export interface SemanticStatus {
     paused: boolean;
     search: boolean;
     upToDate: boolean;
+    // When it last had all the user's mail; null until it first does.
+    lastBackedUpAt?: string | null;
     catchup: { done: number; total: number } | null;
   }[];
 }

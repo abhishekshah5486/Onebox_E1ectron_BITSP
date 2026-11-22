@@ -157,7 +157,14 @@ describe('IndexingStorageSection', () => {
       { patch: patch as ApiClient['patch'], put: put as ApiClient['put'] },
       {
         stores: [
-          { id: 'onebox', paused: false, search: true, upToDate: true, catchup: null },
+          {
+            id: 'onebox',
+            paused: false,
+            search: true,
+            upToDate: true,
+            lastBackedUpAt: '2026-11-20T09:05:00Z',
+            catchup: null,
+          },
           {
             id: 'a',
             paused: false,
@@ -181,6 +188,9 @@ describe('IndexingStorageSection', () => {
     expect(screen.getByText('Backup in progress')).toBeVisible();
     expect(screen.getByText('Paused')).toBeVisible();
     expect(screen.getByText('Backed up')).toBeVisible();
+    expect(screen.getByRole('columnheader', { name: 'Last backed up' })).toBeVisible();
+    expect(screen.getByText(/^Fri, Nov 20, /)).toBeVisible();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     expect(screen.getByText('Backing up your mail to Milvus')).toBeVisible();
     expect(screen.getByText(/120 of 500 emails/)).toBeVisible();
     expect(screen.getByText('Backing up your mail to Milvus 3')).toBeVisible();
