@@ -187,7 +187,7 @@ export function AiSection() {
 }
 
 const EMBEDDING_PROVIDER: Record<string, string> = {
-  ollama: 'Ollama',
+  ollama: 'OneBox hosted',
   openai: 'OpenAI',
   gemini: 'Google Gemini',
 };
@@ -198,11 +198,17 @@ const perMillion = (usd: number) => `$${usd} per 1M tokens`;
 const providerName = (model: EmbeddingOption) =>
   EMBEDDING_PROVIDER[model.provider] ?? model.provider;
 
-// The gist on the tile; the rest is behind its info icon.
+const dimensions = (model: EmbeddingOption) => `${model.dimensions.toLocaleString()} dimensions`;
+const context = (model: EmbeddingOption) =>
+  model.contextTokens ? `${model.contextTokens.toLocaleString()} token context` : null;
+
+// The gist on the tile, in two lines; the rest is behind its info icon.
 function embeddingSummary(model: EmbeddingOption) {
-  if (!model.available) return `${providerName(model)} key needed`;
-  const cost = model.local ? 'Free · local' : `$${model.usdPerMillionTokens} / 1M tokens`;
-  return `${cost} · ${model.dimensions.toLocaleString()} dims`;
+  if (!model.available) return `Needs a working ${providerName(model)} API key on the server`;
+  const who = model.local
+    ? `${providerName(model)}, free`
+    : `${providerName(model)}, ${perMillion(model.usdPerMillionTokens)}`;
+  return [who, dimensions(model), context(model)].filter(Boolean).join(' · ');
 }
 
 function EmbeddingDetails({ model }: { model: EmbeddingOption }) {
@@ -212,15 +218,25 @@ function EmbeddingDetails({ model }: { model: EmbeddingOption }) {
       items={[
         {
           label: 'Runs on',
-          value: model.local ? 'This server, with Ollama' : `${providerName(model)} (hosted)`,
+          value: model.local
+            ? "OneBox's own servers; your mail isn't sent to another company"
+            : providerName(model),
         },
         {
           label: 'Cost',
           value: model.local
-            ? 'Free; your mail never leaves this server'
+            ? 'Free for now'
             : `${perMillion(model.usdPerMillionTokens)}, charged per search`,
         },
-        { label: 'Vector size', value: `${model.dimensions.toLocaleString()} dimensions` },
+        { label: 'Vector size', value: dimensions(model) },
+        ...(model.contextTokens
+          ? [
+              {
+                label: 'Reads up to',
+                value: `${model.contextTokens.toLocaleString()} tokens of each email`,
+              },
+            ]
+          : []),
         ...(model.description ? [{ label: 'About', value: model.description }] : []),
         ...(model.available
           ? []
@@ -329,7 +345,7 @@ function SemanticSearchSection() {
       header={
         <Header
           variant="h2"
-          description="The embedding model turns each email into a vector so semantic search can find mail by meaning. Local models are free and keep your mail on this server; hosted ones charge credits per search."
+          description="The embedding model turns each email into a vector so semantic search can find mail by meaning. OneBox-hosted models are free for now; Google Gemini and OpenAI models charge credits per search."
           actions={
             <Button
               variant="primary"
@@ -406,10 +422,6 @@ function SemanticSearchSection() {
             }))}
           />
         )}
-        <Box variant="small" color="text-body-secondary">
-          More local models can be added on the server with <Box variant="code">ollama pull</Box>,
-          for example <Box variant="code">ollama pull mxbai-embed-large</Box>.
-        </Box>
       </SpaceBetween>
       {confirming && value && (
         <SwitchEmbeddingModal
@@ -473,11 +485,11 @@ function SwitchEmbeddingModal({
           )}
         </Alert>
         <Box variant="p">
-          Searches keep using the current model until it&apos;s done, so nothing stops working
-          meanwhile. Progress shows in a banner.
+          Searches keep using the current model in the meantime, and you&apos;ll get a notification
+          once it&apos;s finished.
           {model &&
             !model.local &&
-            ` ${name} is hosted by ${providerName(model)}: each search will use credits (${perMillion(model.usdPerMillionTokens)}).`}
+            ` ${name} runs at ${providerName(model)}: each search will use credits (${perMillion(model.usdPerMillionTokens)}).`}
         </Box>
       </SpaceBetween>
     </Modal>

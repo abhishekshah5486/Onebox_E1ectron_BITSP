@@ -67,6 +67,7 @@ export interface EmbeddingOption {
   name: string;
   description: string;
   dimensions: number;
+  contextTokens: number | null;
   local: boolean;
   available: boolean;
   usdPerMillionTokens: number;

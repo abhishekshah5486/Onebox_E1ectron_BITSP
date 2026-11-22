@@ -63,6 +63,7 @@ describe('SettingsPage', () => {
       name,
       description: '',
       dimensions: 1024,
+      contextTokens: 8192,
       local: true,
       available: true,
       usdPerMillionTokens: 0,
@@ -94,7 +95,10 @@ describe('SettingsPage', () => {
       '/llm/embeddings': () => ({
         items: [
           model('ollama/bge-m3', 'bge-m3'),
-          model('ollama/nomic-embed-text', 'nomic-embed-text', { dimensions: 768 }),
+          model('ollama/nomic-embed-text', 'nomic-embed-text', {
+            dimensions: 768,
+            contextTokens: 2048,
+          }),
           model('openai/text-embedding-3-small', 'OpenAI text-embedding-3-small', {
             local: false,
             available: false,
@@ -116,11 +120,13 @@ describe('SettingsPage', () => {
     await renderSettings('ai', fakeApi({ get, put: put as never }));
 
     expect(await screen.findByText('Searching with bge-m3')).toBeInTheDocument();
-    expect(screen.getByText('OpenAI key needed')).toBeInTheDocument();
-    expect(screen.getByText('Free · local · 768 dims')).toBeInTheDocument();
+    expect(screen.getByText('Needs a working OpenAI API key on the server')).toBeInTheDocument();
+    expect(
+      screen.getByText('OneBox hosted, free · 768 dimensions · 2,048 token context'),
+    ).toBeInTheDocument();
     // The details open from the info icon without picking that model.
     await userEvent.click(screen.getByRole('button', { name: 'About nomic-embed-text' }));
-    expect(await screen.findByText('This server, with Ollama')).toBeInTheDocument();
+    expect(await screen.findByText('2,048 tokens of each email')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /nomic-embed-text/ })).not.toBeChecked();
     await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('radio', { name: /nomic-embed-text/ }));
@@ -129,6 +135,9 @@ describe('SettingsPage', () => {
     const modal = await screen.findByRole('dialog');
     expect(within(modal).getByText('All your mail will be embedded again')).toBeInTheDocument();
     expect(await within(modal).findByText(/1,600 emails will be embedded/)).toBeInTheDocument();
+    expect(
+      within(modal).getByText(/you'll get a notification once it's finished/),
+    ).toBeInTheDocument();
     expect(within(modal).getByText('about 3 minutes')).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/search/semantic/estimate?model=ollama%2Fnomic-embed-text');
     expect(put).not.toHaveBeenCalled();
