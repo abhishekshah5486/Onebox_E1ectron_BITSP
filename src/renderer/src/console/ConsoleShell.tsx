@@ -15,6 +15,7 @@ import { VersionSwitch } from '../ui/VersionSwitch';
 import { useLiveUpdates } from '../api/useLiveUpdates';
 import { ConsoleNavigation } from './ConsoleNavigation';
 import { ConsoleSearchBox } from './ConsoleSearchBox';
+import styles from './ConsoleShell.module.css';
 import { SidebarResizer } from './SidebarResizer';
 import { useSidebarWidth } from './useSidebarWidth';
 
@@ -43,7 +44,11 @@ export function ConsoleShell() {
     <FlashArea>
       {(banners) => (
         <ComposeProvider>
-          <div id="onebox-top-nav" style={{ position: 'sticky', top: 0, zIndex: 1002 }}>
+          <div
+            id="onebox-top-nav"
+            className={styles.topNav}
+            style={{ position: 'sticky', top: 0, zIndex: 1002 }}
+          >
             <TopNavigation
               identity={{
                 href: '/inbox',
@@ -62,7 +67,7 @@ export function ConsoleShell() {
                 overflowMenuTitleText: 'All',
               }}
               search={
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   <ConsoleSearchBox />
                   <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
                     <VersionSwitch />

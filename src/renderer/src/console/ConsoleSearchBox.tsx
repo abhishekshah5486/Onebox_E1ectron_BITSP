@@ -1,18 +1,15 @@
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import Checkbox from '@cloudscape-design/components/checkbox';
-import ColumnLayout from '@cloudscape-design/components/column-layout';
 import DatePicker from '@cloudscape-design/components/date-picker';
-import FormField from '@cloudscape-design/components/form-field';
 import Input from '@cloudscape-design/components/input';
 import Modal from '@cloudscape-design/components/modal';
+import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import Select from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
-import ToggleButton from '@cloudscape-design/components/toggle-button';
-import { colorTextAccent } from '@cloudscape-design/design-tokens';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { searchPath, type SearchMode } from '../api/search';
+import { isSearchMode, searchPath, type SearchMode } from '../api/search';
 import {
   buildQuery,
   EMPTY_SEARCH,
@@ -22,17 +19,31 @@ import {
   type AdvancedSearch,
 } from '../mail/searchQuery';
 import { useCurrentSearch } from '../shell/SearchBox';
-import { Icon } from '../ui/Icon';
+import styles from './ConsoleSearchBox.module.css';
 
 const option = (value: string, label = value) => ({ value, label });
 const SIZE_OPS = [option('larger', 'greater than'), option('smaller', 'less than')];
+const MODES = [
+  { id: 'keyword', text: 'Keyword' },
+  { id: 'semantic', text: 'Semantic' },
+];
+
+// Runs a search from anywhere in the console, closing the options once it starts.
+function useRunSearch(onStart?: () => void) {
+  const navigate = useNavigate();
+  return (q: string, how: SearchMode) => {
+    if (!q.trim()) return;
+    onStart?.();
+    void navigate(searchPath(how, q));
+  };
+}
 
 export function ConsoleSearchBox() {
-  const navigate = useNavigate();
   const current = useCurrentSearch();
   const [text, setText] = useState(current.q);
   const [mode, setMode] = useState<SearchMode>(current.mode);
   const [advanced, setAdvanced] = useState(false);
+  const run = useRunSearch(() => setAdvanced(false));
 
   // Opening another search (or leaving search) shows that search in the box.
   const routeKey = `${current.mode}:${current.q}`;
@@ -43,57 +54,76 @@ export function ConsoleSearchBox() {
     setMode(current.mode);
   }
 
-  const run = (q: string, how: SearchMode) => {
-    if (!q.trim()) return;
-    setAdvanced(false);
-    void navigate(searchPath(how, q));
-  };
-
   return (
-    <div
-      style={{ flex: 1, minWidth: 0, maxWidth: 720, display: 'flex', alignItems: 'center', gap: 8 }}
-    >
-      <div style={{ flex: 1, minWidth: 160 }} role="search">
+    <div className={styles.bar}>
+      <div className={styles.input} role="search">
         <Input
           type="search"
           value={text}
-          placeholder={mode === 'semantic' ? 'Search by meaning' : 'Search mail'}
+          placeholder={mode === 'semantic' ? 'Describe the mail you want' : 'Search mail'}
           ariaLabel="Search mail"
           onChange={({ detail }) => setText(detail.value)}
           onKeyDown={({ detail }) => detail.key === 'Enter' && run(text, mode)}
         />
       </div>
-      {/* Cloudscape keeps the top bar's search narrow, so the mode is an icon: filled means AI. */}
-      <div style={{ flexShrink: 0 }}>
-        <ToggleButton
-          variant="icon"
-          iconName="gen-ai"
-          pressedIconSvg={
-            <span style={{ display: 'flex', color: colorTextAccent }}>
-              <Icon name="sparkle" size={16} />
-            </span>
-          }
-          pressed={mode === 'semantic'}
-          ariaLabel="Search by meaning (AI)"
-          onChange={({ detail }) => setMode(detail.pressed ? 'semantic' : 'keyword')}
-        />
-      </div>
-      <div style={{ flexShrink: 0 }}>
-        <Button
-          variant="icon"
-          iconName="filter"
-          ariaLabel="Search options"
-          onClick={() => setAdvanced(true)}
-        />
-      </div>
+      <SegmentedControl
+        label="Search type"
+        selectedId={mode}
+        options={MODES}
+        onChange={({ detail }) => isSearchMode(detail.selectedId) && setMode(detail.selectedId)}
+      />
+      <Button
+        variant="icon"
+        iconName="filter"
+        ariaLabel="Search options"
+        onClick={() => setAdvanced(true)}
+      />
       {advanced && (
-        <AdvancedModal mode={mode} onSearch={run} onDismiss={() => setAdvanced(false)} />
+        <SearchOptionsModal mode={mode} onSearch={run} onDismiss={() => setAdvanced(false)} />
       )}
     </div>
   );
 }
 
-function AdvancedModal({
+// The same options from a mailbox's own filter bar, for searching beyond the page.
+export function SearchAllMailButton() {
+  const [open, setOpen] = useState(false);
+  const run = useRunSearch(() => setOpen(false));
+  return (
+    <>
+      <Button iconName="filter" onClick={() => setOpen(true)}>
+        Advanced search
+      </Button>
+      {open && (
+        <SearchOptionsModal mode="keyword" onSearch={run} onDismiss={() => setOpen(false)} />
+      )}
+    </>
+  );
+}
+
+// A label beside its field, as in Gmail's search options.
+function Row({
+  label,
+  controlId,
+  children,
+}: {
+  label: string;
+  controlId?: string;
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <Box variant="awsui-key-label">
+        <label htmlFor={controlId} className={styles.label}>
+          {label}
+        </label>
+      </Box>
+      <div className={styles.field}>{children}</div>
+    </>
+  );
+}
+
+function SearchOptionsModal({
   mode: initialMode,
   onSearch,
   onDismiss,
@@ -107,14 +137,17 @@ function AdvancedModal({
   const set = <K extends keyof AdvancedSearch>(key: K, value: AdvancedSearch[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
   const query = buildQuery(form);
+  // Like Gmail, searching with nothing filled in just closes the options.
+  const submit = () => (query ? onSearch(query, mode) : onDismiss());
   const text = (key: 'from' | 'to' | 'subject' | 'hasWords' | 'doesntHave', label: string) => (
-    <FormField label={label}>
+    <Row label={label} controlId={`search-${key}`}>
       <Input
+        controlId={`search-${key}`}
         value={form[key]}
-        ariaLabel={label}
         onChange={({ detail }) => set(key, detail.value)}
+        onKeyDown={({ detail }) => detail.key === 'Enter' && submit()}
       />
-    </FormField>
+    </Row>
   );
   const within = WITHIN.map((w) => option(w.id, w.label));
   const places = SEARCH_IN.map((p) => option(p.id, p.label));
@@ -122,7 +155,7 @@ function AdvancedModal({
   return (
     <Modal
       visible
-      size="large"
+      size="medium"
       header="Search options"
       onDismiss={onDismiss}
       footer={
@@ -131,7 +164,7 @@ function AdvancedModal({
             <Button variant="link" onClick={() => setForm(EMPTY_SEARCH)}>
               Clear
             </Button>
-            <Button variant="primary" disabled={!query} onClick={() => onSearch(query, mode)}>
+            <Button variant="primary" onClick={submit}>
               Search
             </Button>
           </SpaceBetween>
@@ -139,61 +172,74 @@ function AdvancedModal({
       }
     >
       <SpaceBetween size="l">
-        <ColumnLayout columns={2}>
+        <div className={styles.form}>
           {text('from', 'From')}
           {text('to', 'To')}
           {text('subject', 'Subject')}
           {text('hasWords', 'Has the words')}
           {text('doesntHave', "Doesn't have")}
-          <FormField label="Search in">
-            <Select
-              selectedOption={places.find((p) => p.value === form.searchIn) ?? null}
-              options={places}
-              onChange={({ detail }) =>
-                set('searchIn', detail.selectedOption.value as AdvancedSearch['searchIn'])
-              }
-            />
-          </FormField>
-          <FormField label="Size">
-            <SpaceBetween direction="horizontal" size="xs">
+          <Row label="Size">
+            <div className={styles.fixed}>
               <Select
+                ariaLabel="Size is"
                 selectedOption={SIZE_OPS.find((o) => o.value === form.sizeOp) ?? null}
                 options={SIZE_OPS}
                 onChange={({ detail }) =>
                   set('sizeOp', detail.selectedOption.value as AdvancedSearch['sizeOp'])
                 }
               />
+            </div>
+            <div className={styles.grow}>
               <Input
                 value={form.size}
                 inputMode="decimal"
                 ariaLabel="Size"
                 onChange={({ detail }) => set('size', detail.value)}
               />
+            </div>
+            <div className={styles.fixed}>
               <Select
+                ariaLabel="Size unit"
                 selectedOption={option(form.sizeUnit)}
                 options={SIZE_UNITS.map((unit) => option(unit))}
                 onChange={({ detail }) =>
                   set('sizeUnit', detail.selectedOption.value as AdvancedSearch['sizeUnit'])
                 }
               />
-            </SpaceBetween>
-          </FormField>
-          <FormField label="Date within">
-            <SpaceBetween direction="horizontal" size="xs">
+            </div>
+          </Row>
+          <Row label="Date within">
+            <div className={styles.fixed}>
               <Select
+                ariaLabel="Date within"
                 selectedOption={within.find((w) => w.value === form.within) ?? null}
                 options={within}
                 onChange={({ detail }) => set('within', detail.selectedOption.value ?? '1d')}
               />
+            </div>
+            <div className={styles.grow}>
               <DatePicker
                 value={form.date}
                 placeholder="YYYY/MM/DD"
+                ariaLabel="Of date"
                 openCalendarAriaLabel={(date) => `Choose date${date ? `, selected ${date}` : ''}`}
                 onChange={({ detail }) => set('date', detail.value)}
               />
-            </SpaceBetween>
-          </FormField>
-        </ColumnLayout>
+            </div>
+          </Row>
+          <Row label="Search in">
+            <div className={styles.grow}>
+              <Select
+                ariaLabel="Search in"
+                selectedOption={places.find((p) => p.value === form.searchIn) ?? null}
+                options={places}
+                onChange={({ detail }) =>
+                  set('searchIn', detail.selectedOption.value as AdvancedSearch['searchIn'])
+                }
+              />
+            </div>
+          </Row>
+        </div>
         <SpaceBetween direction="horizontal" size="l">
           <Checkbox
             checked={form.hasAttachment}
@@ -205,12 +251,9 @@ function AdvancedModal({
             checked={mode === 'semantic'}
             onChange={({ detail }) => setMode(detail.checked ? 'semantic' : 'keyword')}
           >
-            Search by meaning (AI)
+            Semantic search (match by meaning)
           </Checkbox>
         </SpaceBetween>
-        <Box variant="code" color="text-body-secondary">
-          {query || 'Fill in a field to build the search'}
-        </Box>
       </SpaceBetween>
     </Modal>
   );

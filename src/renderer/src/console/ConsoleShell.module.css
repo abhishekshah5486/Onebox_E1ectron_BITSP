@@ -1,0 +1,6 @@
+/* Cloudscape caps the bar's search at 340px; mail search needs room for its type and options.
+   It still folds into an icon when the window is too narrow. :not(#\9) matches Cloudscape's
+   own specificity bump, so this wins without !important. */
+.topNav:not(#\9) :global([class*='awsui_search_']) {
+  max-inline-size: clamp(540px, 100vw - 640px, 880px);
+}

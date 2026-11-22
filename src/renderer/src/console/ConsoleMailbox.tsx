@@ -38,6 +38,7 @@ import { PAGE_SIZE } from '../mail/paging';
 import { AttachmentChips } from '../mail/attachments/AttachmentChips';
 import { useLoadPage } from '../mail/useLoadPage';
 import { useMailAction } from '../mail/useMailAction';
+import { SearchAllMailButton } from './ConsoleSearchBox';
 import { actionIcon, ConsoleActions } from './ConsoleActions';
 import styles from './ConsoleMailbox.module.css';
 import { useUnsubscribeFlow } from './UnsubscribeFlow';
@@ -388,6 +389,7 @@ export function MailTable({
                 onChange={({ detail }) => setFilter(detail.filteringText)}
                 countText={filter ? `${items.length} matches` : undefined}
               />
+              <SearchAllMailButton />
             </div>
           }
           pagination={

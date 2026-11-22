@@ -416,7 +416,7 @@ describe('v2 console', () => {
     expect(box).toHaveValue('paris');
   });
 
-  it('builds an AI search from the options and warns when credits run out', async () => {
+  it('builds a semantic search from the options and warns when credits run out', async () => {
     const get = routedGet({
       '/search?': () => {
         throw new ApiError(402, 'OUT_OF_CREDITS', 'out');
@@ -430,10 +430,21 @@ describe('v2 console', () => {
       within(modal).getByRole('textbox', { name: 'Has the words' }),
       'trip ideas',
     );
-    await userEvent.click(within(modal).getByRole('checkbox', { name: /Search by meaning/ }));
+    await userEvent.click(within(modal).getByRole('checkbox', { name: /Semantic search/ }));
     await userEvent.click(within(modal).getByRole('button', { name: 'Search' }));
     expect(await screen.findByText(/You are out of AI credits/)).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/search?q=trip+ideas&mode=semantic&page=0&pageSize=50');
     expect(screen.getByRole('button', { name: 'See plans' })).toBeInTheDocument();
+  });
+
+  it('opens the search options from a mailbox, and closes them when nothing is filled in', async () => {
+    const get = routedGet({});
+    renderConsole('/inbox', fakeApi({ ...restore, get }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Advanced search' }));
+    const modal = await screen.findByRole('dialog');
+    expect(within(modal).getByRole('textbox', { name: 'From' })).toBeInTheDocument();
+    await userEvent.click(within(modal).getByRole('button', { name: 'Search' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(get).not.toHaveBeenCalledWith(expect.stringMatching(/^\/search\?/));
   });
 });
