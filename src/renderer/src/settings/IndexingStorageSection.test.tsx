@@ -175,12 +175,9 @@ describe('IndexingStorageSection', () => {
     expect(screen.getByText('Backup in progress')).toBeVisible();
     expect(screen.getByText('Paused')).toBeVisible();
     expect(screen.getByText('Backed up')).toBeVisible();
-    expect(screen.getByRole('status', { name: 'Backup to Milvus' })).toHaveTextContent(
-      '120 of 500 emails (24%)',
-    );
-    expect(screen.getByRole('status', { name: 'Backup to Milvus 3' })).toHaveTextContent(
-      'Starting the backup',
-    );
+    expect(screen.getByText('Backing up your mail to Milvus')).toBeVisible();
+    expect(screen.getByText(/120 of 500 emails/)).toBeVisible();
+    expect(screen.getByText('Backing up your mail to Milvus 3')).toBeVisible();
     expect(screen.getByRole('status', { name: 'Search store' })).toHaveTextContent(
       'Searches across your mail use OneBox hosted.',
     );
@@ -194,8 +191,16 @@ describe('IndexingStorageSection', () => {
     expect(button('Remove')).toBeDisabled();
     await pick('OneBox hosted');
 
+    // Each change is asked first, and the dialog waits for it to take effect.
+    const confirmWith = async (title: string, name: string) => {
+      const dialog = await screen.findByRole('dialog', { name: title });
+      await userEvent.click(within(dialog).getByRole('button', { name }));
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: title })).toBeNull());
+    };
     await pick('Milvus 2');
     await userEvent.click(button('Resume'));
+    expect(patch).not.toHaveBeenCalled();
+    await confirmWith('Resume Milvus 2?', 'Resume');
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/settings/indexing-storage/b', { paused: false }),
     );
@@ -206,12 +211,16 @@ describe('IndexingStorageSection', () => {
     // Several picked, some paused: one click pauses the rest.
     await pick('Milvus');
     await userEvent.click(button('Pause'));
+    await confirmWith('Pause Milvus?', 'Pause');
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/settings/indexing-storage/a', { paused: true }),
     );
     expect(patch).not.toHaveBeenCalledWith('/settings/indexing-storage/b', { paused: true });
     await pick('Milvus 2');
     await userEvent.click(button('Use for search'));
+    const dialog = await screen.findByRole('dialog', { name: 'Use Milvus for search?' });
+    expect(within(dialog).getByText(/doesn’t have all your mail yet/)).toBeVisible();
+    await confirmWith('Use Milvus for search?', 'Use for search');
     await waitFor(() =>
       expect(put).toHaveBeenCalledWith('/settings/indexing-storage/search', { storeId: 'a' }),
     );

@@ -5,11 +5,13 @@ import Button from '@cloudscape-design/components/button';
 import Cards from '@cloudscape-design/components/cards';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
+import Flashbar from '@cloudscape-design/components/flashbar';
 import Icon from '@cloudscape-design/components/icon';
 import Input from '@cloudscape-design/components/input';
 import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
 import Pagination from '@cloudscape-design/components/pagination';
+import ProgressBar from '@cloudscape-design/components/progress-bar';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Table from '@cloudscape-design/components/table';
@@ -59,30 +61,37 @@ function StatusCell({ store, status }: { store: IndexingStore; status?: StoreSta
 const percent = ({ done, total }: { done: number; total: number }) =>
   total ? Math.min(100, Math.floor((done / total) * 100)) : 0;
 
-// A store still filling: how far it has got, once the job reports its total.
-function BackupBanner({ store, status }: { store: IndexingStore; status: StoreStatus }) {
-  const progress = status.catchup;
+// Stores still filling, as the console's blue progress banners: how far each has got, once its
+// job reports a total.
+function BackupBanners({ filling }: { filling: { store: IndexingStore; status: StoreStatus }[] }) {
+  if (!filling.length) return null;
   return (
-    <div className={own.banner} role="status" aria-label={`Backup to ${store.name}`}>
-      <Icon name="status-in-progress" />
-      <span>
-        {progress ? (
-          <>
-            Backing up your mail to <b>{store.name}</b> · {progress.done.toLocaleString()} of{' '}
-            {progress.total.toLocaleString()} emails ({percent(progress)}%)
-          </>
-        ) : (
-          <>
-            Starting the backup of your mail to <b>{store.name}</b>…
-          </>
-        )}
-        <div className={own.track}>
-          <div className={own.fill} style={{ width: `${progress ? percent(progress) : 0}%` }} />
-        </div>
-      </span>
-    </div>
+    <Flashbar
+      items={filling.map(({ store, status }) => {
+        const progress = status.catchup;
+        return {
+          id: store.id,
+          type: 'info',
+          loading: true,
+          header: `Backing up your mail to ${store.name}`,
+          content: (
+            <ProgressBar
+              variant="flash"
+              value={progress ? percent(progress) : 0}
+              additionalInfo={
+                progress
+                  ? `${progress.done.toLocaleString()} of ${progress.total.toLocaleString()} emails. New mail is backed up there too.`
+                  : 'Starting…'
+              }
+            />
+          ),
+        };
+      })}
+    />
   );
 }
+
+type Confirming = { action: 'search' | 'pause' | 'resume'; stores: IndexingStore[] };
 
 // Where semantic search keeps the vectors made from the user's mail: OneBox's own store and any
 // number of vector databases of theirs, several of one kind too. One answers searches.
@@ -125,25 +134,37 @@ export function IndexingStorageSection() {
     pagination: { pageSize: PAGE_SIZE },
   });
 
-  const setPaused = (stores: IndexingStore[], paused: boolean) => {
-    const names = stores.map((store) => store.name).join(', ');
-    void Promise.all(stores.map((store) => update.mutateAsync({ id: store.id, paused }))).then(
-      () =>
-        flash({
-          type: 'success',
-          content: paused
-            ? `${names} paused. New mail isn’t backed up there until you resume.`
-            : `${names} backing up again, starting with only the mail missed.`,
-        }),
-      failed,
-    );
-  };
+  const [confirming, setConfirming] = useState<Confirming | null>(null);
+  const [working, setWorking] = useState(false);
+  const names = (stores: IndexingStore[]) => stores.map((store) => store.name).join(', ');
 
-  const switchSearch = (store: IndexingStore) =>
-    searchWith.mutate(store.id, {
-      onSuccess: () => flash({ type: 'success', content: `Searches now go to ${store.name}.` }),
-      onError: failed,
-    });
+  // Runs the confirmed change, keeping the dialog's loader up until the page shows it.
+  const confirm = async ({ action, stores }: Confirming) => {
+    setWorking(true);
+    try {
+      if (action === 'search') {
+        await searchWith.mutateAsync(stores[0]!.id);
+      } else {
+        const paused = action === 'pause';
+        await Promise.all(stores.map((store) => update.mutateAsync({ id: store.id, paused })));
+      }
+      await Promise.all([current.refetch(), semantic.refetch()]);
+      flash({
+        type: 'success',
+        content:
+          action === 'search'
+            ? `Searches now go to ${stores[0]!.name}.`
+            : action === 'pause'
+              ? `${names(stores)} paused. New mail isn’t backed up there until you resume.`
+              : `${names(stores)} backing up again, starting with only the mail missed.`,
+      });
+    } catch (error) {
+      failed(error);
+    } finally {
+      setWorking(false);
+      setConfirming(null);
+    }
+  };
 
   return (
     <SpaceBetween size="l">
@@ -175,18 +196,17 @@ export function IndexingStorageSection() {
                     />
                     <Button
                       disabled={selected.length !== 1 || selected[0]!.search}
-                      loading={searchWith.isPending}
-                      onClick={() => switchSearch(selected[0]!)}
+                      onClick={() => setConfirming({ action: 'search', stores: selected })}
                     >
                       Use for search
                     </Button>
                     <Button
                       disabled={pausable.length === 0}
                       onClick={() =>
-                        setPaused(
-                          pausable.filter((store) => store.paused === allPaused),
-                          !allPaused,
-                        )
+                        setConfirming({
+                          action: allPaused ? 'resume' : 'pause',
+                          stores: pausable.filter((store) => store.paused === allPaused),
+                        })
                       }
                     >
                       {allPaused ? 'Resume' : 'Pause'}
@@ -220,12 +240,12 @@ export function IndexingStorageSection() {
                   </span>
                 </div>
               )}
-              {mine.map((store) => {
-                const status = statusOf(store.id);
-                return status && !store.paused && !status.upToDate ? (
-                  <BackupBanner key={store.id} store={store} status={status} />
-                ) : null;
-              })}
+              <BackupBanners
+                filling={mine.flatMap((store) => {
+                  const status = statusOf(store.id);
+                  return status && !store.paused && !status.upToDate ? [{ store, status }] : [];
+                })}
+              />
             </SpaceBetween>
           }
           loading={current.isPending}
@@ -369,6 +389,16 @@ export function IndexingStorageSection() {
                 : 'All your mail is being backed up to it; searches keep working meanwhile.',
             });
           }}
+        />
+      )}
+
+      {confirming && (
+        <ConfirmModal
+          confirming={confirming}
+          status={confirming.stores[0] && statusOf(confirming.stores[0].id)}
+          working={working}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => void confirm(confirming)}
         />
       )}
 
@@ -548,6 +578,72 @@ function ConfigureStoreModal({
           <button type="submit" hidden />
         </SpaceBetween>
       </form>
+    </Modal>
+  );
+}
+
+const CONFIRM = {
+  search: { title: 'Use {names} for search?', button: 'Use for search' },
+  pause: { title: 'Pause {names}?', button: 'Pause' },
+  resume: { title: 'Resume {names}?', button: 'Resume' },
+};
+
+// What the change means, asked before making it.
+function ConfirmModal({
+  confirming: { action, stores },
+  status,
+  working,
+  onCancel,
+  onConfirm,
+}: {
+  confirming: Confirming;
+  status: StoreStatus | undefined;
+  working: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const names = stores.map((store) => store.name).join(', ');
+  const store = stores[0]!;
+  const text = CONFIRM[action];
+  return (
+    <Modal
+      visible
+      onDismiss={() => !working && onCancel()}
+      header={text.title.replace('{names}', names)}
+      footer={
+        <Box float="right">
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button variant="link" disabled={working} onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button variant="primary" loading={working} onClick={onConfirm}>
+              {text.button}
+            </Button>
+          </SpaceBetween>
+        </Box>
+      }
+    >
+      {action === 'search' && (
+        <SpaceBetween size="s">
+          <Box>Every search across your mail will run against {store.name}.</Box>
+          {store.paused && <Box>Its backup is paused, so it’s resumed first.</Box>}
+          {(store.paused || (status && !status.upToDate)) && (
+            <Alert type="warning">
+              {store.name} doesn’t have all your mail yet, so searches may miss some until its
+              backup finishes.
+            </Alert>
+          )}
+        </SpaceBetween>
+      )}
+      {action === 'pause' && (
+        <Box>
+          New mail won’t be backed up to {names} while paused. What’s there stays, and resuming
+          backs up only the mail missed.
+        </Box>
+      )}
+      {action === 'resume' && (
+        <Box>{names} will back up the mail missed while paused, then keep up with new mail.</Box>
+      )}
     </Modal>
   );
 }
