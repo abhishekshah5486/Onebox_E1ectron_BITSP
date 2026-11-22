@@ -66,18 +66,23 @@ const mine = (extra: Partial<UserModel> = {}): UserModel => ({
   ...extra,
 });
 
-function setup(kind: 'llm' | 'embedding', models: UserModel[], overrides: Partial<ApiClient> = {}) {
+const CARDS = [
+  card('groq', 'Groq'),
+  card('openai', 'OpenAI', { embeddings: true }),
+  card('mistral', 'Mistral', { embeddings: true }),
+];
+
+function setup(
+  kind: 'llm' | 'embedding',
+  models: UserModel[],
+  overrides: Partial<ApiClient> = {},
+  cards: ProviderCard[] = CARDS,
+) {
   const api = fakeApi({
     restoreSession: vi.fn(async () => testUser),
     get: routedGet({
       '/llm/providers/groq': () => groq,
-      '/llm/providers': () => ({
-        items: [
-          card('groq', 'Groq'),
-          card('openai', 'OpenAI', { embeddings: true }),
-          card('mistral', 'Mistral', { embeddings: true }),
-        ],
-      }),
+      '/llm/providers': () => ({ items: cards }),
       '/llm/user-models': () => ({ items: models }),
     }),
     ...overrides,
@@ -122,6 +127,19 @@ describe('ModelProvidersSection', () => {
       reasoning: false,
       multimodal: false,
     });
+  });
+
+  it('shows the providers a page at a time, going back to the first page on a search', async () => {
+    const many = Array.from({ length: 12 }, (_, i) => card(`p${i}`, `Provider ${i + 1}`));
+    setup('llm', [], {}, many);
+    expect(await screen.findByText('Provider 1')).toBeVisible();
+    expect(screen.queryByText('Provider 9')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /page 2/i }));
+    expect(await screen.findByText('Provider 9')).toBeVisible();
+    expect(screen.queryByText('Provider 1')).toBeNull();
+    await userEvent.type(screen.getByLabelText('Search providers'), 'Provider 1');
+    expect(await screen.findByText('Provider 1')).toBeVisible();
+    expect(screen.getByText('Provider 12')).toBeVisible();
   });
 
   it('only offers providers with embedding models for embeddings', async () => {

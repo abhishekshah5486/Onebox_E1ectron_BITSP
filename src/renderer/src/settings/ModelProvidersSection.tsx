@@ -1,8 +1,10 @@
+import { useCollection } from '@cloudscape-design/collection-hooks';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import Cards from '@cloudscape-design/components/cards';
 import Header from '@cloudscape-design/components/header';
 import Modal from '@cloudscape-design/components/modal';
+import Pagination from '@cloudscape-design/components/pagination';
 import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table from '@cloudscape-design/components/table';
@@ -21,6 +23,7 @@ import { LoadError } from '../ui/LoadError';
 import { ConfigureModelModal } from './ConfigureModelModal';
 import { useFlash } from './flash';
 import styles from './ModelProvidersSection.module.css';
+import { PAGE_LABELS } from './page-labels';
 import { ProviderMark } from './ProviderMark';
 
 const COPY: Record<ModelKind, { title: string; description: string; noun: string }> = {
@@ -41,6 +44,7 @@ const matches = (provider: ProviderCard, text: string) =>
   `${provider.name} ${provider.id}`.toLowerCase().includes(text.trim().toLowerCase());
 
 type View = 'providers' | 'configured';
+const PAGE_SIZE = 8;
 
 // Providers users can bring their own keys for (from the models.dev catalogue), and the models
 // they have added. The same section serves language and embedding models.
@@ -50,7 +54,6 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
   const remove = useRemoveUserModel();
   const flash = useFlash();
   const [view, setView] = useState<View>('providers');
-  const [filter, setFilter] = useState('');
   const [configuring, setConfiguring] = useState<{
     providerId: string;
     editing: UserModel | null;
@@ -62,7 +65,17 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
   const offered = (providers.data?.items ?? []).filter(
     (provider) => kind === 'llm' || provider.embeddings,
   );
-  const shown = offered.filter((provider) => matches(provider, filter));
+  // Filtering goes back to the first page.
+  const {
+    items: shown,
+    actions,
+    filterProps,
+    paginationProps,
+  } = useCollection(offered, {
+    filtering: { filteringFunction: matches },
+    pagination: { pageSize: PAGE_SIZE },
+  });
+  const filter = filterProps.filteringText;
   const configuredCount = (providerId: string) =>
     mine.filter((model) => model.providerId === providerId).length;
 
@@ -87,7 +100,7 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
           filteringText={filter}
           filteringPlaceholder="Search…"
           filteringAriaLabel="Search providers"
-          onChange={({ detail }) => setFilter(detail.filteringText)}
+          onChange={({ detail }) => actions.setFiltering(detail.filteringText)}
         />
       </div>
     </div>
@@ -110,6 +123,7 @@ export function ModelProvidersSection({ kind }: { kind: ModelKind }) {
           variant="container"
           header={header}
           filter={toolbar}
+          pagination={<Pagination {...paginationProps} ariaLabels={PAGE_LABELS} />}
           loading={providers.isPending}
           loadingText="Loading providers"
           items={shown}
