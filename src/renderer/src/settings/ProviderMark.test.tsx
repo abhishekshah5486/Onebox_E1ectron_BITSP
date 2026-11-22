@@ -10,6 +10,20 @@ describe('ProviderMark', () => {
     await waitFor(() => expect(container.querySelector('svg title')?.textContent).toBe('Claude'));
   });
 
+  it('draws brands LobeHub lacks from Simple Icons, in their colour', async () => {
+    const { container } = render(
+      <ProviderMark providerId="qdrant" icon="qdrant" logoUrl={null} name="Qdrant" />,
+    );
+    await waitFor(() => expect(container.querySelector('svg title')?.textContent).toBe('Qdrant'));
+    expect(container.querySelector('svg')?.parentElement).toHaveStyle({ color: '#DC244C' });
+  });
+
+  it('keeps the text colour for brands whose colour is black', async () => {
+    const { container } = render(<ProviderMark providerId="ollama" logoUrl={null} name="Ollama" />);
+    await waitFor(() => expect(container.querySelector('svg title')?.textContent).toBe('Ollama'));
+    expect(container.querySelector('svg')?.parentElement?.style.color).toBe('');
+  });
+
   it("falls back to the catalogue's logo, then the initial", () => {
     const withLogo = render(
       <ProviderMark

@@ -21,6 +21,11 @@
   height: var(--icon);
 }
 
+/* Simple Icons leave the fill unset. */
+.mono svg {
+  fill: currentColor;
+}
+
 .img {
   display: block;
   object-fit: contain;

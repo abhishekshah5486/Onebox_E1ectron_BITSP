@@ -1,67 +1,50 @@
 import { useEffect, useState } from 'react';
+import { hasBrandMark, loadBrandMark, type BrandMark } from './brand-icons';
 import styles from './ProviderMark.module.css';
 
-// LobeHub's icons (MIT), each loaded only when shown. The colour version is used where one exists;
-// single-colour ones follow the text colour, so both read in light and dark themes.
-const ICONS = import.meta.glob<string>(
-  '../../../../node_modules/@lobehub/icons-static-svg/icons/*.svg',
-  {
-    query: '?raw',
-    import: 'default',
-  },
-);
-const iconPath = (name: string) =>
-  `../../../../node_modules/@lobehub/icons-static-svg/icons/${name}.svg`;
-
-// Catalogue ids whose LobeHub icon goes by another name.
-const ICON_NAME: Record<string, string> = {
-  anthropic: 'claude',
-  google: 'gemini',
-  'google-vertex': 'vertexai',
-  'amazon-bedrock': 'bedrock',
-  togetherai: 'together',
-  'fireworks-ai': 'fireworks',
-  'openai-compatible': 'openai',
-};
-
-function loaderFor(providerId: string) {
-  const name = ICON_NAME[providerId] ?? providerId;
-  return ICONS[iconPath(`${name}-color`)] ?? ICONS[iconPath(name)] ?? null;
-}
-
-// A provider's logo on a rounded tile: LobeHub's, else the catalogue's, else its initial.
+// A brand's logo on a rounded tile: from the icon sets, else the catalogue's, else its initial.
+// `icon` names the Simple Icons logo where the id alone doesn't.
 export function ProviderMark({
   providerId,
   logoUrl,
   name,
+  icon,
   size = 40,
 }: {
   providerId: string;
   logoUrl: string | null;
   name: string;
+  icon?: string | null;
   size?: number;
 }) {
-  const [svg, setSvg] = useState<string | null>(null);
+  // Kept with the brand it was loaded for, so a reused tile never shows the last one's logo.
+  const key = `${providerId}|${icon ?? ''}`;
+  const [loaded, setLoaded] = useState<{ key: string; mark: BrandMark | null } | null>(null);
   useEffect(() => {
     let live = true;
-    void loaderFor(providerId)?.().then((text) => live && setSvg(text));
+    void loadBrandMark(providerId, icon).then((mark) => live && setLoaded({ key, mark }));
     return () => {
       live = false;
     };
-  }, [providerId]);
+  }, [providerId, icon, key]);
+  const mark = loaded?.key === key ? loaded.mark : null;
 
-  const icon = Math.round(size * 0.6);
+  const size60 = Math.round(size * 0.6);
   return (
     <span
       className={styles.tile}
-      style={{ width: size, height: size, ['--icon' as string]: `${icon}px` }}
+      style={{ width: size, height: size, ['--icon' as string]: `${size60}px` }}
       aria-hidden="true"
     >
-      {svg ? (
-        // Static files from the icon package, not user content.
-        <span className={styles.svg} dangerouslySetInnerHTML={{ __html: svg }} />
-      ) : loaderFor(providerId) ? null : logoUrl ? (
-        <img className={styles.img} src={logoUrl} width={icon} height={icon} alt="" />
+      {mark ? (
+        // Static files from the icon packages, not user content.
+        <span
+          className={mark.mono ? `${styles.svg} ${styles.mono}` : styles.svg}
+          style={mark.colour ? { color: mark.colour } : undefined}
+          dangerouslySetInnerHTML={{ __html: mark.svg }}
+        />
+      ) : hasBrandMark(providerId, icon) ? null : logoUrl ? (
+        <img className={styles.img} src={logoUrl} width={size60} height={size60} alt="" />
       ) : (
         <span className={styles.initial}>{name.charAt(0).toUpperCase()}</span>
       )}
