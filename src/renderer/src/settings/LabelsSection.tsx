@@ -21,7 +21,16 @@ import { useNavigate } from 'react-router';
 import { mailApi } from '../api/mail';
 import { ProviderLogo } from '../accounts/ProviderLogo';
 import type { Account } from '../api/accounts';
-import { aiApi, useLabelRules, useSaveLabelRule, type AiMode, type LabelRule } from '../api/ai';
+import {
+  aiApi,
+  useCategoryRules,
+  useLabelRules,
+  useSaveCategoryRule,
+  useSaveLabelRule,
+  type AiMode,
+  type CategoryRule,
+  type LabelRule,
+} from '../api/ai';
 import { useAccountFolders, useLabelChange } from '../api/mail-queries';
 import { useAuth } from '../auth/AuthProvider';
 import { useAccounts, usePreferences, useUpdatePreferences } from '../api/queries';
@@ -35,6 +44,7 @@ import {
   MAIL_CATEGORIES,
   MAIL_CATEGORY_LABEL,
   type FolderRole,
+  type MailCategory,
 } from '../mail/folders';
 import { useFlash } from './flash';
 import tableStyles from '../ui/DataTable.module.css';
@@ -84,6 +94,12 @@ export function LabelsSection() {
   const queryClient = useQueryClient();
   const [labelPage, setLabelPage] = useState(1);
   const rules = useLabelRules();
+  const categoryRules = useCategoryRules();
+  const saveCategory = useSaveCategoryRule();
+  const [pickedCategory, setPickedCategory] = useState<MailCategory | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryRule | null>(null);
+  const categoryRule = (category: MailCategory) =>
+    categoryRules.data?.items.find((rule) => rule.category === category);
   const ruleOf = (accountId: string, path: string) =>
     rules.data?.items.find((rule) => rule.accountId === accountId && rule.path === path);
 
@@ -389,8 +405,23 @@ export function LabelsSection() {
           header={
             <Header
               variant="h2"
-              description="Gmail sorts mail into these. Tabs split the inbox; Purchases and Travel gather receipts and bookings from every folder."
-              actions={refresh('categories', () => void preferences.refetch())}
+              description="Gmail sorts mail into these. Tabs split the inbox; Purchases and Travel gather receipts and bookings from every folder. Where Gmail gives none, AI fills them in from each description."
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  {refresh('categories', () => {
+                    void preferences.refetch();
+                    void categoryRules.refetch();
+                  })}
+                  <Button
+                    disabled={!pickedCategory || !categoryRule(pickedCategory)}
+                    onClick={() =>
+                      pickedCategory && setEditingCategory(categoryRule(pickedCategory) ?? null)
+                    }
+                  >
+                    Edit description
+                  </Button>
+                </SpaceBetween>
+              }
             >
               Categories
             </Header>
@@ -398,16 +429,65 @@ export function LabelsSection() {
         >
           <Table
             variant="embedded"
-            ariaLabels={{ tableLabel: 'Categories' }}
+            ariaLabels={{
+              tableLabel: 'Categories',
+              itemSelectionLabel: (_, item) => `Select ${MAIL_CATEGORY_LABEL[item.category]}`,
+              selectionGroupLabel: 'Category selection',
+            }}
             loading={preferences.isPending}
             loadingText="Loading"
             items={categoryRows}
+            trackBy="category"
+            selectionType="single"
+            selectedItems={categoryRows.filter((row) => row.category === pickedCategory)}
+            onSelectionChange={({ detail }) =>
+              setPickedCategory(detail.selectedItems[0]?.category ?? null)
+            }
             filter={searchBox(categorySearch, setCategorySearch, 'Find a category')}
             columnDefinitions={[
               {
                 id: 'name',
                 header: 'Category',
                 cell: ({ category }) => MAIL_CATEGORY_LABEL[category],
+              },
+              {
+                id: 'ai',
+                header: 'AI fills in',
+                width: 140,
+                cell: ({ category }) => {
+                  const rule = categoryRule(category);
+                  return (
+                    <Toggle
+                      checked={rule?.enabled ?? false}
+                      disabled={!rule}
+                      ariaLabel={`Let AI fill in ${MAIL_CATEGORY_LABEL[category]}`}
+                      onChange={({ detail }) =>
+                        saveCategory.mutate(
+                          { category, enabled: detail.checked },
+                          {
+                            onError: (error) =>
+                              flash({ type: 'error', content: describeError(error) }),
+                          },
+                        )
+                      }
+                    />
+                  );
+                },
+              },
+              {
+                id: 'description',
+                header: 'Description',
+                maxWidth: 280,
+                cell: ({ category }) => {
+                  const rule = categoryRule(category);
+                  return rule ? (
+                    <span className={styles.description} title={rule.description}>
+                      {rule.description}
+                    </span>
+                  ) : (
+                    <Box color="text-status-inactive">—</Box>
+                  );
+                },
               },
               {
                 id: 'sidebar',
@@ -510,6 +590,9 @@ export function LabelsSection() {
               />
             </Box>
           </Modal>
+        )}
+        {editingCategory && (
+          <CategoryModal rule={editingCategory} onClose={() => setEditingCategory(null)} />
         )}
         {editing && editing.mode !== 'details' && (
           <LabelModal
@@ -689,6 +772,74 @@ function LabelModal({
         {problem !== null && (
           <Alert type="error" header="That did not work">
             {describeError(problem)}
+          </Alert>
+        )}
+      </SpaceBetween>
+    </Modal>
+  );
+}
+
+// A category's description for AI: the user's own words, or OneBox's default put back.
+function CategoryModal({ rule, onClose }: { rule: CategoryRule; onClose: () => void }) {
+  const flash = useFlash();
+  const save = useSaveCategoryRule();
+  const [description, setDescription] = useState(rule.description);
+  const name = MAIL_CATEGORY_LABEL[rule.category];
+  const run = (next: string | null) =>
+    save.mutate(
+      { category: rule.category, description: next },
+      {
+        onSuccess: () => {
+          flash({ type: 'success', content: `${name} saved.` });
+          onClose();
+        },
+      },
+    );
+  return (
+    <Modal
+      visible
+      onDismiss={onClose}
+      header={`Edit "${name}"`}
+      footer={
+        <Box float="right">
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              disabled={save.isPending || (!rule.customized && description === rule.description)}
+              onClick={() => run(null)}
+            >
+              Reset to default
+            </Button>
+            <Button
+              variant="primary"
+              loading={save.isPending}
+              disabled={description.trim().length < 10}
+              onClick={() => run(description.trim())}
+            >
+              Save
+            </Button>
+          </SpaceBetween>
+        </Box>
+      }
+    >
+      <SpaceBetween size="m">
+        <FormField
+          label="Description"
+          description="AI reads this to decide which mail belongs here, where Gmail gives no category."
+          constraintText="At least 10 characters."
+        >
+          <Textarea
+            value={description}
+            rows={4}
+            ariaLabel="Description"
+            onChange={({ detail }) => setDescription(detail.value)}
+          />
+        </FormField>
+        {save.isError && (
+          <Alert type="error" header="That did not work">
+            {describeError(save.error)}
           </Alert>
         )}
       </SpaceBetween>

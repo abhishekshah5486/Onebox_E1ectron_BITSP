@@ -39,6 +39,7 @@ const defaultGet = async (path: string): Promise<unknown> => {
   if (path === '/ai/suggestions/count') return { count: 0 };
   if (path.startsWith('/ai/suggestions')) return { items: [], total: 0, page: 1, pageSize: 50 };
   if (path === '/ai/labels') return { items: [] };
+  if (path === '/ai/categories') return { items: [] };
   if (path === '/llm/models') return { items: [], purposes: [], choices: {} };
   if (path === '/llm/embeddings')
     return { items: [], chosen: 'ollama/bge-m3', default: 'ollama/bge-m3' };

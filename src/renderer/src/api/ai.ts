@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
+import type { MailCategory } from '../mail/folders';
 import type { ApiClient } from './client';
 
 export type ModelProvider = 'OPENAI' | 'GEMINI' | 'ANTHROPIC' | 'PERPLEXITY';
@@ -114,6 +115,15 @@ export interface LabelRule {
   threshold: number;
 }
 
+// A built-in category: AI fills it in where Gmail gives none, from its description.
+export interface CategoryRule {
+  category: MailCategory;
+  description: string;
+  defaultDescription: string;
+  customized: boolean;
+  enabled: boolean;
+}
+
 export interface LabelResult {
   path: string;
   name: string;
@@ -153,6 +163,13 @@ export const aiApi = {
     api.post<void>('/ai/labels/move', body),
   removeRule: (api: ApiClient, accountId: string, path: string) =>
     api.post<void>('/ai/labels/delete', { accountId, path }),
+  categories: (api: ApiClient) => api.get<{ items: CategoryRule[] }>('/ai/categories'),
+  // A null description puts the default back.
+  saveCategory: (
+    api: ApiClient,
+    category: MailCategory,
+    body: { description?: string | null; enabled?: boolean },
+  ) => api.put<CategoryRule>(`/ai/categories/${category}`, body),
   suggestions: (api: ApiClient, page: number, view: SuggestionView) =>
     api.get<{ items: Suggestion[]; total: number; page: number; pageSize: number }>(
       `/ai/suggestions?page=${page}&view=${view}`,
@@ -172,6 +189,7 @@ const aiKeys = {
   semanticStatus: ['search', 'semantic'] as const,
   usage: (days: number) => ['llm', 'usage', days] as const,
   rules: ['ai', 'rules'] as const,
+  categories: ['ai', 'categories'] as const,
   suggestions: ['ai', 'suggestions'] as const,
 };
 
@@ -267,6 +285,27 @@ export function useSaveLabelRule() {
     mutationFn: (rule: Omit<LabelRule, 'threshold'> & { threshold?: number }) =>
       aiApi.saveRule(api, rule),
     onSettled: () => queryClient.invalidateQueries({ queryKey: aiKeys.rules }),
+  });
+}
+
+export function useCategoryRules() {
+  const { api } = useAuth();
+  return useQuery({ queryKey: aiKeys.categories, queryFn: () => aiApi.categories(api) });
+}
+
+export function useSaveCategoryRule() {
+  const { api } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      category,
+      ...body
+    }: {
+      category: MailCategory;
+      description?: string | null;
+      enabled?: boolean;
+    }) => aiApi.saveCategory(api, category, body),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: aiKeys.categories }),
   });
 }
 
