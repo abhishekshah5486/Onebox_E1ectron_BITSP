@@ -95,7 +95,6 @@ export function LabelsSection() {
   const [labelPage, setLabelPage] = useState(1);
   const rules = useLabelRules();
   const categoryRules = useCategoryRules();
-  const saveCategory = useSaveCategoryRule();
   const [pickedCategory, setPickedCategory] = useState<MailCategory | null>(null);
   const [editingCategory, setEditingCategory] = useState<CategoryRule | null>(null);
   const categoryRule = (category: MailCategory) =>
@@ -405,7 +404,7 @@ export function LabelsSection() {
           header={
             <Header
               variant="h2"
-              description="Gmail sorts mail into these. Tabs split the inbox; Purchases and Travel gather receipts and bookings from every folder. Where Gmail gives none, AI fills them in from each description."
+              description="Gmail sorts mail into these. Tabs split the inbox; Purchases and Travel gather receipts and bookings from every folder. Where Gmail gives none, AI sorts mail into them from each description."
               actions={
                 <SpaceBetween direction="horizontal" size="xs">
                   {refresh('categories', () => {
@@ -413,12 +412,13 @@ export function LabelsSection() {
                     void categoryRules.refetch();
                   })}
                   <Button
+                    ariaLabel="Edit category"
                     disabled={!pickedCategory || !categoryRule(pickedCategory)}
                     onClick={() =>
                       pickedCategory && setEditingCategory(categoryRule(pickedCategory) ?? null)
                     }
                   >
-                    Edit description
+                    Edit
                   </Button>
                 </SpaceBetween>
               }
@@ -451,26 +451,18 @@ export function LabelsSection() {
                 cell: ({ category }) => MAIL_CATEGORY_LABEL[category],
               },
               {
-                id: 'ai',
-                header: 'AI fills in',
-                width: 140,
+                id: 'mode',
+                header: 'AI sorting',
                 cell: ({ category }) => {
-                  const rule = categoryRule(category);
-                  return (
-                    <Toggle
-                      checked={rule?.enabled ?? false}
-                      disabled={!rule}
-                      ariaLabel={`Let AI fill in ${MAIL_CATEGORY_LABEL[category]}`}
-                      onChange={({ detail }) =>
-                        saveCategory.mutate(
-                          { category, enabled: detail.checked },
-                          {
-                            onError: (error) =>
-                              flash({ type: 'error', content: describeError(error) }),
-                          },
-                        )
-                      }
-                    />
+                  const mode = categoryRule(category)?.mode;
+                  return mode === 'auto' ? (
+                    <StatusIndicator type="success">AI applies it</StatusIndicator>
+                  ) : mode === 'suggest' ? (
+                    <StatusIndicator type="info">AI suggests it</StatusIndicator>
+                  ) : mode === 'off' ? (
+                    <StatusIndicator type="stopped">Manual only</StatusIndicator>
+                  ) : (
+                    <Box color="text-status-inactive">—</Box>
                   );
                 },
               },
@@ -779,18 +771,19 @@ function LabelModal({
   );
 }
 
-// A category's description for AI: the user's own words, or OneBox's default put back.
+// How AI sorts mail into a category, and its description: the user's own words, or OneBox's
+// default put back.
 function CategoryModal({ rule, onClose }: { rule: CategoryRule; onClose: () => void }) {
   const flash = useFlash();
   const save = useSaveCategoryRule();
   const [description, setDescription] = useState(rule.description);
-  const name = MAIL_CATEGORY_LABEL[rule.category];
+  const [aiMode, setAiMode] = useState<AiMode>(rule.mode);
   const run = (next: string | null) =>
     save.mutate(
-      { category: rule.category, description: next },
+      { category: rule.category, description: next, mode: aiMode },
       {
         onSuccess: () => {
-          flash({ type: 'success', content: `${name} saved.` });
+          flash({ type: 'success', content: `${rule.name} saved.` });
           onClose();
         },
       },
@@ -799,7 +792,7 @@ function CategoryModal({ rule, onClose }: { rule: CategoryRule; onClose: () => v
     <Modal
       visible
       onDismiss={onClose}
-      header={`Edit "${name}"`}
+      header={`Edit "${rule.name}"`}
       footer={
         <Box float="right">
           <SpaceBetween direction="horizontal" size="xs">
@@ -826,8 +819,19 @@ function CategoryModal({ rule, onClose }: { rule: CategoryRule; onClose: () => v
     >
       <SpaceBetween size="m">
         <FormField
+          label="AI sorting"
+          description="What AI does with mail that fits this category, where Gmail gives none."
+        >
+          <Select
+            selectedOption={MODE_OPTIONS.find((option) => option.value === aiMode) ?? null}
+            options={MODE_OPTIONS}
+            ariaLabel="AI sorting"
+            onChange={({ detail }) => setAiMode((detail.selectedOption.value ?? 'auto') as AiMode)}
+          />
+        </FormField>
+        <FormField
           label="Description"
-          description="AI reads this to decide which mail belongs here, where Gmail gives no category."
+          description="AI reads this to decide which mail belongs here."
           constraintText="At least 10 characters."
         >
           <Textarea

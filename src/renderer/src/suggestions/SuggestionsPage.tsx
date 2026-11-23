@@ -101,7 +101,9 @@ function confirmText(action: Confirming) {
   const emails = emailsIn(action.rows);
   switch (action.kind) {
     case 'accept':
-      return `Label ${what}? The label is added to the email.`;
+      return action.rows.every((row) => row.result.kind === 'category')
+        ? `Accept ${what}? The email shows under that category.`
+        : `Label ${what}? The label is added to the email.`;
     case 'decline':
       return `Decline ${what}? The email stays as it is, and AI learns from your choice.`;
     case 'discard':
@@ -206,10 +208,10 @@ function SuggestionsTable() {
     setConfirming(null);
   };
 
-  // Another label only makes sense within one account.
+  // Another label only makes sense within one account, and not in place of a category.
   const moveOptions = (() => {
     const accountIds = new Set(selected.map((row) => row.suggestion.accountId));
-    if (accountIds.size !== 1) return [];
+    if (accountIds.size !== 1 || selected.some((row) => row.result.kind === 'category')) return [];
     const suggested = new Set(selected.map((row) => row.result.path));
     return labelsOf([...accountIds][0]!).filter((label) => !suggested.has(label.path));
   })();
@@ -280,6 +282,7 @@ function SuggestionsTable() {
             content={result.reason}
           >
             {result.name}
+            {result.kind === 'category' && <span className={styles.kind}> · Category</span>}
           </Popover>
         </span>
       ),
@@ -363,7 +366,8 @@ function SuggestionsTable() {
                 {
                   id: 'move',
                   text: 'Move to label',
-                  disabled: others.length === 0,
+                  // A category can't be swapped for a label.
+                  disabled: others.length === 0 || row.result.kind === 'category',
                   items: others.map((label) => ({ id: `move:${label.path}`, text: label.name })),
                 },
                 { id: 'delete', text: 'Delete' },
@@ -823,6 +827,7 @@ function GmailSuggestions({
               </span>
               <span className={styles.cell}>
                 <span className={rowStyles.label}>{row.result.name}</span>
+                {row.result.kind === 'category' && <span className={styles.kind}> · Category</span>}
               </span>
               <span className={styles.cell}>{row.result.confidence.toFixed(2)}</span>
               {!waiting && <span className={styles.cell}>{outcome?.text ?? ''}</span>}

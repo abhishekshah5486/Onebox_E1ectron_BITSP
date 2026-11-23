@@ -118,13 +118,16 @@ export interface LabelRule {
 // A built-in category: AI fills it in where Gmail gives none, from its description.
 export interface CategoryRule {
   category: MailCategory;
+  name: string;
   description: string;
   defaultDescription: string;
   customized: boolean;
-  enabled: boolean;
+  mode: AiMode;
 }
 
 export interface LabelResult {
+  // A built-in category (path is its key) rather than one of the user's labels.
+  kind?: 'label' | 'category';
   path: string;
   name: string;
   confidence: number;
@@ -168,7 +171,7 @@ export const aiApi = {
   saveCategory: (
     api: ApiClient,
     category: MailCategory,
-    body: { description?: string | null; enabled?: boolean },
+    body: { description?: string | null; mode?: AiMode },
   ) => api.put<CategoryRule>(`/ai/categories/${category}`, body),
   suggestions: (api: ApiClient, page: number, view: SuggestionView) =>
     api.get<{ items: Suggestion[]; total: number; page: number; pageSize: number }>(
@@ -303,7 +306,7 @@ export function useSaveCategoryRule() {
     }: {
       category: MailCategory;
       description?: string | null;
-      enabled?: boolean;
+      mode?: AiMode;
     }) => aiApi.saveCategory(api, category, body),
     onSettled: () => queryClient.invalidateQueries({ queryKey: aiKeys.categories }),
   });

@@ -201,3 +201,7 @@
 .gridRow[aria-selected='true'] .cell {
   color: var(--ob-text);
 }
+
+.kind {
+  color: var(--ob-text-muted);
+}
