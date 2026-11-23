@@ -5,5 +5,8 @@
   "amazon-bedrock": "bedrock",
   "togetherai": "together",
   "fireworks-ai": "fireworks",
-  "openai-compatible": "openai"
+  "openai-compatible": "openai",
+  "falcon": "tii",
+  "moonshotai": "moonshot",
+  "moonshotai-cn": "moonshot"
 }

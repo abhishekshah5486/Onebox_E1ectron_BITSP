@@ -25,6 +25,21 @@ describe('ProviderMark', () => {
     expect(chroma.container.textContent).toBe('');
   });
 
+  it.each([
+    ['qwen', 'Qwen'],
+    ['falcon', 'Technology Innovation Institute'],
+    ['moonshotai', 'MoonshotAI'],
+    ['moonshotai-cn', 'MoonshotAI'],
+  ])('draws %s with its maker’s LobeHub mark', async (providerId, title) => {
+    const { container } = render(<ProviderMark providerId={providerId} logoUrl={null} name="x" />);
+    await waitFor(() => expect(container.querySelector('svg title')?.textContent).toBe(title));
+  });
+
+  it.each(['core42', 'ifm'])('shows %s’s official logo file', (providerId) => {
+    const { container } = render(<ProviderMark providerId={providerId} logoUrl={null} name="x" />);
+    expect(container.querySelectorAll('img')).toHaveLength(2);
+  });
+
   it('draws a bare logo at full size, without the tile', () => {
     const { container } = render(
       <ProviderMark providerId="milvus" logoUrl={null} name="Milvus" size={20} bare />,
