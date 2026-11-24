@@ -206,7 +206,7 @@ describe('ConsoleKnowledge', () => {
       chunks: [
         chunk('c1', 'r1', 'Resume.pdf', 'Cumulative CGPA: 8.76/10', 0.9),
         chunk('c2', 'r2', 'Transcript.pdf', 'CGPA 8.7', 0.6),
-        chunk('c3', 'r1', 'Resume.pdf', 'BITS Pilani, 2023 - present', 0.4),
+        chunk('c3', 'r1', 'Resume.pdf', `BITS Pilani ${'and more '.repeat(60)}`, 0.4),
       ],
       unindexed: [],
     }));
@@ -232,5 +232,8 @@ describe('ConsoleKnowledge', () => {
     expect(screen.getByText('1 more citation')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: 'Citations (3)' }));
     expect(await screen.findAllByRole('button', { name: 'Preview' })).toHaveLength(3);
+    // A long passage shows its first lines until opened.
+    await userEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeInTheDocument();
   });
 });

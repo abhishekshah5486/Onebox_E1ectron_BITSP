@@ -109,10 +109,20 @@
   align-items: start;
 }
 
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+
 /* The composer stays at the bottom while results scroll under it. */
 .dock {
   position: sticky;
   inset-block-end: 0;
+  z-index: 1;
+  margin-block-start: 16px;
   padding-block: 12px 16px;
   background: var(--kb-page);
 }

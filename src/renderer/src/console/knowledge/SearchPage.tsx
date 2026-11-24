@@ -44,6 +44,7 @@ import styles from './Knowledge.module.css';
 import { Sparkle } from './Sparkle';
 
 const MAIL = '__mail__';
+const CLAMP_CHARS = 360;
 
 interface Props {
   onSearched: (query: string) => void;
@@ -101,6 +102,9 @@ function Passage({
   top: number;
   onPreview: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  // Long passages (a whole table, a summary) show their first lines until opened.
+  const long = chunk.text.length > CLAMP_CHARS;
   return (
     <div className={styles.passage}>
       <Button
@@ -111,9 +115,16 @@ function Passage({
         <Badge color="blue">{refNumber}</Badge>
       </Button>
       <SpaceBetween size="xxs">
-        <Box variant="p">
-          <Marked text={chunk.text} words={words} />
-        </Box>
+        <div className={long && !open ? styles.clamp : undefined}>
+          <Box variant="p">
+            <Marked text={chunk.text} words={words} />
+          </Box>
+        </div>
+        {long && (
+          <Button variant="inline-link" onClick={() => setOpen(!open)}>
+            {open ? 'Show less' : 'Show more'}
+          </Button>
+        )}
         <SpaceBetween direction="horizontal" size="xs" alignItems="center">
           <Box fontSize="body-s" color="text-body-secondary">
             {relevance(chunk.score, top)}% match
@@ -522,8 +533,9 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
             )}
           </SpaceBetween>
         )}
-        <div className={styles.dock}>{composer}</div>
       </SpaceBetween>
+      {/* Outside SpaceBetween, whose wrapper would keep it from sticking. */}
+      <div className={styles.dock}>{composer}</div>
     </div>
   );
 }
