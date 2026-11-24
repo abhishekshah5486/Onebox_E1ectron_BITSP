@@ -2,7 +2,7 @@ import AppLayout from '@cloudscape-design/components/app-layout';
 import Spinner from '@cloudscape-design/components/spinner';
 import TopNavigation from '@cloudscape-design/components/top-navigation';
 import { Suspense, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router';
+import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useAuth, useCurrentUser } from '../auth/AuthProvider';
 import { useBilling } from '../billing/billing';
 import { formatCredits } from '../billing/plans';
@@ -14,6 +14,8 @@ import oneboxMark from '../ui/onebox-mark.svg';
 import { VersionSwitch } from '../ui/VersionSwitch';
 import { useLiveUpdates } from '../api/useLiveUpdates';
 import { ConsoleNavigation } from './ConsoleNavigation';
+import { KnowledgeNavigation } from './knowledge/KnowledgeNavigation';
+import { PageLayoutProvider } from './pageLayout';
 import { ConsoleSearchBox } from './ConsoleSearchBox';
 import styles from './ConsoleShell.module.css';
 import { SidebarResizer } from './SidebarResizer';
@@ -38,6 +40,7 @@ export function ConsoleShell() {
   const { preference, setPreference } = useTheme();
   const [navigationOpen, setNavigationOpen] = useState(true);
   const [navigationWidth, setNavigationWidth] = useSidebarWidth();
+  const knowledge = useLocation().pathname.startsWith('/knowledge');
   useLiveUpdates();
 
   return (
@@ -115,22 +118,32 @@ export function ConsoleShell() {
               ]}
             />
           </div>
-          <AppLayout
-            headerSelector="#onebox-top-nav"
-            navigation={<ConsoleNavigation />}
-            navigationWidth={navigationWidth}
-            navigationOpen={navigationOpen}
-            onNavigationChange={({ detail }) => setNavigationOpen(detail.open)}
-            toolsHide
-            notifications={banners}
-            stickyNotifications
-            contentType="table"
-            content={
-              <Suspense fallback={<Spinner size="large" />}>
-                <Outlet />
-              </Suspense>
-            }
-          />
+          <PageLayoutProvider>
+            {(page) => (
+              <AppLayout
+                headerSelector="#onebox-top-nav"
+                // A service opens with its own navigation, as console services do.
+                navigation={knowledge ? <KnowledgeNavigation /> : <ConsoleNavigation />}
+                navigationWidth={navigationWidth}
+                navigationOpen={navigationOpen}
+                onNavigationChange={({ detail }) => setNavigationOpen(detail.open)}
+                toolsHide
+                notifications={banners}
+                stickyNotifications
+                breadcrumbs={page.breadcrumbs}
+                splitPanel={page.splitPanel}
+                splitPanelOpen={page.splitPanelOpen}
+                onSplitPanelToggle={({ detail }) => page.onSplitPanelToggle?.(detail.open)}
+                splitPanelPreferences={{ position: 'side' }}
+                contentType={page.contentType ?? 'table'}
+                content={
+                  <Suspense fallback={<Spinner size="large" />}>
+                    <Outlet />
+                  </Suspense>
+                }
+              />
+            )}
+          </PageLayoutProvider>
           {navigationOpen && (
             <SidebarResizer width={navigationWidth} onResize={setNavigationWidth} />
           )}

@@ -1,0 +1,28 @@
+import type { AppLayoutProps } from '@cloudscape-design/components/app-layout';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+
+// What a page adds to the console's layout: its breadcrumbs, a split panel, its content type.
+export interface PageLayout {
+  breadcrumbs?: ReactNode;
+  splitPanel?: ReactNode;
+  splitPanelOpen?: boolean;
+  onSplitPanelToggle?: (open: boolean) => void;
+  contentType?: AppLayoutProps.ContentType;
+}
+
+const Context = createContext<{ set: (layout: PageLayout) => void } | null>(null);
+
+export function PageLayoutProvider({ children }: { children: (layout: PageLayout) => ReactNode }) {
+  const [layout, setLayout] = useState<PageLayout>({});
+  return <Context.Provider value={{ set: setLayout }}>{children(layout)}</Context.Provider>;
+}
+
+// Sets the page's part of the layout while it is shown; the deps say when it changed.
+export function usePageLayout(layout: PageLayout, deps: unknown[]) {
+  const context = useContext(Context);
+  useEffect(() => {
+    context?.set(layout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the caller lists what changes it
+  }, deps);
+  useEffect(() => () => context?.set({}), [context]);
+}

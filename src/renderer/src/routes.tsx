@@ -37,6 +37,7 @@ const ConsoleAccountMailbox = lazy(() =>
 const ConsoleThread = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleThread })));
 const ConsoleCompose = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleCompose })));
 const ConsoleSearch = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleSearch })));
+const ConsoleKnowledge = lazy(() => import('./console/knowledge/ConsoleKnowledge'));
 
 interface UnifiedProps {
   filter: ThreadFilter;
@@ -54,6 +55,7 @@ interface Kit {
   Thread: ComponentType<{ basePath: string }>;
   Compose: ComponentType;
   Search: ComponentType;
+  Knowledge: ComponentType;
 }
 
 const CLASSIC: Kit = {
@@ -63,6 +65,7 @@ const CLASSIC: Kit = {
   Thread: ThreadPage,
   Compose: OpenCompose,
   Search: SearchPage,
+  Knowledge: KnowledgePage,
 };
 
 const CONSOLE: Kit = {
@@ -72,6 +75,7 @@ const CONSOLE: Kit = {
   Thread: ConsoleThread,
   Compose: ConsoleCompose,
   Search: ConsoleSearch,
+  Knowledge: ConsoleKnowledge,
 };
 
 const UNIFIED_FOLDERS: FolderRole[] = ['sent', 'drafts', 'archive', 'spam', 'trash'];
@@ -99,7 +103,8 @@ function SearchThread({ Thread }: { Thread: Kit['Thread'] }) {
 
 export function AppRoutes() {
   const { version } = useUiVersion();
-  const { Shell, Unified, Account, Thread, Compose, Search } = version === 'v2' ? CONSOLE : CLASSIC;
+  const { Shell, Unified, Account, Thread, Compose, Search, Knowledge } =
+    version === 'v2' ? CONSOLE : CLASSIC;
   const unified = (key: string, props: UnifiedProps) => [
     <Route key={key} path={props.basePath} element={<Unified key={key} {...props} />} />,
     <Route
@@ -166,14 +171,11 @@ export function AppRoutes() {
             element={loading('Loading suggestions', <SuggestionsPage />)}
           />
           <Route path="/plans" element={loading('Loading plans', <PlansPage />)} />
-          <Route path="/knowledge" element={loading('Loading knowledge', <KnowledgePage />)} />
-          <Route
-            path="/knowledge/:view"
-            element={loading('Loading knowledge', <KnowledgePage />)}
-          />
+          <Route path="/knowledge" element={loading('Loading knowledge', <Knowledge />)} />
+          <Route path="/knowledge/:view" element={loading('Loading knowledge', <Knowledge />)} />
           <Route
             path="/knowledge/:view/:id"
-            element={loading('Loading knowledge', <KnowledgePage />)}
+            element={loading('Loading knowledge', <Knowledge />)}
           />
           <Route path="/settings" element={loading('Loading settings', <SettingsPage />)} />
           <Route path="/settings/:tab" element={loading('Loading settings', <SettingsPage />)} />

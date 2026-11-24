@@ -29,6 +29,7 @@ export interface KnowledgeRecord {
   sourceModifiedAt: string | null;
   dateOrigin: DateOrigin;
   parentId: string | null;
+  deletedAt?: string | null;
   duplicate?: boolean;
   mail?: MailInfo | null;
   classifyStatus?: ClassifyStatus | null;
@@ -135,6 +136,7 @@ export interface RecordQuery {
   order?: 'asc' | 'desc';
   offset?: number;
   limit?: number;
+  trashed?: boolean;
 }
 
 export interface RecordsPage {
