@@ -41,7 +41,7 @@ export function NodeIcon({ node }: { node: HubNode }) {
 export const nodeSize = (node: HubNode) =>
   node.sizeInBytes !== undefined && node.nodeType === 'record' ? formatSize(node.sizeInBytes) : '-';
 
-// Times in UTC, as the AWS console's tables show them.
+// Times in UTC; the column or label says so.
 const UTC = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
@@ -53,7 +53,7 @@ const UTC = new Intl.DateTimeFormat('en-GB', {
 });
 
 export const formatWhen = (when: string | number | null | undefined) =>
-  when ? `${UTC.format(new Date(when))} UTC` : '-';
+  when ? UTC.format(new Date(when)) : '-';
 export const formatMs = formatWhen;
 
 export const SIZE_RANGES = [

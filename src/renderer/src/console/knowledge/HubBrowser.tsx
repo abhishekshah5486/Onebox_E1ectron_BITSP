@@ -289,13 +289,13 @@ export function HubBrowser({
     { id: 'size', header: 'Size', cell: nodeSize, sortingField: 'size' },
     {
       id: 'createdAt',
-      header: 'Created',
+      header: 'Created (UTC)',
       cell: (n) => formatMs(n.createdAt),
       sortingField: 'createdAt',
     },
     {
       id: 'updatedAt',
-      header: 'Last updated',
+      header: 'Last updated (UTC)',
       cell: (n) => formatMs(n.updatedAt),
       sortingField: 'updatedAt',
     },
@@ -521,7 +521,7 @@ export function HubBrowser({
                 content: (n) => (
                   <Box color="text-body-secondary" fontSize="body-s">
                     {n.nodeType === 'record' ? `${nodeSize(n)} · ` : ''}
-                    Updated {formatMs(n.updatedAt)}
+                    Updated {formatMs(n.updatedAt)} UTC
                   </Box>
                 ),
               },

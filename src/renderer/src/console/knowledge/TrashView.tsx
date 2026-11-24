@@ -126,7 +126,7 @@ export function TrashView() {
               cell: (r) => names.get(r.sourceId) ?? r.sourceId,
             },
             { id: 'size', header: 'Size', cell: (r) => formatSize(r.sizeBytes) },
-            { id: 'deleted', header: 'Deleted', cell: (r) => formatWhen(r.deletedAt) },
+            { id: 'deleted', header: 'Deleted (UTC)', cell: (r) => formatWhen(r.deletedAt) },
           ]}
         />
       </div>

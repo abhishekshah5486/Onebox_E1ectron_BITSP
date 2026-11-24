@@ -44,8 +44,8 @@ function Details({ record }: { record: RecordDetails }) {
           { label: 'Version', value: record.version },
           { label: 'Size', value: formatSize(record.sizeBytes) },
           { label: 'Type', value: record.mimeType },
-          { label: 'Created at', value: formatWhen(record.createdAt) },
-          { label: 'Updated at', value: formatWhen(record.updatedAt) },
+          { label: 'Created at (UTC)', value: formatWhen(record.createdAt) },
+          { label: 'Updated at (UTC)', value: formatWhen(record.updatedAt) },
           ...(place ? [{ label: 'Collection', value: place }] : []),
           { label: 'Permissions', value: record.permissions[0]?.relationship ?? 'OWNER' },
         ]}
