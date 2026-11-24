@@ -142,6 +142,24 @@
   background: rgb(41 173 50 / 20%);
 }
 
+/* Like Cloudscape's inline link button, with the caret close to its text. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--kb-link);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  text-decoration: underline;
+}
+
 .nameIcon {
   margin-inline-end: 6px;
 }

@@ -160,6 +160,7 @@ export function KnowledgeFrame({
           '--kb-top': `${top}px`,
           '--kb-panel': tokens.colorBackgroundLayoutPanelContent,
           '--kb-border': tokens.colorBorderDividerDefault,
+          '--kb-link': tokens.colorTextLinkDefault,
         } as CSSProperties
       }
     >

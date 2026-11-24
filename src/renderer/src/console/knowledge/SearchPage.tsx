@@ -53,20 +53,29 @@ interface Props {
   onOpen: (record: Chunk['record']) => void;
 }
 
-function useProgress(running: boolean) {
+// How far a search got; a failed one stops on the step it was at.
+function useProgress(running: boolean, failed: boolean) {
   const [step, setStep] = useState(0);
   useEffect(() => {
     if (!running) return;
     const timers = [setTimeout(() => setStep(1), 450), setTimeout(() => setStep(2), 1400)];
     return () => timers.forEach(clearTimeout);
   }, [running]);
-  return running ? step : STEPS.length;
+  return running || failed ? step : STEPS.length;
 }
 
-function Progress({ running, found }: { running: boolean; found?: string }) {
-  const reached = useProgress(running);
+function Progress({
+  running,
+  failed,
+  found,
+}: {
+  running: boolean;
+  failed: boolean;
+  found?: string;
+}) {
+  const reached = useProgress(running, failed);
   const steps: StepsProps.Step[] = STEPS.map((label, i) => ({
-    status: i < reached ? 'success' : i === reached ? 'loading' : 'pending',
+    status: i < reached ? 'success' : i === reached ? (failed ? 'error' : 'loading') : 'pending',
     header: label,
   }));
   if (!running && found) steps.push({ status: 'success', header: found });
@@ -246,15 +255,17 @@ function RecordResult({
           // In line with the passages' text, past their numbers.
           <div className={styles.passage}>
             <span className={styles.refSpace} />
-            <Button
-              variant="inline-link"
-              iconName={more ? 'caret-down-filled' : 'caret-right-filled'}
+            <button
+              type="button"
+              className={styles.toggle}
+              aria-expanded={more}
               onClick={() => setMore(!more)}
             >
+              <Icon name={more ? 'caret-down-filled' : 'caret-right-filled'} size="small" />
               {more
                 ? 'Show fewer citations'
                 : `Show ${rest.length} more ${rest.length === 1 ? 'citation' : 'citations'}`}
-            </Button>
+            </button>
           </div>
         )}
       </SpaceBetween>
@@ -498,8 +509,13 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
     <div className={styles.searchColumn}>
       <SpaceBetween size="l">
         <Header variant="h2">{asked}</Header>
-        {(retrieval.isFetching || data) && (
-          <Progress key={JSON.stringify(input)} running={retrieval.isFetching} found={found} />
+        {(retrieval.isFetching || data || retrieval.isError) && (
+          <Progress
+            key={JSON.stringify(input)}
+            running={retrieval.isFetching}
+            failed={retrieval.isError && !retrieval.isFetching}
+            found={found}
+          />
         )}
         {retrieval.isError && <Alert type="error">{errorText(retrieval.error)}</Alert>}
         {data && !retrieval.isFetching && (
