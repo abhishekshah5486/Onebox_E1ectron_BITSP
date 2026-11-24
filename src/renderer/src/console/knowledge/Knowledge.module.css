@@ -110,26 +110,23 @@
   gap: 8px;
 }
 
-/* A passage's number: a small outlined box as tall as a line of text, so it sits level
-   with the passage's first line. */
+/* A passage's number, as an ordered list numbers its items. */
 .ref {
   inline-size: 26px;
-  block-size: 20px;
   padding: 0;
-  text-align: center;
-  line-height: 18px;
-  border: 1px solid var(--kb-border);
-  border-radius: 4px;
+  border: 0;
   background: transparent;
   color: inherit;
+  opacity: 0.7;
   font: inherit;
-  font-size: 12px;
   font-weight: 700;
+  text-align: end;
   cursor: pointer;
 }
 
 .ref:hover {
-  border-color: currentColor;
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .tags {

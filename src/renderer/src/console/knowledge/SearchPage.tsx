@@ -17,7 +17,8 @@ import PromptInput from '@cloudscape-design/components/prompt-input';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Steps, { type StepsProps } from '@cloudscape-design/components/steps';
 import Tabs from '@cloudscape-design/components/tabs';
-import Token from '@cloudscape-design/components/token';
+import Token, { type TokenProps } from '@cloudscape-design/components/token';
+import * as tokens from '@cloudscape-design/design-tokens';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useKnowledgeSources, useRetrieval, type Chunk } from '../../api/knowledge';
@@ -32,7 +33,6 @@ import {
   terms,
   type RecordHit,
 } from '../../knowledge/format';
-import { Marked } from '../../knowledge/parts';
 import {
   MAX_CHARS,
   NO_SCOPE,
@@ -71,7 +71,7 @@ function Progress({ running, found }: { running: boolean; found?: string }) {
     status: i < reached ? 'success' : i === reached ? 'loading' : 'pending',
     header: label,
   }));
-  if (!running && found) steps.push({ status: 'info', header: found });
+  if (!running && found) steps.push({ status: 'success', header: found });
   return (
     <div aria-live="polite">
       <Steps steps={steps} ariaLabel="Search progress" />
@@ -89,6 +89,27 @@ function Where({ record }: { record: Chunk['record'] }) {
   ]
     .filter(Boolean)
     .join(' · ');
+}
+
+// Neutral tags in the console's divider colour, rather than the selection blue.
+const TAG: TokenProps.Style = {
+  root: {
+    background: { default: 'transparent' },
+    borderColor: { default: tokens.colorBorderDividerDefault },
+    borderRadius: '4px',
+  },
+};
+
+// The question's words in bold, as the console marks matches.
+function Highlight({ text, words }: { text: string; words: string[] }) {
+  if (words.length === 0) return <>{text}</>;
+  const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(`(${escaped.join('|')})`, 'giu');
+  return (
+    <>
+      {text.split(pattern).map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part))}
+    </>
+  );
 }
 
 // A small link that opens or folds something, at the size of the text around it.
@@ -147,12 +168,12 @@ function Passage({
         aria-label={`Show passage ${refNumber} in the record`}
         onClick={onPreview}
       >
-        {refNumber}
+        {refNumber}.
       </button>
       <SpaceBetween size="xxs">
         <div className={long && !open ? styles.clamp : undefined}>
           <Box variant="p" padding="n" margin="n">
-            <Marked text={chunk.text} words={words} />
+            <Highlight text={chunk.text} words={words} />
           </Box>
         </div>
         {long && (
@@ -161,14 +182,13 @@ function Passage({
           </Button>
         )}
         <div className={styles.tags}>
-          <Box fontSize="body-s" color="text-body-secondary">
-            {relevance(chunk.score, top)}% match
-          </Box>
-          {[...locate(chunk), ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : [])].map(
-            (tag) => (
-              <Token key={tag} variant="inline" label={tag} />
-            ),
-          )}
+          {[
+            `${relevance(chunk.score, top)}% match`,
+            ...locate(chunk),
+            ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : []),
+          ].map((tag) => (
+            <Token key={tag} variant="inline" label={tag} style={TAG} />
+          ))}
         </div>
       </SpaceBetween>
     </div>

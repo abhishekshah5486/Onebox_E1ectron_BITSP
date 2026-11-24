@@ -1,3 +1,4 @@
+import { removeStopwords } from 'stopword';
 import type { Chunk, DateOrigin, KnowledgeRecord, RecordStatus } from '../api/knowledge';
 import { FILE_KINDS, fileKind, type FileKind } from '../mail/attachments/fileTypes';
 
@@ -100,16 +101,13 @@ export function relevance(score: number, top: number) {
   return Math.max(1, Math.round((score / top) * 100));
 }
 
-// Words of the question, to mark in a passage.
+// Words of the question worth marking in a passage: not "the", "what" and the like.
 export function terms(query: string) {
-  return [
-    ...new Set(
-      query
-        .toLowerCase()
-        .split(/[^\p{L}\p{N}]+/u)
-        .filter((word) => word.length > 2),
-    ),
-  ];
+  const words = query
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((word) => word.length > 2);
+  return [...new Set(removeStopwords(words))];
 }
 
 export function recordDates(record: KnowledgeRecord) {
