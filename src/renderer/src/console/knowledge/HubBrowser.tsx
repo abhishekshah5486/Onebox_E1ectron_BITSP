@@ -258,8 +258,12 @@ export function HubBrowser({
   const nameCell = (node: HubNode) => (
     // Only the name wraps (the table doesn't), onto lines that start under its icon.
     <span className={styles.wrap}>
-      <NodeIcon node={node} />{' '}
+      <span className={styles.nameIcon}>
+        <NodeIcon node={node} />
+      </span>
       <Link
+        // Containers read as links to open; a file's name opens it quietly, underlined on hover.
+        variant={node.nodeType === 'record' ? 'secondary' : 'primary'}
         href={nodeHref(node) ?? `#${node.id}`}
         onFollow={(e) => {
           e.preventDefault();

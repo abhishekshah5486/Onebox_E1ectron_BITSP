@@ -152,6 +152,10 @@
   background: rgb(41 173 50 / 20%);
 }
 
+.nameIcon {
+  margin-inline-end: 6px;
+}
+
 .wrap {
   white-space: normal;
   overflow-wrap: anywhere;
