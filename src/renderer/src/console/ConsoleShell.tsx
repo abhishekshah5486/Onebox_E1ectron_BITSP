@@ -1,7 +1,7 @@
 import AppLayout from '@cloudscape-design/components/app-layout';
 import Spinner from '@cloudscape-design/components/spinner';
 import TopNavigation from '@cloudscape-design/components/top-navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useAuth, useCurrentUser } from '../auth/AuthProvider';
 import { useBilling } from '../billing/billing';
@@ -14,7 +14,7 @@ import oneboxMark from '../ui/onebox-mark.svg';
 import { VersionSwitch } from '../ui/VersionSwitch';
 import { useLiveUpdates } from '../api/useLiveUpdates';
 import { ConsoleNavigation } from './ConsoleNavigation';
-import { KnowledgeNavigation } from './knowledge/KnowledgeNavigation';
+import { applyConsoleTheme } from './consoleTheme';
 import { PageLayoutProvider } from './pageLayout';
 import { ConsoleSearchBox } from './ConsoleSearchBox';
 import styles from './ConsoleShell.module.css';
@@ -38,9 +38,13 @@ export function ConsoleShell() {
   const navigate = useNavigate();
   const billing = useBilling();
   const { preference, setPreference } = useTheme();
-  const [navigationOpen, setNavigationOpen] = useState(true);
   const [navigationWidth, setNavigationWidth] = useSidebarWidth();
-  const knowledge = useLocation().pathname.startsWith('/knowledge');
+  // A service page opens with the console's navigation folded away; mail keeps it open.
+  const area = useLocation().pathname.startsWith('/knowledge') ? 'service' : 'mail';
+  const [open, setOpen] = useState({ mail: true, service: false });
+  const navigationOpen = open[area];
+  const setNavigationOpen = (value: boolean) => setOpen((o) => ({ ...o, [area]: value }));
+  useEffect(() => applyConsoleTheme().reset, []);
   useLiveUpdates();
 
   return (
@@ -122,8 +126,7 @@ export function ConsoleShell() {
             {(page) => (
               <AppLayout
                 headerSelector="#onebox-top-nav"
-                // A service opens with its own navigation, as console services do.
-                navigation={knowledge ? <KnowledgeNavigation /> : <ConsoleNavigation />}
+                navigation={<ConsoleNavigation />}
                 navigationWidth={navigationWidth}
                 navigationOpen={navigationOpen}
                 onNavigationChange={({ detail }) => setNavigationOpen(detail.open)}

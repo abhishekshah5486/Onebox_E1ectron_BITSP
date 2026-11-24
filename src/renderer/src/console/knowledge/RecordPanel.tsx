@@ -2,7 +2,6 @@ import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
 import SpaceBetween from '@cloudscape-design/components/space-between';
-import Spinner from '@cloudscape-design/components/spinner';
 import SplitPanel from '@cloudscape-design/components/split-panel';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Tabs from '@cloudscape-design/components/tabs';
@@ -11,6 +10,7 @@ import { useRecordDetails, type RecordDetails } from '../../api/hub';
 import { useRecordRead } from '../../api/knowledge';
 import { formatSize } from '../../knowledge/format';
 import { STATUS, formatWhen, upper } from './parts';
+import { FlowLoader } from './Sparkle';
 
 const STAGE_LABEL = { parse: 'Reading', index: 'Indexing', classify: 'Summary' } as const;
 
@@ -90,7 +90,7 @@ function Details({ record }: { record: RecordDetails }) {
 
 function Preview({ id }: { id: string }) {
   const read = useRecordRead(id, '');
-  if (read.isPending) return <Spinner />;
+  if (read.isPending) return <FlowLoader label="Loading preview" />;
   if (read.isError || !read.data) return <Box color="text-status-inactive">No preview yet.</Box>;
   if (read.data.blocks.length === 0)
     return <Box color="text-status-inactive">Nothing read from this file yet.</Box>;
@@ -133,7 +133,7 @@ export function RecordPanel({
       closeBehavior="hide"
     >
       {details.isPending ? (
-        <Spinner />
+        <FlowLoader label="Loading record" />
       ) : !record ? (
         <Box>This record is no longer here.</Box>
       ) : (

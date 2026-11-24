@@ -17,6 +17,7 @@ import { usePageLayout } from '../pageLayout';
 import { CollectionOverview } from './CollectionOverview';
 import { HubBrowser } from './HubBrowser';
 import { RecordPanel } from './RecordPanel';
+import { KnowledgeFrame } from './KnowledgeFrame';
 import { TrashView } from './TrashView';
 import { useUploader } from './useUploader';
 
@@ -114,84 +115,88 @@ export default function ConsoleKnowledge() {
 
   if (!VIEWS.has(view)) return <Navigate to="/knowledge/collections" replace />;
 
-  if (view === 'trash') return <TrashView />;
-  if (view === 'settings')
+  return <KnowledgeFrame>{page()}</KnowledgeFrame>;
+
+  function page() {
+    if (view === 'trash') return <TrashView />;
+    if (view === 'settings')
+      return (
+        <ContentLayout header={<Header variant="h1">Settings</Header>}>
+          <Container>
+            <SettingsView />
+          </Container>
+        </ContentLayout>
+      );
+    if (view === 'search')
+      return (
+        <ContentLayout
+          header={
+            <Header variant="h1" description="Ask across your collections and mail.">
+              Search
+            </Header>
+          }
+        >
+          <SearchView
+            onSearched={() => undefined}
+            focus={record ? { recordId: record } : null}
+            onPreview={(f) => selectRecord(f.recordId)}
+            onOpen={(r) => void download({ id: r.recordId, name: r.name, mail: r.mail })}
+          />
+        </ContentLayout>
+      );
+
+    const parent = collectionId
+      ? folder
+        ? { type: 'folder' as const, id: folder }
+        : { type: 'collection' as const, id: collectionId }
+      : view === 'mail' && id
+        ? { type: 'mailbox' as const, id }
+        : null;
+    const current = listing?.currentNode;
+
     return (
-      <ContentLayout header={<Header variant="h1">Settings</Header>}>
-        <Container>
-          <SettingsView />
-        </Container>
-      </ContentLayout>
-    );
-  if (view === 'search')
-    return (
-      <ContentLayout
-        header={
-          <Header variant="h1" description="Ask across your collections and mail.">
-            Search
-          </Header>
-        }
+      <div
+        onDragOver={(e) => {
+          if (collectionId && e.dataTransfer.types.includes('Files')) e.preventDefault();
+        }}
+        onDrop={(e) => {
+          if (!collectionId) return;
+          e.preventDefault();
+          void uploader.send([...e.dataTransfer.files].map((file) => ({ file })));
+        }}
       >
-        <SearchView
-          onSearched={() => undefined}
-          focus={record ? { recordId: record } : null}
-          onPreview={(f) => selectRecord(f.recordId)}
-          onOpen={(r) => void download({ id: r.recordId, name: r.name, mail: r.mail })}
-        />
-      </ContentLayout>
+        <SpaceBetween size="m">
+          {collectionId && !folder && <CollectionOverview id={collectionId} />}
+          <HubBrowser
+            key={`${view}:${id ?? ''}:${folder ?? ''}`}
+            parent={parent}
+            flattened={view === 'records' ? true : undefined}
+            header={parent ? (current?.name ?? ' ') : TITLES[view]}
+            description={
+              view === 'records'
+                ? 'Every file and email in your knowledge base.'
+                : parent
+                  ? undefined
+                  : 'Collections of your files, and the mail read into your knowledge base.'
+            }
+            actions={
+              collectionId && (
+                <ButtonDropdown
+                  variant="primary"
+                  mainAction={{ text: 'Upload', iconName: 'upload', onClick: uploader.pickFiles }}
+                  items={[{ id: 'folder', text: 'Upload a folder' }]}
+                  onItemClick={() => uploader.pickFolder()}
+                  ariaLabel="More upload options"
+                />
+              )
+            }
+            selectedRecord={record}
+            onSelectRecord={selectRecord}
+            onCurrent={setListing}
+          />
+        </SpaceBetween>
+        {uploader.inputs}
+      </div>
     );
-
-  const parent = collectionId
-    ? folder
-      ? { type: 'folder' as const, id: folder }
-      : { type: 'collection' as const, id: collectionId }
-    : view === 'mail' && id
-      ? { type: 'mailbox' as const, id }
-      : null;
-  const current = listing?.currentNode;
-
-  return (
-    <div
-      onDragOver={(e) => {
-        if (collectionId && e.dataTransfer.types.includes('Files')) e.preventDefault();
-      }}
-      onDrop={(e) => {
-        if (!collectionId) return;
-        e.preventDefault();
-        void uploader.send([...e.dataTransfer.files].map((file) => ({ file })));
-      }}
-    >
-      <SpaceBetween size="m">
-        {collectionId && !folder && <CollectionOverview id={collectionId} />}
-        <HubBrowser
-          key={`${view}:${id ?? ''}:${folder ?? ''}`}
-          parent={parent}
-          flattened={view === 'records' ? true : undefined}
-          header={parent ? (current?.name ?? ' ') : TITLES[view]}
-          description={
-            view === 'records'
-              ? 'Every file and email in your knowledge base.'
-              : parent
-                ? undefined
-                : 'Collections of your files, and the mail read into your knowledge base.'
-          }
-          actions={
-            collectionId && (
-              <ButtonDropdown
-                variant="primary"
-                mainAction={{ text: 'Upload', iconName: 'upload', onClick: uploader.pickFiles }}
-                items={[{ id: 'folder', text: 'Upload a folder' }]}
-                onItemClick={() => uploader.pickFolder()}
-                ariaLabel="More upload options"
-              />
-            )
-          }
-          selectedRecord={record}
-          onSelectRecord={selectRecord}
-          onCurrent={setListing}
-        />
-      </SpaceBetween>
-      {uploader.inputs}
-    </div>
-  );
+  }
 }

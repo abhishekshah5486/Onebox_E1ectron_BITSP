@@ -18,6 +18,7 @@ import { ConsoleAccountMailbox, ConsoleUnifiedMailbox } from './ConsoleMailbox';
 import { ConsoleSearch } from './ConsoleSearch';
 import { ConsoleShell } from './ConsoleShell';
 import { ConsoleThread } from './ConsoleThread';
+import ConsoleKnowledge from './knowledge/ConsoleKnowledge';
 
 const gmail = account({
   id: '11111111-1111-4111-8111-111111111111',
@@ -79,6 +80,8 @@ function renderConsole(path: string, api: ApiClient) {
                     />
                     <Route path="/search/:mode/:q" element={<ConsoleSearch />} />
                     <Route path="/settings" element={<p>at /settings</p>} />
+                    <Route path="/knowledge/:view" element={<ConsoleKnowledge />} />
+                    <Route path="/knowledge/:view/:id" element={<ConsoleKnowledge />} />
                   </Route>
                 </Route>
               </Routes>
@@ -446,5 +449,38 @@ describe('v2 console', () => {
     await userEvent.click(within(modal).getByRole('button', { name: 'Search' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(get).not.toHaveBeenCalledWith(expect.stringMatching(/^\/search\?/));
+  });
+
+  it('opens knowledge with its breadcrumbs and its own navigation panel, which folds away', async () => {
+    const listing = (items: unknown[]) => ({
+      currentNode: null,
+      items,
+      pagination: { limit: 50, totalItems: items.length, hasNext: false, hasPrev: false },
+    });
+    renderConsole(
+      '/knowledge/collections',
+      fakeApi({
+        ...restore,
+        get: routedGet({
+          '/accounts': () => ({ items: [] }),
+          '/rag/collections': () => ({ collections: [{ id: 'kb1', name: 'Policies' }] }),
+          '/rag/hub/nodes': () => listing([]),
+        }),
+      }),
+    );
+
+    const crumbs = await screen.findByRole('navigation', { name: 'Breadcrumbs' });
+    expect(within(crumbs).getAllByText('Collections').length).toBeGreaterThan(0);
+    const panel = screen.getByRole('navigation', { name: 'Knowledge' });
+    expect(await within(panel).findByRole('link', { name: 'Policies' })).toBeInTheDocument();
+
+    await userEvent.click(within(panel).getByRole('link', { name: 'All records' }));
+    expect(await screen.findByRole('heading', { name: /All records/ })).toBeInTheDocument();
+    expect(within(crumbs).getAllByText('All records').length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close knowledge navigation' }));
+    expect(screen.queryByRole('navigation', { name: 'Knowledge' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Open knowledge navigation' }));
+    expect(screen.getByRole('navigation', { name: 'Knowledge' })).toBeInTheDocument();
   });
 });

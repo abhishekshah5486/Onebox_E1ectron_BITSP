@@ -1,5 +1,5 @@
 import type { AppLayoutProps } from '@cloudscape-design/components/app-layout';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 // What a page adds to the console's layout: its breadcrumbs, a split panel, its content type.
 export interface PageLayout {
@@ -14,7 +14,9 @@ const Context = createContext<{ set: (layout: PageLayout) => void } | null>(null
 
 export function PageLayoutProvider({ children }: { children: (layout: PageLayout) => ReactNode }) {
   const [layout, setLayout] = useState<PageLayout>({});
-  return <Context.Provider value={{ set: setLayout }}>{children(layout)}</Context.Provider>;
+  // The same value every render, or each page's cleanup would run and clear its layout again.
+  const value = useMemo(() => ({ set: setLayout }), []);
+  return <Context.Provider value={value}>{children(layout)}</Context.Provider>;
 }
 
 // Sets the page's part of the layout while it is shown; the deps say when it changed.
