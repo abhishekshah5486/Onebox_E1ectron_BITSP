@@ -29,6 +29,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { saveBlob } from '../../mail/attachments/useAttachment';
 import { useFlash } from '../../settings/flash';
 import { ConfirmModal, MoveModal, NameModal } from './dialogs';
+import tableStyles from '../../ui/DataTable.module.css';
 import styles from './Knowledge.module.css';
 import {
   NodeIcon,
@@ -255,8 +256,9 @@ export function HubBrowser({
   };
 
   const nameCell = (node: HubNode) => (
-    <SpaceBetween direction="horizontal" size="xs" alignItems="center">
-      <NodeIcon node={node} />
+    // Inline, so a long name wraps on under its icon.
+    <span>
+      <NodeIcon node={node} />{' '}
       <Link
         href={nodeHref(node) ?? `#${node.id}`}
         onFollow={(e) => {
@@ -266,11 +268,11 @@ export function HubBrowser({
       >
         {node.name}
       </Link>
-    </SpaceBetween>
+    </span>
   );
 
   const columns: TableProps.ColumnDefinition<HubNode>[] = [
-    { id: 'name', header: 'Name', cell: nameCell, sortingField: 'name', isRowHeader: true },
+    { id: 'name', header: 'Name', cell: nameCell, sortingField: 'name' },
     { id: 'status', header: 'Status', cell: (n) => <NodeStatus node={n} /> },
     {
       id: 'type',
@@ -453,39 +455,42 @@ export function HubBrowser({
   return (
     <>
       {view === 'list' ? (
-        <Table
-          variant="container"
-          stickyHeader
-          header={tableHeader}
-          filter={filters}
-          pagination={pagination}
-          items={items}
-          columnDefinitions={columns}
-          trackBy="id"
-          loading={listing.isPending}
-          loadingText="Loading"
-          empty={empty}
-          selectionType="multi"
-          selectedItems={selected}
-          isItemDisabled={isItemDisabled}
-          onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
-          sortingColumn={{ sortingField: sort.by }}
-          sortingDescending={sort.desc}
-          onSortingChange={({ detail }) =>
-            refilter(setSort)({
-              by: (detail.sortingColumn.sortingField ?? 'updatedAt') as HubSort,
-              desc: detail.isDescending ?? false,
-            })
-          }
-          onRowClick={({ detail }) => {
-            if (detail.item.nodeType === 'record') onSelectRecord(detail.item.id);
-          }}
-          ariaLabels={{
-            selectionGroupLabel: 'Records',
-            itemSelectionLabel: (_, n) => n.name,
-            allItemsSelectionLabel: () => 'All records on this page',
-          }}
-        />
+        <div className={tableStyles.table}>
+          <Table
+            variant="container"
+            stickyHeader
+            header={tableHeader}
+            filter={filters}
+            pagination={pagination}
+            items={items}
+            columnDefinitions={columns}
+            wrapLines
+            trackBy="id"
+            loading={listing.isPending}
+            loadingText="Loading"
+            empty={empty}
+            selectionType="multi"
+            selectedItems={selected}
+            isItemDisabled={isItemDisabled}
+            onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
+            sortingColumn={{ sortingField: sort.by }}
+            sortingDescending={sort.desc}
+            onSortingChange={({ detail }) =>
+              refilter(setSort)({
+                by: (detail.sortingColumn.sortingField ?? 'updatedAt') as HubSort,
+                desc: detail.isDescending ?? false,
+              })
+            }
+            onRowClick={({ detail }) => {
+              if (detail.item.nodeType === 'record') onSelectRecord(detail.item.id);
+            }}
+            ariaLabels={{
+              selectionGroupLabel: 'Records',
+              itemSelectionLabel: (_, n) => n.name,
+              allItemsSelectionLabel: () => 'All records on this page',
+            }}
+          />
+        </div>
       ) : (
         <Cards
           variant="container"

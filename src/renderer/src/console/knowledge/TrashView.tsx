@@ -10,6 +10,7 @@ import { hubApi, useCollections, useHubMutation } from '../../api/hub';
 import { useRecordsPage, type KnowledgeRecord } from '../../api/knowledge';
 import { formatSize } from '../../knowledge/format';
 import { useFlash } from '../../settings/flash';
+import tableStyles from '../../ui/DataTable.module.css';
 import { ConfirmModal } from './dialogs';
 import { formatWhen, problem } from './parts';
 
@@ -51,77 +52,80 @@ export function TrashView() {
 
   return (
     <>
-      <Table
-        variant="container"
-        stickyHeader
-        header={
-          <Header
-            variant="h2"
-            counter={records.data ? `(${total})` : undefined}
-            description="Deleted files stay here until you delete them for good. They are not searched."
-            actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button
-                  disabled={selected.length === 0}
-                  loading={restore.isPending}
-                  onClick={() => void restoreSelected()}
-                >
-                  Restore
-                </Button>
-                <Button disabled={selected.length === 0} onClick={() => setPurging(selected)}>
-                  Delete forever
-                </Button>
-              </SpaceBetween>
-            }
-          >
-            Recently deleted
-          </Header>
-        }
-        filter={
-          <TextFilter
-            filteringText={q}
-            filteringPlaceholder="Find by name"
-            onChange={({ detail }) => {
-              setQ(detail.filteringText);
-              setPage(1);
-            }}
-          />
-        }
-        pagination={
-          <Pagination
-            currentPageIndex={page}
-            pagesCount={Math.max(1, Math.ceil(total / PAGE))}
-            onChange={({ detail }) => setPage(detail.currentPageIndex)}
-          />
-        }
-        items={records.data?.records ?? []}
-        loading={records.isPending}
-        loadingText="Loading"
-        trackBy="id"
-        selectionType="multi"
-        selectedItems={selected}
-        onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
-        ariaLabels={{
-          selectionGroupLabel: 'Deleted files',
-          itemSelectionLabel: (_, r) => r.name,
-          allItemsSelectionLabel: () => 'All deleted files on this page',
-        }}
-        empty={
-          <Box textAlign="center" color="inherit" padding="l">
-            <b>Nothing deleted</b>
-          </Box>
-        }
-        columnDefinitions={[
-          { id: 'name', header: 'Name', cell: (r) => r.name, isRowHeader: true },
-          {
-            id: 'collection',
-            header: 'Collection',
-            cell: (r) => names.get(r.sourceId) ?? r.sourceId,
-          },
-          { id: 'size', header: 'Size', cell: (r) => formatSize(r.sizeBytes) },
-          { id: 'deleted', header: 'Deleted', cell: (r) => formatWhen(r.deletedAt) },
-        ]}
-      />
+      <div className={tableStyles.table}>
+        <Table
+          variant="container"
+          stickyHeader
+          header={
+            <Header
+              variant="h2"
+              counter={records.data ? `(${total})` : undefined}
+              description="Deleted files stay here until you delete them for good. They are not searched."
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    disabled={selected.length === 0}
+                    loading={restore.isPending}
+                    onClick={() => void restoreSelected()}
+                  >
+                    Restore
+                  </Button>
+                  <Button disabled={selected.length === 0} onClick={() => setPurging(selected)}>
+                    Delete forever
+                  </Button>
+                </SpaceBetween>
+              }
+            >
+              Recently deleted
+            </Header>
+          }
+          filter={
+            <TextFilter
+              filteringText={q}
+              filteringPlaceholder="Find by name"
+              onChange={({ detail }) => {
+                setQ(detail.filteringText);
+                setPage(1);
+              }}
+            />
+          }
+          pagination={
+            <Pagination
+              currentPageIndex={page}
+              pagesCount={Math.max(1, Math.ceil(total / PAGE))}
+              onChange={({ detail }) => setPage(detail.currentPageIndex)}
+            />
+          }
+          items={records.data?.records ?? []}
+          loading={records.isPending}
+          loadingText="Loading"
+          trackBy="id"
+          wrapLines
+          selectionType="multi"
+          selectedItems={selected}
+          onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
+          ariaLabels={{
+            selectionGroupLabel: 'Deleted files',
+            itemSelectionLabel: (_, r) => r.name,
+            allItemsSelectionLabel: () => 'All deleted files on this page',
+          }}
+          empty={
+            <Box textAlign="center" color="inherit" padding="l">
+              <b>Nothing deleted</b>
+            </Box>
+          }
+          columnDefinitions={[
+            { id: 'name', header: 'Name', cell: (r) => r.name },
+            {
+              id: 'collection',
+              header: 'Collection',
+              cell: (r) => names.get(r.sourceId) ?? r.sourceId,
+            },
+            { id: 'size', header: 'Size', cell: (r) => formatSize(r.sizeBytes) },
+            { id: 'deleted', header: 'Deleted', cell: (r) => formatWhen(r.deletedAt) },
+          ]}
+        />
+      </div>
       {purging && (
         <ConfirmModal
           title="Delete forever"
