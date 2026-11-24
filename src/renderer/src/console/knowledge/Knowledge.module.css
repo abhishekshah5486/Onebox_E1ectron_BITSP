@@ -1,21 +1,23 @@
 /* The assistant gradient: violet, blue, sky. */
 .frame {
   --kb-flow: linear-gradient(90deg, #8b5cf6, #3b82f6 35%, #7dd3fc 60%, #8b5cf6 100%);
-  /* A page darker than its containers, as the console home is. */
-  --kb-page: #eef0f3;
   display: flex;
   align-items: flex-start;
   min-block-size: calc(100vh - var(--kb-top));
+}
+
+/* Search sits on a page darker than its containers, as the console home does; tables keep
+   the console's own background, as mail's do. */
+.deep {
+  --kb-page: #eef0f3;
   background: var(--kb-page);
+  align-self: stretch;
 }
 
-:global(.awsui-dark-mode) .frame {
+:global(.awsui-dark-mode) .deep {
   --kb-page: #0b0f14;
-}
-
-/* Dark containers get a clear edge, as the console's own panels have, through Cloudscape's
-   container shadow token (if an upgrade renames it, containers simply lose the edge). */
-:global(.awsui-dark-mode) .frame {
+  /* Dark containers get a clear edge through Cloudscape's container shadow token (if an
+     upgrade renames it, containers simply lose the edge). */
   --shadow-container-quglkl: 0 0 0 1px #424650;
 }
 
@@ -100,6 +102,31 @@
 .searchColumn {
   max-inline-size: 960px;
   margin-inline: auto;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* A passage's number: a small outlined box, as the console marks references. */
+.ref {
+  min-inline-size: 24px;
+  block-size: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--kb-border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ref:hover {
+  border-color: currentColor;
 }
 
 .passage {

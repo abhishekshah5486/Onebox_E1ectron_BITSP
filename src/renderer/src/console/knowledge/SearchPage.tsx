@@ -9,6 +9,7 @@ import DateInput from '@cloudscape-design/components/date-input';
 import ExpandableSection from '@cloudscape-design/components/expandable-section';
 import FormField from '@cloudscape-design/components/form-field';
 import Header from '@cloudscape-design/components/header';
+import Icon from '@cloudscape-design/components/icon';
 import Input from '@cloudscape-design/components/input';
 import Link from '@cloudscape-design/components/link';
 import Multiselect from '@cloudscape-design/components/multiselect';
@@ -89,6 +90,38 @@ function Where({ record }: { record: Chunk['record'] }) {
     .join(' · ');
 }
 
+// A small link that opens or folds something, at the size of the text around it.
+function Toggle({
+  open,
+  onToggle,
+  more,
+  less,
+}: {
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  more: string;
+  less: string;
+}) {
+  return (
+    <Link
+      variant="secondary"
+      fontSize="body-s"
+      href="#"
+      onFollow={(e) => {
+        e.preventDefault();
+        onToggle(!open);
+      }}
+    >
+      <Icon name={open ? 'caret-down-filled' : 'caret-right-filled'} size="small" />{' '}
+      {open ? less : more}
+    </Link>
+  );
+}
+
+function RecordIcon({ record }: { record: Chunk['record'] }) {
+  return <Icon name={record.mail && !record.attachedTo ? 'envelope' : 'file'} />;
+}
+
 function Passage({
   chunk,
   refNumber,
@@ -107,35 +140,28 @@ function Passage({
   const long = chunk.text.length > CLAMP_CHARS;
   return (
     <div className={styles.passage}>
-      <Button
-        variant="inline-link"
-        ariaLabel={`Show passage ${refNumber} in the record`}
+      <button
+        type="button"
+        className={styles.ref}
+        aria-label={`Show passage ${refNumber} in the record`}
         onClick={onPreview}
       >
-        <Badge color="blue">{refNumber}</Badge>
-      </Button>
+        {refNumber}
+      </button>
       <SpaceBetween size="xxs">
         <div className={long && !open ? styles.clamp : undefined}>
           <Box variant="p">
             <Marked text={chunk.text} words={words} />
           </Box>
         </div>
-        {long && (
-          <Button variant="inline-link" onClick={() => setOpen(!open)}>
-            {open ? 'Show less' : 'Show more'}
-          </Button>
-        )}
-        <SpaceBetween direction="horizontal" size="xs" alignItems="center">
-          <Box fontSize="body-s" color="text-body-secondary">
-            {relevance(chunk.score, top)}% match
-          </Box>
-          {locate(chunk).map((where) => (
-            <Badge key={where}>{where}</Badge>
-          ))}
-          {chunk.kind !== 'block' && (
-            <Badge color="severity-neutral">{KIND_LABEL[chunk.kind]}</Badge>
-          )}
-        </SpaceBetween>
+        {long && <Toggle open={open} onToggle={setOpen} more="Show more" less="Show less" />}
+        <Box fontSize="body-s" color="text-body-secondary">
+          {[
+            `${relevance(chunk.score, top)}% match`,
+            ...locate(chunk),
+            ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : []),
+          ].join(' · ')}
+        </Box>
       </SpaceBetween>
     </div>
   );
@@ -157,6 +183,7 @@ function RecordResult({
   onOpen: (record: Chunk['record']) => void;
 }) {
   const [first, ...rest] = hit.chunks as [RecordHit['chunks'][number], ...RecordHit['chunks']];
+  const [more, setMore] = useState(false);
   const passage = ({ chunk, ref }: RecordHit['chunks'][number]) => (
     <Passage
       key={chunk.id}
@@ -191,26 +218,23 @@ function RecordResult({
             </SpaceBetween>
           }
         >
-          <Link
-            onFollow={(e) => {
-              e.preventDefault();
-              onPreview(hit.recordId);
-            }}
-            href="#"
-          >
+          <span className={styles.title}>
+            <RecordIcon record={hit.record} />
             {hit.record.name}
-          </Link>
+          </span>
         </Header>
       }
     >
       <SpaceBetween size="m">
         {passage(first)}
+        {more && rest.map(passage)}
         {rest.length > 0 && (
-          <ExpandableSection
-            headerText={`${rest.length} more ${rest.length === 1 ? 'citation' : 'citations'}`}
-          >
-            <SpaceBetween size="m">{rest.map(passage)}</SpaceBetween>
-          </ExpandableSection>
+          <Toggle
+            open={more}
+            onToggle={setMore}
+            more={`${rest.length} more ${rest.length === 1 ? 'citation' : 'citations'}`}
+            less="Fewer citations"
+          />
         )}
       </SpaceBetween>
     </Container>
@@ -229,6 +253,7 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
   const [scope, setScope] = useState<Scope>(NO_SCOPE);
   const [applied, setApplied] = useState<Scope>(NO_SCOPE);
   const [tab, setTab] = useState('results');
+  const [options, setOptions] = useState(false);
   const sources = useKnowledgeSources();
   const collections = (sources.data ?? []).filter((s) => s.sourceType === 'upload');
   const mailIds = (sources.data ?? [])
@@ -314,6 +339,7 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
               options={sourceOptions}
               placeholder="All sources"
               hideTokens
+              expandToViewport
               ariaLabel="Sources"
               onChange={({ detail }) => {
                 const ids = detail.selectedOptions.map((o) => o.value!);
@@ -333,10 +359,15 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
         <Box fontSize="body-s" color="text-body-secondary">
           Max {MAX_CHARS.toLocaleString()} characters
         </Box>
-        <ExpandableSection
-          variant="footer"
-          headerText={scoped ? 'Search options (on)' : 'Search options'}
-        >
+        <Toggle
+          open={options}
+          onToggle={setOptions}
+          more={scoped ? 'Search options (on)' : 'Search options'}
+          less="Hide search options"
+        />
+      </SpaceBetween>
+      {options && (
+        <Container>
           <ColumnLayout columns={3}>
             <FormField label="Written from">
               <DateInput
@@ -368,8 +399,8 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
               </Button>
             </Box>
           )}
-        </ExpandableSection>
-      </SpaceBetween>
+        </Container>
+      )}
     </SpaceBetween>
   );
 
@@ -431,7 +462,10 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
             description={<Where record={chunk.record} />}
             actions={<Button onClick={() => onPreview(chunk.record.recordId)}>Preview</Button>}
           >
-            {chunk.record.name}
+            <span className={styles.title}>
+              <RecordIcon record={chunk.record} />
+              {chunk.record.name}
+            </span>
           </Header>
         }
       >

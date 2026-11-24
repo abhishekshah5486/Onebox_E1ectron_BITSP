@@ -229,11 +229,11 @@ describe('ConsoleKnowledge', () => {
     expect(await screen.findByRole('tab', { name: 'Results (2)' })).toBeInTheDocument();
     expect(post).toHaveBeenCalledWith('/rag/retrieve', { query: 'cgpa' });
     expect(screen.getByText('3 passages from 2 records')).toBeInTheDocument();
-    expect(screen.getByText('1 more citation')).toBeInTheDocument();
+    // The rest of a record's passages, and the end of a long one, open on request.
+    await userEvent.click(screen.getByRole('link', { name: /1 more citation/ }));
+    await userEvent.click(screen.getByRole('link', { name: /Show more/ }));
+    expect(screen.getByRole('link', { name: /Show less/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', { name: 'Citations (3)' }));
     expect(await screen.findAllByRole('button', { name: 'Preview' })).toHaveLength(3);
-    // A long passage shows its first lines until opened.
-    await userEvent.click(screen.getByRole('button', { name: 'Show more' }));
-    expect(screen.getByRole('button', { name: 'Show less' })).toBeInTheDocument();
   });
 });

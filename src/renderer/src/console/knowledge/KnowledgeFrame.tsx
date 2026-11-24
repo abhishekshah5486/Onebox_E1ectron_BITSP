@@ -57,10 +57,13 @@ const count = (n: number | undefined) =>
 export function KnowledgeFrame({
   recent,
   breadcrumbs,
+  deep = false,
   children,
 }: {
   recent: string[];
   breadcrumbs: ReactNode;
+  // A page darker than its containers (search), rather than the console's own.
+  deep?: boolean;
   children: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -201,7 +204,7 @@ export function KnowledgeFrame({
           </div>
         </nav>
       )}
-      <div className={styles.main}>
+      <div className={`${styles.main} ${deep ? styles.deep : ''}`}>
         <div className={styles.crumbs}>{breadcrumbs}</div>
         {children}
       </div>

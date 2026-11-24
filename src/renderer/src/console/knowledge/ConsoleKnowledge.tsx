@@ -121,7 +121,7 @@ export default function ConsoleKnowledge() {
   if (!VIEWS.has(view)) return <Navigate to="/knowledge/collections" replace />;
 
   return (
-    <KnowledgeFrame recent={recent} breadcrumbs={breadcrumbs}>
+    <KnowledgeFrame recent={recent} breadcrumbs={breadcrumbs} deep={view === 'search'}>
       {page()}
     </KnowledgeFrame>
   );
