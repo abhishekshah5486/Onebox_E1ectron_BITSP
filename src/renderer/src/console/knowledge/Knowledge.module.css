@@ -110,13 +110,17 @@
   gap: 8px;
 }
 
-/* A passage's number: a small outlined box, as the console marks references. */
+/* A passage's number: a small outlined box as tall as a line of text, so it sits level
+   with the passage's first line. */
 .ref {
-  min-inline-size: 24px;
-  block-size: 24px;
-  padding: 0 6px;
+  inline-size: 26px;
+  block-size: 20px;
+  margin-block-start: 1px;
+  padding: 0;
+  text-align: center;
+  line-height: 18px;
   border: 1px solid var(--kb-border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -127,6 +131,27 @@
 
 .ref:hover {
   border-color: currentColor;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Outlined like the console's labels, in its border colour, so they read in both modes. */
+.tag {
+  padding: 0 6px;
+  border: 1px solid var(--kb-border);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* Holds the number column's width under the passages. */
+.refSpace {
+  inline-size: 26px;
 }
 
 .passage {

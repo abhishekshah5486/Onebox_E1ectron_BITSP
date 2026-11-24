@@ -154,14 +154,23 @@ function Passage({
             <Marked text={chunk.text} words={words} />
           </Box>
         </div>
-        {long && <Toggle open={open} onToggle={setOpen} more="Show more" less="Show less" />}
-        <Box fontSize="body-s" color="text-body-secondary">
-          {[
-            `${relevance(chunk.score, top)}% match`,
-            ...locate(chunk),
-            ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : []),
-          ].join(' · ')}
-        </Box>
+        {long && (
+          <Button variant="inline-link" onClick={() => setOpen(!open)}>
+            {open ? 'Show less' : 'Show more'}
+          </Button>
+        )}
+        <div className={styles.tags}>
+          <Box fontSize="body-s" color="text-body-secondary">
+            {relevance(chunk.score, top)}% match
+          </Box>
+          {[...locate(chunk), ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : [])].map(
+            (tag) => (
+              <span key={tag} className={styles.tag}>
+                {tag}
+              </span>
+            ),
+          )}
+        </div>
       </SpaceBetween>
     </div>
   );
@@ -229,12 +238,15 @@ function RecordResult({
         {passage(first)}
         {more && rest.map(passage)}
         {rest.length > 0 && (
-          <Toggle
-            open={more}
-            onToggle={setMore}
-            more={`${rest.length} more ${rest.length === 1 ? 'citation' : 'citations'}`}
-            less="Fewer citations"
-          />
+          // In line with the passages' text, past their numbers.
+          <div className={styles.passage}>
+            <span className={styles.refSpace} />
+            <Button variant="inline-link" onClick={() => setMore(!more)}>
+              {more
+                ? 'Show fewer citations'
+                : `Show ${rest.length} more ${rest.length === 1 ? 'citation' : 'citations'}`}
+            </Button>
+          </div>
         )}
       </SpaceBetween>
     </Container>
