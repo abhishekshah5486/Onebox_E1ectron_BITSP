@@ -9,14 +9,15 @@ import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router'
 import { type HubListing, type RecordDetails } from '../../api/hub';
 import { knowledgeApi } from '../../api/knowledge';
 import { useAuth } from '../../auth/AuthProvider';
-import { SearchView } from '../../knowledge/SearchView';
 import { SettingsView } from '../../knowledge/SettingsView';
 import { saveBlob } from '../../mail/attachments/useAttachment';
+import { useRecentSearches } from '../../knowledge/parts';
 import { useFlash } from '../../settings/flash';
 import { usePageLayout } from '../pageLayout';
 import { CollectionOverview } from './CollectionOverview';
 import { HubBrowser } from './HubBrowser';
 import { RecordPanel } from './RecordPanel';
+import { SearchPage } from './SearchPage';
 import { KnowledgeFrame } from './KnowledgeFrame';
 import { TrashView } from './TrashView';
 import { useUploader } from './useUploader';
@@ -32,8 +33,9 @@ const TITLES: Record<string, string> = {
 };
 
 // Knowledge as a console service: its own navigation, breadcrumbs and a side panel for a record.
+// One route holds every knowledge path, so the navigation stays put while its pages change.
 export default function ConsoleKnowledge() {
-  const { view = 'collections', id } = useParams();
+  const [view = 'collections', id] = (useParams()['*'] ?? '').split('/').filter(Boolean);
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const { api } = useAuth();
@@ -41,6 +43,7 @@ export default function ConsoleKnowledge() {
   const record = params.get('record');
   const folder = params.get('folder');
   const [listing, setListing] = useState<HubListing | undefined>();
+  const { recent, remember } = useRecentSearches();
 
   const selectRecord = useCallback(
     (next: string | null) =>
@@ -89,18 +92,20 @@ export default function ConsoleKnowledge() {
       : []),
   ];
 
+  const breadcrumbs = (
+    <BreadcrumbGroup
+      items={crumbs}
+      ariaLabel="Breadcrumbs"
+      onFollow={(e) => {
+        e.preventDefault();
+        void navigate(e.detail.href);
+      }}
+    />
+  );
+
   usePageLayout(
     {
-      breadcrumbs: (
-        <BreadcrumbGroup
-          items={crumbs}
-          ariaLabel="Breadcrumbs"
-          onFollow={(e) => {
-            e.preventDefault();
-            void navigate(e.detail.href);
-          }}
-        />
-      ),
+      disableContentPaddings: true,
       splitPanel: record ? (
         <RecordPanel key={record} id={record} onDownload={(r: RecordDetails) => void download(r)} />
       ) : undefined,
@@ -110,12 +115,16 @@ export default function ConsoleKnowledge() {
       },
       contentType: view === 'settings' || view === 'search' ? 'default' : 'table',
     },
-    [record, view, id, folder, JSON.stringify(crumbs)],
+    [record, view],
   );
 
   if (!VIEWS.has(view)) return <Navigate to="/knowledge/collections" replace />;
 
-  return <KnowledgeFrame>{page()}</KnowledgeFrame>;
+  return (
+    <KnowledgeFrame recent={recent} breadcrumbs={breadcrumbs}>
+      {page()}
+    </KnowledgeFrame>
+  );
 
   function page() {
     if (view === 'trash') return <TrashView />;
@@ -129,20 +138,12 @@ export default function ConsoleKnowledge() {
       );
     if (view === 'search')
       return (
-        <ContentLayout
-          header={
-            <Header variant="h1" description="Ask across your collections and mail.">
-              Search
-            </Header>
-          }
-        >
-          <SearchView
-            onSearched={() => undefined}
-            focus={record ? { recordId: record } : null}
-            onPreview={(f) => selectRecord(f.recordId)}
-            onOpen={(r) => void download({ id: r.recordId, name: r.name, mail: r.mail })}
-          />
-        </ContentLayout>
+        <SearchPage
+          onSearched={remember}
+          selected={record}
+          onPreview={selectRecord}
+          onOpen={(r) => void download({ id: r.recordId, name: r.name, mail: r.mail })}
+        />
       );
 
     const parent = collectionId

@@ -1,30 +1,52 @@
 /* The assistant gradient: violet, blue, sky. */
 .frame {
   --kb-flow: linear-gradient(90deg, #8b5cf6, #3b82f6 35%, #7dd3fc 60%, #8b5cf6 100%);
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
+  /* A page darker than its containers, as the console home is. */
+  --kb-page: #eef0f3;
+  display: flex;
+  align-items: flex-start;
+  min-block-size: calc(100vh - var(--kb-top));
+  background: var(--kb-page);
+}
+
+:global(.awsui-dark-mode) .frame {
+  --kb-page: #0b0f14;
+}
+
+/* Dark containers get a clear edge, as the console's own panels have, through Cloudscape's
+   container shadow token (if an upgrade renames it, containers simply lose the edge). */
+:global(.awsui-dark-mode) .frame {
+  --shadow-container-quglkl: 0 0 0 1px #424650;
+}
+
+.rail,
+.folded {
+  position: sticky;
+  inset-block-start: var(--kb-top);
+  flex: none;
+  block-size: calc(100vh - var(--kb-top));
+  display: flex;
+  flex-direction: column;
+  background: var(--kb-panel);
+  border-inline-end: 1px solid var(--kb-border);
 }
 
 .rail {
-  position: sticky;
-  top: 72px;
-  inline-size: 248px;
-  max-block-size: calc(100vh - 96px);
-  display: flex;
-  flex-direction: column;
-  background: var(--kb-bg);
-  border: 1px solid var(--kb-border);
-  border-radius: 16px;
-  overflow: hidden;
+  inline-size: 264px;
+}
+
+.folded {
+  inline-size: 48px;
+  align-items: center;
+  gap: 12px;
+  padding-block-start: 10px;
 }
 
 .railHeader {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 8px 10px 16px;
+  padding: 10px 8px 10px 16px;
   font-weight: 700;
   font-size: 16px;
 }
@@ -35,6 +57,7 @@
 }
 
 .flowLine {
+  flex: none;
   block-size: 2px;
   background: var(--kb-flow);
   background-size: 200% 100%;
@@ -46,26 +69,61 @@
 }
 
 .railBody {
+  flex: 1;
   overflow: auto;
-  padding-block: 4px 12px;
+  padding-block: 4px 16px;
 }
 
-.collapsed {
-  position: sticky;
-  top: 72px;
+.main {
+  flex: 1;
+  min-inline-size: 0;
+  padding: 12px 24px 32px;
+}
+
+.crumbs {
+  margin-block-end: 12px;
+}
+
+.filters {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding-block: 8px;
-  inline-size: 44px;
-  border: 1px solid var(--kb-border);
-  border-radius: 16px;
-  background: var(--kb-bg);
+}
+
+.find {
+  flex: 1 1 240px;
+  min-inline-size: 200px;
+  max-inline-size: 420px;
+}
+
+.searchColumn {
+  max-inline-size: 960px;
+  margin-inline: auto;
+}
+
+.passage {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+/* The composer stays at the bottom while results scroll under it. */
+.dock {
+  position: sticky;
+  inset-block-end: 0;
+  padding-block: 12px 16px;
+  background: linear-gradient(to bottom, transparent, var(--kb-page) 24px);
 }
 
 .sparkle {
   flex: none;
+}
+
+.count {
+  font-size: 12px;
+  opacity: 0.7;
 }
 
 /* A loading line that fades in from the middle and flows, under a sparkle. */
@@ -103,15 +161,22 @@
 
 @media (max-width: 688px) {
   .frame {
-    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    align-items: stretch;
   }
   .rail,
-  .collapsed {
+  .folded {
     position: static;
     inline-size: auto;
+    block-size: auto;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--kb-border);
   }
-  .collapsed {
+  .folded {
     flex-direction: row;
-    padding-inline: 8px;
+    padding: 6px 8px;
+  }
+  .main {
+    padding-inline: 16px;
   }
 }

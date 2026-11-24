@@ -84,7 +84,7 @@ describe('ConsoleKnowledge', () => {
     );
     renderPage(<WhenSignedIn />, {
       path: '/knowledge/collections/kb1',
-      route: '/knowledge/:view/:id',
+      route: '/knowledge/*',
       api: signedIn({ get: collectionGet(), post: post as ApiClient['post'] }),
     });
 
@@ -109,7 +109,7 @@ describe('ConsoleKnowledge', () => {
     const uploadForm = vi.fn();
     renderPage(<WhenSignedIn />, {
       path: '/knowledge/collections/kb1',
-      route: '/knowledge/:view/:id',
+      route: '/knowledge/*',
       api: signedIn({
         get: collectionGet(),
         post: post as ApiClient['post'],
@@ -168,7 +168,7 @@ describe('ConsoleKnowledge', () => {
     });
     renderPage(<WhenSignedIn />, {
       path: '/knowledge/trash',
-      route: '/knowledge/:view',
+      route: '/knowledge/*',
       api: signedIn({ get, post: post as ApiClient['post'] }),
     });
 
@@ -178,5 +178,59 @@ describe('ConsoleKnowledge', () => {
     await userEvent.click(within(row).getByRole('checkbox'));
     await userEvent.click(screen.getByRole('button', { name: 'Restore' }));
     expect(post).toHaveBeenCalledWith('/rag/records/restore', { ids: ['r9'] });
+  });
+
+  it('asks a question and shows passages grouped by record, with citations', async () => {
+    const record = (recordId: string, name: string) => ({
+      recordId,
+      name,
+      mimeType: 'application/pdf',
+      sourceType: 'upload' as const,
+      sourceId: 'kb1',
+      updatedAt: '2026-03-01T00:00:00Z',
+      dates: {
+        created: '2026-03-01T00:00:00Z',
+        modified: '2026-03-01T00:00:00Z',
+        origin: 'upload' as const,
+      },
+    });
+    const chunk = (id: string, recordId: string, name: string, text: string, score: number) => ({
+      id,
+      text,
+      score,
+      kind: 'block' as const,
+      record: record(recordId, name),
+      citation: { page: 1, blockIndex: 2, blockIndices: [2] },
+    });
+    const post = vi.fn(async () => ({
+      chunks: [
+        chunk('c1', 'r1', 'Resume.pdf', 'Cumulative CGPA: 8.76/10', 0.9),
+        chunk('c2', 'r2', 'Transcript.pdf', 'CGPA 8.7', 0.6),
+        chunk('c3', 'r1', 'Resume.pdf', 'BITS Pilani, 2023 - present', 0.4),
+      ],
+      unindexed: [],
+    }));
+    renderPage(<WhenSignedIn />, {
+      path: '/knowledge/search',
+      route: '/knowledge/*',
+      api: signedIn({
+        post: post as ApiClient['post'],
+        get: routedGet({
+          '/rag/sources': () => ({ sources: [] }),
+          '/rag/collections': () => ({ collections: [] }),
+        }),
+      }),
+    });
+
+    expect(await screen.findByText('How can I help you today?')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Question' }), 'cgpa');
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+
+    expect(await screen.findByRole('tab', { name: 'Results (2)' })).toBeInTheDocument();
+    expect(post).toHaveBeenCalledWith('/rag/retrieve', { query: 'cgpa' });
+    expect(screen.getByText('3 passages from 2 records')).toBeInTheDocument();
+    expect(screen.getByText('1 more citation')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Citations (3)' }));
+    expect(await screen.findAllByRole('button', { name: 'Preview' })).toHaveLength(3);
   });
 });

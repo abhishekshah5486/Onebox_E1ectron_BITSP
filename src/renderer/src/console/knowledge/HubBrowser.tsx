@@ -29,6 +29,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { saveBlob } from '../../mail/attachments/useAttachment';
 import { useFlash } from '../../settings/flash';
 import { ConfirmModal, MoveModal, NameModal } from './dialogs';
+import styles from './Knowledge.module.css';
 import {
   NodeIcon,
   NodeStatus,
@@ -43,7 +44,7 @@ import {
 const PAGE = 50;
 const DAY = 86_400_000;
 const WHEN: SelectProps.Option[] = [
-  { value: '', label: 'Any time' },
+  { value: '', label: 'Updated any time' },
   { value: '1', label: 'Last 24 hours' },
   { value: '7', label: 'Last 7 days' },
   { value: '30', label: 'Last 30 days' },
@@ -341,8 +342,8 @@ export function HubBrowser({
   );
 
   const filters = (
-    <SpaceBetween direction="horizontal" size="xs">
-      <div style={{ minWidth: 240 }}>
+    <div className={styles.filters}>
+      <div className={styles.find}>
         <TextFilter
           filteringText={q}
           filteringPlaceholder="Find by name"
@@ -354,29 +355,27 @@ export function HubBrowser({
       <Multiselect
         selectedOptions={types}
         options={TYPES}
-        placeholder="Type"
+        placeholder="Any type"
         hideTokens
-        inlineLabelText="Type"
         onChange={({ detail }) => refilter(setTypes)(detail.selectedOptions)}
       />
       <Multiselect
         selectedOptions={statuses}
         options={STATUS_ORDER.map((s) => ({ value: s, label: STATUS[s].label }))}
-        placeholder="Status"
+        placeholder="Any status"
         hideTokens
-        inlineLabelText="Status"
         onChange={({ detail }) => refilter(setStatuses)(detail.selectedOptions)}
       />
       <Select
         selectedOption={size}
         options={[ANY_SIZE, ...SIZE_RANGES.map((r) => ({ value: r.value, label: r.label }))]}
-        inlineLabelText="Size"
+        ariaLabel="Size"
         onChange={({ detail }) => refilter(setSize)(detail.selectedOption)}
       />
       <Select
         selectedOption={updated.option}
         options={WHEN}
-        inlineLabelText="Last updated"
+        ariaLabel="Last updated"
         onChange={({ detail }) => {
           const days = Number(detail.selectedOption.value || 0);
           refilter(setUpdated)({
@@ -395,7 +394,7 @@ export function HubBrowser({
         ]}
         onChange={({ detail }) => setView(detail.selectedId as 'list' | 'grid')}
       />
-    </SpaceBetween>
+    </div>
   );
 
   const empty = (

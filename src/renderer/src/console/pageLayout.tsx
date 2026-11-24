@@ -8,6 +8,8 @@ export interface PageLayout {
   splitPanelOpen?: boolean;
   onSplitPanelToggle?: (open: boolean) => void;
   contentType?: AppLayoutProps.ContentType;
+  // The page lays out its own edges (e.g. a panel flush against the navigation).
+  disableContentPaddings?: boolean;
 }
 
 const Context = createContext<{ set: (layout: PageLayout) => void } | null>(null);

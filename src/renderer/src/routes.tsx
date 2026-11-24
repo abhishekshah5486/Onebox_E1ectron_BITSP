@@ -171,12 +171,22 @@ export function AppRoutes() {
             element={loading('Loading suggestions', <SuggestionsPage />)}
           />
           <Route path="/plans" element={loading('Loading plans', <PlansPage />)} />
-          <Route path="/knowledge" element={loading('Loading knowledge', <Knowledge />)} />
-          <Route path="/knowledge/:view" element={loading('Loading knowledge', <Knowledge />)} />
-          <Route
-            path="/knowledge/:view/:id"
-            element={loading('Loading knowledge', <Knowledge />)}
-          />
+          {version === 'v2' ? (
+            // One route for every knowledge path, so its navigation stays mounted.
+            <Route path="/knowledge/*" element={loading('Loading knowledge', <Knowledge />)} />
+          ) : (
+            <>
+              <Route path="/knowledge" element={loading('Loading knowledge', <Knowledge />)} />
+              <Route
+                path="/knowledge/:view"
+                element={loading('Loading knowledge', <Knowledge />)}
+              />
+              <Route
+                path="/knowledge/:view/:id"
+                element={loading('Loading knowledge', <Knowledge />)}
+              />
+            </>
+          )}
           <Route path="/settings" element={loading('Loading settings', <SettingsPage />)} />
           <Route path="/settings/:tab" element={loading('Loading settings', <SettingsPage />)} />
         </Route>

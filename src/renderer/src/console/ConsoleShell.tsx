@@ -1,7 +1,7 @@
 import AppLayout from '@cloudscape-design/components/app-layout';
 import Spinner from '@cloudscape-design/components/spinner';
 import TopNavigation from '@cloudscape-design/components/top-navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useAuth, useCurrentUser } from '../auth/AuthProvider';
 import { useBilling } from '../billing/billing';
@@ -14,7 +14,6 @@ import oneboxMark from '../ui/onebox-mark.svg';
 import { VersionSwitch } from '../ui/VersionSwitch';
 import { useLiveUpdates } from '../api/useLiveUpdates';
 import { ConsoleNavigation } from './ConsoleNavigation';
-import { applyConsoleTheme } from './consoleTheme';
 import { PageLayoutProvider } from './pageLayout';
 import { ConsoleSearchBox } from './ConsoleSearchBox';
 import styles from './ConsoleShell.module.css';
@@ -44,7 +43,6 @@ export function ConsoleShell() {
   const [open, setOpen] = useState({ mail: true, service: false });
   const navigationOpen = open[area];
   const setNavigationOpen = (value: boolean) => setOpen((o) => ({ ...o, [area]: value }));
-  useEffect(() => applyConsoleTheme().reset, []);
   useLiveUpdates();
 
   return (
@@ -134,6 +132,7 @@ export function ConsoleShell() {
                 notifications={banners}
                 stickyNotifications
                 breadcrumbs={page.breadcrumbs}
+                disableContentPaddings={page.disableContentPaddings}
                 splitPanel={page.splitPanel}
                 splitPanelOpen={page.splitPanelOpen}
                 onSplitPanelToggle={({ detail }) => page.onSplitPanelToggle?.(detail.open)}

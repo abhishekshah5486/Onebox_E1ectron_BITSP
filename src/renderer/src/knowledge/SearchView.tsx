@@ -14,9 +14,9 @@ import { Sparkles } from './parts';
 import { CitationCard, RecordCard, type Focus } from './results';
 import styles from './Knowledge.module.css';
 
-const MAX_CHARS = 4000;
+export const MAX_CHARS = 4000;
 
-const SUGGESTIONS = [
+export const SUGGESTIONS = [
   {
     chip: 'Policy',
     title: 'What does it say about refunds?',
@@ -47,7 +47,7 @@ export interface Scope {
   limit: string;
 }
 
-const NO_SCOPE: Scope = {
+export const NO_SCOPE: Scope = {
   sourceIds: [],
   mail: true,
   createdAfter: '',
@@ -56,7 +56,7 @@ const NO_SCOPE: Scope = {
 };
 
 // Filters combine with AND, so "these collections and mail" names the mail accounts too.
-function inputFor(
+export function inputFor(
   query: string,
   scope: Scope,
   recordIds: string[],
@@ -76,7 +76,11 @@ function inputFor(
   };
 }
 
-const STEPS = ['Reading your question', 'Searching your files and mail', 'Ranking the passages'];
+export const STEPS = [
+  'Reading your question',
+  'Searching your files and mail',
+  'Ranking the passages',
+];
 
 function Progress({ done, found }: { done: boolean; found?: string }) {
   const [step, setStep] = useState(0);
@@ -122,7 +126,7 @@ function Progress({ done, found }: { done: boolean; found?: string }) {
   );
 }
 
-function errorText(error: unknown) {
+export function errorText(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 402)
       return 'You are out of AI credits, which searching needs for your question.';

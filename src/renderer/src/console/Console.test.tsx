@@ -80,8 +80,7 @@ function renderConsole(path: string, api: ApiClient) {
                     />
                     <Route path="/search/:mode/:q" element={<ConsoleSearch />} />
                     <Route path="/settings" element={<p>at /settings</p>} />
-                    <Route path="/knowledge/:view" element={<ConsoleKnowledge />} />
-                    <Route path="/knowledge/:view/:id" element={<ConsoleKnowledge />} />
+                    <Route path="/knowledge/*" element={<ConsoleKnowledge />} />
                   </Route>
                 </Route>
               </Routes>
