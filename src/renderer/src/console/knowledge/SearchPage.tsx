@@ -177,9 +177,9 @@ function Passage({
           </Box>
           {[...locate(chunk), ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : [])].map(
             (tag) => (
-              <span key={tag} className={styles.tag}>
+              <Badge key={tag} color="blue">
                 {tag}
-              </span>
+              </Badge>
             ),
           )}
         </div>

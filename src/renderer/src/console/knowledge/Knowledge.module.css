@@ -110,12 +110,12 @@
   gap: 8px;
 }
 
-/* A passage's number: a small solid square in the console's neutral grey. */
+/* A passage's number: a small solid square, dark on light pages and white on dark ones. */
 .ref {
   inline-size: 22px;
   block-size: 20px;
   border-radius: 4px;
-  background: #5f6b7a;
+  background: #0f141a;
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -123,19 +123,9 @@
   text-align: center;
 }
 
-/* Solid pills, light on dark and dark on light. */
-.tag {
-  padding: 0 8px;
-  border-radius: 999px;
-  background: #e9ebed;
+:global(.awsui-dark-mode) .ref {
+  background: #ffffff;
   color: #0f141a;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 20px;
-}
-
-:global(.awsui-dark-mode) .tag {
-  background: #dedee3;
 }
 
 /* A matched word: bold, underlined in blue, on a light green tint. */
