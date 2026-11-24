@@ -110,23 +110,46 @@
   gap: 8px;
 }
 
-/* A passage's number, as an ordered list numbers its items. */
+/* A passage's number: a small solid square in the console's neutral grey. */
 .ref {
-  inline-size: 26px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  opacity: 0.7;
-  font: inherit;
+  inline-size: 22px;
+  block-size: 20px;
+  border-radius: 4px;
+  background: #5f6b7a;
+  color: #ffffff;
+  font-size: 12px;
   font-weight: 700;
-  text-align: end;
-  cursor: pointer;
+  line-height: 20px;
+  text-align: center;
 }
 
-.ref:hover {
-  opacity: 1;
-  text-decoration: underline;
+/* Solid pills, light on dark and dark on light. */
+.tag {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #e9ebed;
+  color: #0f141a;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+:global(.awsui-dark-mode) .tag {
+  background: #dedee3;
+}
+
+/* A matched word: bold, underlined in blue, on a light green tint. */
+.match {
+  font-weight: 700;
+  text-decoration: underline 2px #0972d3;
+  text-underline-offset: 3px;
+  background: rgb(0 166 90 / 14%);
+  border-radius: 2px;
+}
+
+:global(.awsui-dark-mode) .match {
+  text-decoration-color: #42b4ff;
+  background: rgb(41 173 50 / 20%);
 }
 
 .tags {
@@ -138,7 +161,7 @@
 
 /* Holds the number column's width under the passages. */
 .refSpace {
-  inline-size: 26px;
+  inline-size: 22px;
 }
 
 .passage {

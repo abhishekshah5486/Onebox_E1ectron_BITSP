@@ -52,11 +52,11 @@ export function TrashView() {
   return (
     <>
       <Table
-        variant="full-page"
+        variant="container"
         stickyHeader
         header={
           <Header
-            variant="awsui-h1-sticky"
+            variant="h2"
             counter={records.data ? `(${total})` : undefined}
             description="Deleted files stay here until you delete them for good. They are not searched."
             actions={

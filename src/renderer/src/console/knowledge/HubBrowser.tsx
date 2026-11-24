@@ -435,7 +435,7 @@ export function HubBrowser({
   );
   const tableHeader = (
     <Header
-      variant="awsui-h1-sticky"
+      variant="h2"
       counter={listing.data ? `(${total})` : undefined}
       description={description}
       actions={headerActions}
@@ -454,7 +454,7 @@ export function HubBrowser({
     <>
       {view === 'list' ? (
         <Table
-          variant="full-page"
+          variant="container"
           stickyHeader
           header={tableHeader}
           filter={filters}
@@ -488,7 +488,7 @@ export function HubBrowser({
         />
       ) : (
         <Cards
-          variant="full-page"
+          variant="container"
           stickyHeader
           header={tableHeader}
           filter={filters}

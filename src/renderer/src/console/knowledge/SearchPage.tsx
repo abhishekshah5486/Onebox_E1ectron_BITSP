@@ -17,8 +17,6 @@ import PromptInput from '@cloudscape-design/components/prompt-input';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Steps, { type StepsProps } from '@cloudscape-design/components/steps';
 import Tabs from '@cloudscape-design/components/tabs';
-import Token, { type TokenProps } from '@cloudscape-design/components/token';
-import * as tokens from '@cloudscape-design/design-tokens';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useKnowledgeSources, useRetrieval, type Chunk } from '../../api/knowledge';
@@ -91,23 +89,22 @@ function Where({ record }: { record: Chunk['record'] }) {
     .join(' · ');
 }
 
-// Neutral tags in the console's divider colour, rather than the selection blue.
-const TAG: TokenProps.Style = {
-  root: {
-    background: { default: 'transparent' },
-    borderColor: { default: tokens.colorBorderDividerDefault },
-    borderRadius: '4px',
-  },
-};
-
-// The question's words in bold, as the console marks matches.
+// The question's words: bold, underlined in blue on a light green tint.
 function Highlight({ text, words }: { text: string; words: string[] }) {
   if (words.length === 0) return <>{text}</>;
   const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const pattern = new RegExp(`(${escaped.join('|')})`, 'giu');
   return (
     <>
-      {text.split(pattern).map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part))}
+      {text.split(pattern).map((part, i) =>
+        i % 2 === 1 ? (
+          <strong key={i} className={styles.match}>
+            {part}
+          </strong>
+        ) : (
+          part
+        ),
+      )}
     </>
   );
 }
@@ -149,28 +146,21 @@ function Passage({
   refNumber,
   words,
   top,
-  onPreview,
 }: {
   chunk: Chunk;
   refNumber: number;
   words: string[];
   top: number;
-  onPreview: () => void;
 }) {
   const [open, setOpen] = useState(false);
   // Long passages (a whole table, a summary) show their first lines until opened.
   const long = chunk.text.length > CLAMP_CHARS;
   return (
     <div className={styles.passage}>
-      <button
-        type="button"
-        className={styles.ref}
-        aria-label={`Show passage ${refNumber} in the record`}
-        onClick={onPreview}
-      >
-        {refNumber}.
-      </button>
-      <SpaceBetween size="xxs">
+      <span className={styles.ref} aria-label={`Passage ${refNumber}`}>
+        {refNumber}
+      </span>
+      <SpaceBetween size="s">
         <div className={long && !open ? styles.clamp : undefined}>
           <Box variant="p" padding="n" margin="n">
             <Highlight text={chunk.text} words={words} />
@@ -182,13 +172,16 @@ function Passage({
           </Button>
         )}
         <div className={styles.tags}>
-          {[
-            `${relevance(chunk.score, top)}% match`,
-            ...locate(chunk),
-            ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : []),
-          ].map((tag) => (
-            <Token key={tag} variant="inline" label={tag} style={TAG} />
-          ))}
+          <Box fontSize="body-s" color="text-body-secondary">
+            {relevance(chunk.score, top)}% match
+          </Box>
+          {[...locate(chunk), ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : [])].map(
+            (tag) => (
+              <span key={tag} className={styles.tag}>
+                {tag}
+              </span>
+            ),
+          )}
         </div>
       </SpaceBetween>
     </div>
@@ -213,14 +206,7 @@ function RecordResult({
   const [first, ...rest] = hit.chunks as [RecordHit['chunks'][number], ...RecordHit['chunks']];
   const [more, setMore] = useState(false);
   const passage = ({ chunk, ref }: RecordHit['chunks'][number]) => (
-    <Passage
-      key={chunk.id}
-      chunk={chunk}
-      refNumber={ref}
-      words={words}
-      top={top}
-      onPreview={() => onPreview(hit.recordId)}
-    />
+    <Passage key={chunk.id} chunk={chunk} refNumber={ref} words={words} top={top} />
   );
   return (
     <Container
@@ -504,13 +490,7 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
           </Header>
         }
       >
-        <Passage
-          chunk={chunk}
-          refNumber={offset + i + 1}
-          words={words}
-          top={best}
-          onPreview={() => onPreview(chunk.record.recordId)}
-        />
+        <Passage chunk={chunk} refNumber={offset + i + 1} words={words} top={best} />
       </Container>
     ));
 
