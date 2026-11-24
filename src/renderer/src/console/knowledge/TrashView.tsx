@@ -12,6 +12,7 @@ import { formatSize } from '../../knowledge/format';
 import { useFlash } from '../../settings/flash';
 import tableStyles from '../../ui/DataTable.module.css';
 import { ConfirmModal } from './dialogs';
+import styles from './Knowledge.module.css';
 import { formatWhen, problem } from './parts';
 
 const PAGE = 50;
@@ -100,7 +101,6 @@ export function TrashView() {
           loading={records.isPending}
           loadingText="Loading"
           trackBy="id"
-          wrapLines
           selectionType="multi"
           selectedItems={selected}
           onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
@@ -115,7 +115,11 @@ export function TrashView() {
             </Box>
           }
           columnDefinitions={[
-            { id: 'name', header: 'Name', cell: (r) => r.name },
+            {
+              id: 'name',
+              header: 'Name',
+              cell: (r) => <span className={styles.wrap}>{r.name}</span>,
+            },
             {
               id: 'collection',
               header: 'Collection',

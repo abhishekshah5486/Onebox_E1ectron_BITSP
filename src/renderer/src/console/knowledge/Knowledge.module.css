@@ -152,6 +152,11 @@
   background: rgb(41 173 50 / 20%);
 }
 
+.wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;

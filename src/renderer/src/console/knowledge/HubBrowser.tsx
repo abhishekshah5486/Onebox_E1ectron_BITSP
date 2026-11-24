@@ -256,8 +256,8 @@ export function HubBrowser({
   };
 
   const nameCell = (node: HubNode) => (
-    // Inline, so a long name wraps on under its icon.
-    <span>
+    // Only the name wraps (the table doesn't), onto lines that start under its icon.
+    <span className={styles.wrap}>
       <NodeIcon node={node} />{' '}
       <Link
         href={nodeHref(node) ?? `#${node.id}`}
@@ -464,7 +464,6 @@ export function HubBrowser({
             pagination={pagination}
             items={items}
             columnDefinitions={columns}
-            wrapLines
             trackBy="id"
             loading={listing.isPending}
             loadingText="Loading"
