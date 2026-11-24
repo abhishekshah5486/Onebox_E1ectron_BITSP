@@ -41,22 +41,20 @@ export function NodeIcon({ node }: { node: HubNode }) {
 export const nodeSize = (node: HubNode) =>
   node.sizeInBytes !== undefined && node.nodeType === 'record' ? formatSize(node.sizeInBytes) : '-';
 
-const DATE = new Intl.DateTimeFormat(undefined, {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
-const DATE_TIME = new Intl.DateTimeFormat(undefined, {
+// Times in UTC, as the AWS console's tables show them.
+const UTC = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: 'UTC',
 });
 
-export const formatMs = (ms: number | null | undefined) => (ms ? DATE.format(new Date(ms)) : '-');
-export const formatWhen = (iso: string | number | null | undefined) =>
-  iso ? DATE_TIME.format(new Date(iso)) : '-';
+export const formatWhen = (when: string | number | null | undefined) =>
+  when ? `${UTC.format(new Date(when))} UTC` : '-';
+export const formatMs = formatWhen;
 
 export const SIZE_RANGES = [
   { value: 'lt1mb', label: '< 1 MB', bounds: [null, 1024 * 1024 - 1] },

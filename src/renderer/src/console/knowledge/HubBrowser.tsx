@@ -262,8 +262,6 @@ export function HubBrowser({
         <NodeIcon node={node} />
       </span>
       <Link
-        // Containers read as links to open; a file's name opens it quietly, underlined on hover.
-        variant={node.nodeType === 'record' ? 'secondary' : 'primary'}
         href={nodeHref(node) ?? `#${node.id}`}
         onFollow={(e) => {
           e.preventDefault();
