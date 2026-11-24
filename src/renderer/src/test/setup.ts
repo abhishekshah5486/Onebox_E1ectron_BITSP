@@ -13,6 +13,9 @@ vi.stubGlobal(
   'matchMedia',
   vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
 );
+// jsdom lays nothing out, so it has no scrolling into view.
+Element.prototype.scrollIntoView = vi.fn();
+
 vi.mock('@cloudscape-design/global-styles', () => ({
   applyMode: vi.fn(),
   Mode: { Light: 'light', Dark: 'dark' },

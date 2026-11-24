@@ -277,6 +277,7 @@ export function ConsoleNavigation() {
                 href: '/suggestions',
                 info: <Count value={suggestionCount} label="suggestions waiting" />,
               }),
+              link({ key: 'knowledge', type: 'link', text: 'Knowledge', href: '/knowledge' }),
               ...entries.filter((entry) => showMore || !hidden.has(entry.key)).map(link),
               ...(entries.some((entry) => hidden.has(entry.key))
                 ? [

@@ -24,6 +24,7 @@ import { useUiVersion } from './theme/UiVersionProvider';
 const SettingsPage = lazy(() => import('./settings/SettingsPage'));
 const SuggestionsPage = lazy(() => import('./suggestions/SuggestionsPage'));
 const PlansPage = lazy(() => import('./billing/PlansPage'));
+const KnowledgePage = lazy(() => import('./knowledge/KnowledgePage'));
 const SetupWizard = lazy(() => import('./settings/SetupWizard'));
 const loadConsole = () => import('./console');
 const ConsoleShell = lazy(() => loadConsole().then((m) => ({ default: m.ConsoleShell })));
@@ -165,6 +166,15 @@ export function AppRoutes() {
             element={loading('Loading suggestions', <SuggestionsPage />)}
           />
           <Route path="/plans" element={loading('Loading plans', <PlansPage />)} />
+          <Route path="/knowledge" element={loading('Loading knowledge', <KnowledgePage />)} />
+          <Route
+            path="/knowledge/:view"
+            element={loading('Loading knowledge', <KnowledgePage />)}
+          />
+          <Route
+            path="/knowledge/:view/:id"
+            element={loading('Loading knowledge', <KnowledgePage />)}
+          />
           <Route path="/settings" element={loading('Loading settings', <SettingsPage />)} />
           <Route path="/settings/:tab" element={loading('Loading settings', <SettingsPage />)} />
         </Route>

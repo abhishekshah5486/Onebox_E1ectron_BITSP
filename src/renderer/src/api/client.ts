@@ -169,6 +169,40 @@ export function createApiClient({
     });
   }
 
+  // A multipart form, e.g. several files with their fields; the browser sets its boundary.
+  function sendForm(path: string, form: FormData, onProgress?: (fraction: number) => void) {
+    return new Promise<Response>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('POST', `${baseUrl}${path}`);
+      request.withCredentials = true;
+      request.setRequestHeader('x-onebox-client', 'web');
+      if (accessToken) request.setRequestHeader('authorization', `Bearer ${accessToken}`);
+      request.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress?.(event.loaded / event.total);
+      };
+      request.onload = () =>
+        resolve(
+          new Response(request.status === 204 ? null : request.responseText, {
+            status: request.status,
+          }),
+        );
+      request.onerror = () => reject(new TypeError('Upload failed'));
+      request.send(form);
+    });
+  }
+
+  async function uploadForm<T>(
+    path: string,
+    form: FormData,
+    onProgress?: (fraction: number) => void,
+  ): Promise<T> {
+    let response = await sendForm(path, form, onProgress);
+    if (response.status === 401 && (await refreshSession())) {
+      response = await sendForm(path, form, onProgress);
+    }
+    return parse<T>(response);
+  }
+
   async function upload<T>(path: string, file: File, options: UploadOptions = {}): Promise<T> {
     let response = await sendFile(path, file, options);
     if (response.status === 401 && (await refreshSession())) {
@@ -192,6 +226,7 @@ export function createApiClient({
     blob,
     stream,
     upload,
+    uploadForm,
 
     login: (email: string, password: string) => startSession('/auth/login', { email, password }),
     register: (input: { name: string; email: string; password: string }) =>

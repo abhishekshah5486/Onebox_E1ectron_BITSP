@@ -39,6 +39,7 @@ export function navIcon(key: string) {
   const name: Record<string, IconProps.Name> = {
     compose: 'edit',
     suggestions: 'gen-ai',
+    knowledge: 'search-gen-ai',
     starred: 'star',
     sent: 'send',
     drafts: 'file',

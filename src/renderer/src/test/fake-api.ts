@@ -84,6 +84,7 @@ export function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     blob: vi.fn(async () => new Blob()),
     stream: vi.fn(quietStream),
     upload: vi.fn(),
+    uploadForm: vi.fn(),
     login: vi.fn(async () => testUser),
     register: vi.fn(async () => testUser),
     restoreSession: vi.fn(async () => null),

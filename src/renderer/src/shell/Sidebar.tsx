@@ -237,6 +237,15 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           {!collapsed && 'Suggestions'}
           {badge(suggestionCount, `${suggestionCount} suggestions waiting`)}
         </NavLink>
+        <NavLink
+          to="/knowledge"
+          data-tooltip={collapsed ? 'Knowledge' : undefined}
+          aria-label={collapsed ? 'Knowledge' : undefined}
+          className={({ isActive }) => `${styles.item} ${isActive ? styles.active : ''}`}
+        >
+          <Icon name="search" size={20} />
+          {!collapsed && 'Knowledge'}
+        </NavLink>
         {shown.map(item)}
         {showMore && more.map(item)}
         {showMore && (
