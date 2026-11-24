@@ -72,7 +72,6 @@ function Progress({ running, found }: { running: boolean; found?: string }) {
   return (
     <div aria-live="polite">
       <Steps steps={steps} ariaLabel="Search progress" />
-      {running && <div className={styles.loaderLine} style={{ marginBlockStart: 12 }} />}
     </div>
   );
 }
