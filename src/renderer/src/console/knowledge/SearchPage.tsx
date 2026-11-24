@@ -17,6 +17,7 @@ import PromptInput from '@cloudscape-design/components/prompt-input';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Steps, { type StepsProps } from '@cloudscape-design/components/steps';
 import Tabs from '@cloudscape-design/components/tabs';
+import Token from '@cloudscape-design/components/token';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useKnowledgeSources, useRetrieval, type Chunk } from '../../api/knowledge';
@@ -150,7 +151,7 @@ function Passage({
       </button>
       <SpaceBetween size="xxs">
         <div className={long && !open ? styles.clamp : undefined}>
-          <Box variant="p">
+          <Box variant="p" padding="n" margin="n">
             <Marked text={chunk.text} words={words} />
           </Box>
         </div>
@@ -165,9 +166,7 @@ function Passage({
           </Box>
           {[...locate(chunk), ...(chunk.kind !== 'block' ? [KIND_LABEL[chunk.kind]] : [])].map(
             (tag) => (
-              <span key={tag} className={styles.tag}>
-                {tag}
-              </span>
+              <Token key={tag} variant="inline" label={tag} />
             ),
           )}
         </div>
@@ -241,7 +240,11 @@ function RecordResult({
           // In line with the passages' text, past their numbers.
           <div className={styles.passage}>
             <span className={styles.refSpace} />
-            <Button variant="inline-link" onClick={() => setMore(!more)}>
+            <Button
+              variant="inline-link"
+              iconName={more ? 'caret-down-filled' : 'caret-right-filled'}
+              onClick={() => setMore(!more)}
+            >
               {more
                 ? 'Show fewer citations'
                 : `Show ${rest.length} more ${rest.length === 1 ? 'citation' : 'citations'}`}
