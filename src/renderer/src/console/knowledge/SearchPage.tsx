@@ -15,6 +15,7 @@ import Link from '@cloudscape-design/components/link';
 import Multiselect from '@cloudscape-design/components/multiselect';
 import PromptInput from '@cloudscape-design/components/prompt-input';
 import SpaceBetween from '@cloudscape-design/components/space-between';
+import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Steps, { type StepsProps } from '@cloudscape-design/components/steps';
 import Tabs from '@cloudscape-design/components/tabs';
 import { useEffect, useMemo, useState } from 'react';
@@ -81,7 +82,19 @@ function Progress({
   if (!running && found) steps.push({ status: 'success', header: found });
   return (
     <div aria-live="polite">
-      <Steps steps={steps} ariaLabel="Search progress" />
+      <Steps
+        steps={steps}
+        ariaLabel="Search progress"
+        // Only the icon carries the status colour; the text stays in the body colour.
+        renderStep={(step) => ({
+          icon: <StatusIndicator type={step.status} />,
+          header: (
+            <Box color={step.status === 'pending' ? 'text-status-inactive' : 'inherit'}>
+              {step.header}
+            </Box>
+          ),
+        })}
+      />
     </div>
   );
 }
