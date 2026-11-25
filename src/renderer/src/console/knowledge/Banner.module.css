@@ -2,3 +2,33 @@
 .burgundy {
   --color-background-notification-blue-4hgetl: #881337;
 }
+
+/* An alert in progress: its info icon turns into a spinner (the alert's icon slot is the
+   element with both its icon and text classes). */
+.progress [class*='awsui_icon_'][class*='awsui_text_'] {
+  position: relative;
+}
+
+.progress [class*='awsui_icon_'][class*='awsui_text_'] > * {
+  visibility: hidden;
+}
+
+.progress [class*='awsui_icon_'][class*='awsui_text_']::after {
+  content: '';
+  position: absolute;
+  inset-block-start: calc(50% - 7px);
+  inset-inline-start: calc(50% - 7px);
+  inline-size: 14px;
+  block-size: 14px;
+  box-sizing: border-box;
+  border: 2px solid currentcolor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

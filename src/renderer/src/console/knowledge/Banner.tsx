@@ -34,7 +34,7 @@ export function Banner({ tone, header, children, action, solid = false }: Banner
         />
       </div>
     );
-  return (
+  const alert = (
     <Alert
       type={tone === 'progress' || tone === 'burgundy' ? 'info' : tone}
       header={header}
@@ -43,4 +43,6 @@ export function Banner({ tone, header, children, action, solid = false }: Banner
       {children}
     </Alert>
   );
+  // In progress: the info alert with a spinner for its icon.
+  return tone === 'progress' ? <div className={styles.progress}>{alert}</div> : alert;
 }

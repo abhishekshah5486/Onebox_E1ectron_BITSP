@@ -11,6 +11,7 @@ export type Banners = Record<BannerSlot, (BannerProps & { key: string })[]>;
 export interface BannerActions {
   restore: () => void;
   indexAgain: () => void;
+  summarizeAgain: () => void;
   open: (id: string) => void;
   // Shows only the attachments that weren't indexed (or all of them again).
   toggleProblems: () => void;
@@ -174,7 +175,10 @@ export function recordBanners(
       tone: record.classifyStatus === 'failed' ? 'error' : 'info',
       header: record.classifyStatus === 'failed' ? 'Summary failed' : 'Not summarized',
       children: `${classify?.reason ?? `No summary was made for this ${noun}.`} Search still covers its full text.`,
-      ...(record.classifyStatus === 'failed' ? { action: indexAgain } : {}),
+      // Only the summary is made again, from the text already indexed.
+      ...(record.classifyStatus === 'failed' && status === 'COMPLETED'
+        ? { action: <Button onClick={actions.summarizeAgain}>Summarize again</Button> }
+        : {}),
     });
 
   return banners;
@@ -279,7 +283,7 @@ export function sampleBanners(actions: BannerActions): Banners {
         tone: 'error',
         header: 'Summary failed',
         children: 'The model didn’t respond in time. Search still covers its full text.',
-        action: button('Index again'),
+        action: button('Summarize again'),
       },
       {
         key: 'success',

@@ -352,6 +352,7 @@ export function RecordPage({
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const reindex = useHubMutation((a, ids: string[]) => hubApi.reindex(a, ids));
   const restore = useHubMutation((a, ids: string[]) => hubApi.restore(a, ids));
+  const summarize = useHubMutation((a, ids: string[]) => hubApi.summarize(a, ids));
   const [custom, setCustom] = useState<{ mail: boolean; layout: Layout | null }>(() => ({
     mail,
     layout: loadLayout(mail),
@@ -395,6 +396,25 @@ export function RecordPage({
             type: queued.length ? 'success' : 'warning',
             content: queued.length ? 'Queued to be indexed again.' : 'It couldn’t be queued.',
           });
+        },
+      }),
+    summarizeAgain: () =>
+      setConfirm({
+        title: 'Summarize again',
+        label: 'Summarize again',
+        body: (
+          <>
+            Write the summary of <b>{record.name}</b> again? Only the summary is made again, from
+            the text already indexed. Search keeps working meanwhile.
+          </>
+        ),
+        run: async () => {
+          const { queued, skipped } = await summarize.mutateAsync([record.id]);
+          flash(
+            queued.length
+              ? { type: 'success', content: 'Queued to be summarized again.' }
+              : { type: 'warning', content: skipped[0]?.reason ?? 'It couldn’t be queued.' },
+          );
         },
       }),
     restore: () =>

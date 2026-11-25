@@ -5,6 +5,7 @@ import { recordBanners } from './recordBanners';
 const actions = {
   restore: () => undefined,
   indexAgain: () => undefined,
+  summarizeAgain: () => undefined,
   open: () => undefined,
   toggleProblems: () => undefined,
   problemsOnly: false,
@@ -69,5 +70,21 @@ describe('a record page’s banners', () => {
       'Indexing 1 attachment',
     ]);
     expect(headers(banners.content)).toEqual(['Summary pending']);
+  });
+
+  it('offers to make only the summary again once the record is indexed', () => {
+    const failed = { classifyStatus: 'failed' as const };
+    const indexed = recordBanners(record(failed), [], 14, actions, now).content[0]!;
+    expect((indexed.action as { props: { children: string } }).props.children).toBe(
+      'Summarize again',
+    );
+    const reading = recordBanners(
+      record({ ...failed, status: 'in_progress' }),
+      [],
+      14,
+      actions,
+      now,
+    );
+    expect(reading.content[0]!.action).toBeUndefined();
   });
 });

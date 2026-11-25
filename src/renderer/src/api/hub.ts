@@ -225,6 +225,12 @@ export const hubApi = {
       '/rag/records/reindex',
       { ids },
     ),
+  // Writes indexed records' summaries again from their stored text, without indexing again.
+  summarize: (api: ApiClient, ids: string[]) =>
+    api.post<{ queued: string[]; skipped: { id: string; reason: string }[] }>(
+      '/rag/records/summarize',
+      { ids },
+    ),
   reindexCollection: (
     api: ApiClient,
     collectionId: string,
