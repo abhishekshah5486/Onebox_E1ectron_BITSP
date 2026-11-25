@@ -344,7 +344,7 @@ export function HubBrowser({
 
   const nameCell = (node: HubNode) => (
     // Only the name wraps (the table doesn't), onto lines that start under its icon.
-    <span className={styles.clamp} title={node.name}>
+    <span className={styles.twoLines} title={node.name}>
       <span className={styles.nameIcon}>
         <NodeIcon node={node} />
       </span>
@@ -598,7 +598,7 @@ export function HubBrowser({
             pagination={pagination}
             items={items}
             columnDefinitions={columns}
-            // All records lists every record on its own; elsewhere an email opens to its files.
+            // An email opens to its files; All records lists every record on its own.
             expandableRows={
               flattened
                 ? undefined

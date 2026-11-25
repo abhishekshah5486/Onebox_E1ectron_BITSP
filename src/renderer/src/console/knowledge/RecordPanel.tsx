@@ -6,7 +6,7 @@ import SpaceBetween from '@cloudscape-design/components/space-between';
 import SplitPanel from '@cloudscape-design/components/split-panel';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Tabs from '@cloudscape-design/components/tabs';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRecordDetails, type RecordDetails } from '../../api/hub';
 import { useRecordRead } from '../../api/knowledge';
 import { formatSize } from '../../knowledge/format';
@@ -60,24 +60,61 @@ function Attachments({ record, onOpen }: { record: RecordDetails; onOpen: (id: s
   );
 }
 
+// A state and, under it, why (once).
+function withReason(state: ReactNode, reason: string | null | undefined) {
+  return reason ? (
+    <SpaceBetween size="xxxs">
+      {state}
+      <Box color="text-body-secondary" fontSize="body-s">
+        {reason}
+      </Box>
+    </SpaceBetween>
+  ) : (
+    state
+  );
+}
+
+const SETTLED = new Set([
+  'COMPLETED',
+  'EMPTY',
+  'FILE_TYPE_NOT_SUPPORTED',
+  'PASSWORD_PROTECTED',
+  'FAILED',
+]);
+
 function Details({ record, onOpen }: { record: RecordDetails; onOpen: (id: string) => void }) {
   const place = [record.collection?.name, ...(record.folderPath ?? []).map((f) => f.name)]
     .filter(Boolean)
     .join(' / ');
   const c = record.classification;
+  const status = upper(record.status);
+  // Steps that say more than the status above: not one that repeats it, nor one that will
+  // never start now that the record has settled short of being indexed.
+  const stages = (record.stageStates ?? []).filter(
+    (s) =>
+      !(s.status === status && (s.reason ?? null) === (record.reason ?? null)) &&
+      !(SETTLED.has(status) && status !== 'COMPLETED' && s.status === 'NOT_STARTED'),
+  );
+  const facts = [
+    { label: 'Blocks', value: record.blockCount },
+    { label: 'Read with', value: record.engine },
+    { label: 'Search points', value: record.pointCount },
+  ].filter((f) => f.value !== undefined && f.value !== null);
   return (
     <SpaceBetween size="l">
       <KeyValuePairs
         columns={2}
         items={[
           { label: 'Name', value: record.name },
-          { label: 'Record ID', value: <Box variant="code">{record.id}</Box> },
+          { label: 'Record ID', value: record.id },
           { label: 'Record type', value: record.recordType === 'MAIL' ? 'Mail' : 'File' },
-          { label: 'Origin', value: record.origin === 'UPLOAD' ? 'Upload' : 'Mail' },
+          // An email's origin is mail, as its type says.
+          ...(record.recordType === 'MAIL'
+            ? []
+            : [{ label: 'Origin', value: record.origin === 'UPLOAD' ? 'Upload' : 'Mail' }]),
           {
             label: 'Indexing status',
-            value: stageIndicator(upper(record.status)),
-            info: record.reason ?? undefined,
+            value: withReason(stageIndicator(status), record.reason),
           },
           { label: 'Version', value: record.version },
           { label: 'Size', value: formatSize(record.sizeBytes) },
@@ -107,29 +144,19 @@ function Details({ record, onOpen }: { record: RecordDetails; onOpen: (id: strin
         ]}
       />
       <Attachments record={record} onOpen={onOpen} />
-      {record.reason && (
-        <Box color="text-status-error" variant="p">
-          {record.reason}
-        </Box>
-      )}
-      <KeyValuePairs
-        columns={3}
-        items={(record.stageStates ?? []).map((s) => ({
-          label: STAGE_LABEL[s.stage],
-          value: stageIndicator(s.status),
-          info: s.reason ?? undefined,
-        }))}
-      />
-      {(record.blockCount !== undefined || record.engine) && (
+      {stages.length > 0 && (
         <KeyValuePairs
           columns={3}
-          items={[
-            { label: 'Blocks', value: record.blockCount ?? '-' },
-            { label: 'Read with', value: record.engine ?? '-' },
-            { label: 'Search points', value: record.pointCount ?? '-' },
-          ]}
+          items={stages.map((s) => ({
+            label: STAGE_LABEL[s.stage],
+            value: withReason(
+              stageIndicator(s.status),
+              s.reason === record.reason ? null : s.reason,
+            ),
+          }))}
         />
       )}
+      {facts.length > 0 && <KeyValuePairs columns={3} items={facts} />}
       {c && (
         <KeyValuePairs
           columns={1}

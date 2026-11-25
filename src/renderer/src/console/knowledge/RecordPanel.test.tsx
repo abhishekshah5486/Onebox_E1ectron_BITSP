@@ -74,6 +74,8 @@ describe('RecordPanel', () => {
     expect(screen.getByText(/larger than 100 MB, so not read/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('link', { name: 'video.mov' }));
     expect(await screen.findByText('Attached to')).toBeInTheDocument();
+    // Why it failed is said once, under its status.
+    expect(screen.getAllByText('larger than 100 MB, so not read')).toHaveLength(1);
     await userEvent.click(screen.getByRole('link', { name: 'Quarter pack' }));
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();
   });

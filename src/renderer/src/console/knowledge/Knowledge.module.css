@@ -218,13 +218,14 @@
 }
 
 /* A long name stops at two lines, ending in an ellipsis (the whole name shows on hover). */
-.clamp {
+.twoLines {
   display: -webkit-box;
   overflow: hidden;
   white-space: normal;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .tags {

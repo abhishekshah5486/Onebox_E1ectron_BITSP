@@ -133,7 +133,7 @@ export function TrashView() {
               id: 'name',
               header: 'Name',
               cell: (r) => (
-                <span className={styles.clamp} title={r.name}>
+                <span className={styles.twoLines} title={r.name}>
                   {r.name}
                 </span>
               ),
