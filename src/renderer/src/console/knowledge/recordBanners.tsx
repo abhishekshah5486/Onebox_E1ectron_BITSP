@@ -164,14 +164,14 @@ export function recordBanners(
   if (record.classifyStatus === 'queued' || record.classifyStatus === 'deferred')
     banners.content.push({
       key: 'pending',
-      tone: 'violet',
+      tone: 'info',
       header: 'Summary pending',
       children: `A summary, category and topics appear here once the ${noun} has been analyzed.`,
     });
   else if (record.classifyStatus === 'skipped' || record.classifyStatus === 'failed')
     banners.content.push({
       key: 'none',
-      tone: record.classifyStatus === 'failed' ? 'error' : 'violet',
+      tone: record.classifyStatus === 'failed' ? 'error' : 'info',
       header: record.classifyStatus === 'failed' ? 'Summary failed' : 'Not summarized',
       children: `${classify?.reason ?? `No summary was made for this ${noun}.`} Search still covers its full text.`,
       ...(record.classifyStatus === 'failed' ? { action: indexAgain } : {}),
@@ -270,7 +270,7 @@ export function sampleBanners(actions: BannerActions): Banners {
     content: [
       {
         key: 'pending',
-        tone: 'violet',
+        tone: 'info',
         header: 'Summary pending',
         children: 'A summary, category and topics appear here once the email has been analyzed.',
       },
