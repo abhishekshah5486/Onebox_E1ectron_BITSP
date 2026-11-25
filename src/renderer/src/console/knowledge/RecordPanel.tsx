@@ -11,6 +11,7 @@ import { useRecordDetails, type RecordDetails } from '../../api/hub';
 import { useRecordRead } from '../../api/knowledge';
 import { formatSize } from '../../knowledge/format';
 import { STATUS, formatWhen, upper } from './parts';
+import { Banner } from './Banner';
 import { FlowLoader } from './Sparkle';
 
 const STAGE_LABEL = { parse: 'Reading', index: 'Indexing', classify: 'Summary' } as const;
@@ -223,9 +224,10 @@ export function Preview({ id }: { id: string }) {
         </Box>
       ))}
       {read.data.next !== null && (
-        <Box color="text-body-secondary" fontSize="body-s">
-          Showing the first {read.data.blocks.length} of {read.data.total} blocks.
-        </Box>
+        <Banner tone="info" header="Partial preview">
+          Showing the first {read.data.blocks.length} of {read.data.total} blocks. Search covers the
+          full text.
+        </Banner>
       )}
     </SpaceBetween>
   );

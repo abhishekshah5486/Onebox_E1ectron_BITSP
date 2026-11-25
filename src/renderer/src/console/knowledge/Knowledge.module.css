@@ -447,3 +447,11 @@
     padding-inline: 16px;
   }
 }
+
+/* Banners over a card's table, inset as its header is. */
+.tableBanners {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 20px 12px;
+}

@@ -9,11 +9,13 @@ import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table from '@cloudscape-design/components/table';
 import Tabs from '@cloudscape-design/components/tabs';
 import { useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router';
 import {
   hubApi,
   useAttachments,
   useHubMutation,
   useRecordDetails,
+  useUploadLimits,
   type HubNode,
   type RecordDetails,
 } from '../../api/hub';
@@ -22,10 +24,12 @@ import { useAuth } from '../../auth/AuthProvider';
 import { saveBlob } from '../../mail/attachments/useAttachment';
 import { useFlash } from '../../settings/flash';
 import tableStyles from '../../ui/DataTable.module.css';
+import { Banner } from './Banner';
 import { ConfirmModal } from './dialogs';
 import styles from './Knowledge.module.css';
 import { NodeIcon, NodeStatus, formatMs, nodeSize, problem } from './parts';
 import { Preview, RecordFacts, RecordIndexing, RecordSummary } from './RecordPanel';
+import { recordBanners, sampleBanners, type BannerSlot, type Banners } from './recordBanners';
 import { FlowLoader } from './Sparkle';
 
 type Widget = 'details' | 'indexing' | 'content' | 'attachments';
@@ -118,23 +122,42 @@ function ContentTabs({ record }: { record: RecordDetails }) {
   );
 }
 
+const SHORT = new Set(['EMPTY', 'FILE_TYPE_NOT_SUPPORTED', 'PASSWORD_PROTECTED', 'FAILED']);
+
+// A card's banners, above what it shows.
+function stack(list: Banners[BannerSlot]) {
+  return list.length ? (
+    <SpaceBetween size="s">
+      {list.map(({ key, ...b }) => (
+        <Banner key={key} {...b} />
+      ))}
+    </SpaceBetween>
+  ) : null;
+}
+
 type Confirm = { title: string; label: string; body: ReactNode; run: () => Promise<unknown> };
 
 // An email's files in the records table, with their own actions.
 function AttachmentsTable({
   id,
   onOpen,
+  banners,
+  problemsOnly,
   frame,
 }: {
   id: string;
   onOpen: (id: string) => void;
+  banners: ReactNode;
+  // Only the attachments that weren't indexed.
+  problemsOnly: boolean;
   // Places the header (in the widget's own) and the table.
   frame: (header: ReactNode, table: ReactNode) => ReactNode;
 }) {
   const { api } = useAuth();
   const flash = useFlash();
   const files = useAttachments([id]).get(id);
-  const items = files?.items ?? [];
+  const all = files?.items ?? [];
+  const items = problemsOnly ? all.filter((n) => SHORT.has(n.indexingStatus ?? '')) : all;
   const [selected, setSelected] = useState<HubNode[]>([]);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const reindex = useHubMutation((a, ids: string[]) => hubApi.reindex(a, ids));
@@ -213,6 +236,7 @@ function AttachmentsTable({
   );
   const table = (
     <div className={tableStyles.table}>
+      {banners && <div className={styles.tableBanners}>{banners}</div>}
       <Table
         variant="borderless"
         loading={files?.loading}
@@ -320,6 +344,14 @@ export function RecordPage({
   const details = useRecordDetails(id);
   const record = details.data;
   const mail = record?.recordType === 'MAIL';
+  const flash = useFlash();
+  const [params] = useSearchParams();
+  const files = useAttachments([id]).get(id)?.items ?? [];
+  const retention = useUploadLimits().data?.trashRetentionDays ?? 14;
+  const [problemsOnly, setProblemsOnly] = useState(false);
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const reindex = useHubMutation((a, ids: string[]) => hubApi.reindex(a, ids));
+  const restore = useHubMutation((a, ids: string[]) => hubApi.restore(a, ids));
   const [custom, setCustom] = useState<{ mail: boolean; layout: Layout | null }>(() => ({
     mail,
     layout: loadLayout(mail),
@@ -342,6 +374,51 @@ export function RecordPage({
       </SpaceBetween>
     );
 
+  const noun = mail ? 'email' : 'file';
+  const bannerActions = {
+    open: onOpen,
+    problemsOnly,
+    toggleProblems: () => setProblemsOnly((on) => !on),
+    indexAgain: () =>
+      setConfirm({
+        title: 'Index again',
+        label: 'Index again',
+        body: (
+          <>
+            Index <b>{record.name}</b> again from the start? It is read, indexed and summarized
+            again, which takes a while for large files.
+          </>
+        ),
+        run: async () => {
+          const { queued } = await reindex.mutateAsync([record.id]);
+          flash({
+            type: queued.length ? 'success' : 'warning',
+            content: queued.length ? 'Queued to be indexed again.' : 'It couldn’t be queued.',
+          });
+        },
+      }),
+    restore: () =>
+      setConfirm({
+        title: `Restore ${noun}`,
+        label: 'Restore',
+        body: (
+          <>
+            Restore <b>{record.name}</b>? It goes back to where it was and is indexed again, so it
+            appears in search results after a short while.
+          </>
+        ),
+        run: async () => {
+          await restore.mutateAsync([record.id]);
+          flash({ type: 'success', content: `${record.name} was restored.` });
+        },
+      }),
+  };
+  // `?banners=sample` shows every banner, to see how each looks.
+  const banners =
+    params.get('banners') === 'sample'
+      ? sampleBanners(bannerActions)
+      : recordBanners(record, files, retention, bannerActions);
+
   const items: BoardProps.Item<Widget>[] = (layout ?? defaultFor(mail))
     .filter((w) => mail || w.id !== 'attachments')
     .map((w) => ({
@@ -361,12 +438,18 @@ export function RecordPage({
     />
   );
 
-  const body = (widget: Widget) => {
-    if (widget === 'details')
-      return <RecordFacts record={record} onOpen={onOpen} columns={2} withStatus={false} />;
-    if (widget === 'indexing') return <RecordIndexing record={record} withStatus columns={2} />;
-    return <ContentTabs record={record} />;
-  };
+  const body = (widget: Widget) => (
+    <SpaceBetween size="l">
+      {stack(banners[widget])}
+      {widget === 'details' ? (
+        <RecordFacts record={record} onOpen={onOpen} columns={2} withStatus={false} />
+      ) : widget === 'indexing' ? (
+        <RecordIndexing record={record} withStatus columns={2} />
+      ) : (
+        <ContentTabs record={record} />
+      )}
+    </SpaceBetween>
+  );
 
   return (
     <SpaceBetween size="l">
@@ -394,6 +477,7 @@ export function RecordPage({
           {record.name}
         </span>
       </Header>
+      {stack(banners.page)}
       <Board<Widget>
         items={items}
         i18nStrings={BOARD_STRINGS}
@@ -416,6 +500,8 @@ export function RecordPage({
             <AttachmentsTable
               id={record.id}
               onOpen={onOpen}
+              banners={stack(banners.attachments)}
+              problemsOnly={problemsOnly}
               frame={(header, table) => (
                 <BoardItem
                   header={header}
@@ -438,6 +524,17 @@ export function RecordPage({
           )
         }
       />
+      {confirm && (
+        <ConfirmModal
+          title={confirm.title}
+          confirm={confirm.label}
+          danger={false}
+          onConfirm={confirm.run}
+          onClose={() => setConfirm(null)}
+        >
+          <Box variant="p">{confirm.body}</Box>
+        </ConfirmModal>
+      )}
     </SpaceBetween>
   );
 }
