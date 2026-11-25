@@ -4,15 +4,18 @@ import ExpandableSection from '@cloudscape-design/components/expandable-section'
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
 import ProgressBar from '@cloudscape-design/components/progress-bar';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
+import { useState } from 'react';
 import { hubApi, useCollectionStats, useHubMutation } from '../../api/hub';
 import { formatSize } from '../../knowledge/format';
 import { useFlash } from '../../settings/flash';
+import { ConfirmModal } from './dialogs';
 import { STATUS, STATUS_ORDER, problem } from './parts';
 
 // How a collection's records stand, with a way to read the failed ones again.
 export function CollectionOverview({ id }: { id: string }) {
   const flash = useFlash();
   const stats = useCollectionStats(id);
+  const [asking, setAsking] = useState(false);
   const reindex = useHubMutation((a, statuses: string[]) =>
     hubApi.reindexCollection(a, id, { statuses }),
   );
@@ -55,23 +58,31 @@ export function CollectionOverview({ id }: { id: string }) {
       />
       {failed > 0 && (
         <Box margin={{ top: 'm' }}>
-          <Button
-            loading={reindex.isPending}
-            onClick={() =>
-              reindex.mutate(['FAILED'], {
-                onSuccess: (r) =>
-                  flash({
-                    type: 'success',
-                    content: `${r.queued.length} queued to be read again.`,
-                  }),
-                onError: (err) =>
-                  flash({ type: 'error', content: problem(err, 'Nothing was queued.') }),
-              })
-            }
-          >
+          <Button loading={reindex.isPending} onClick={() => setAsking(true)}>
             Read failed files again
           </Button>
         </Box>
+      )}
+      {asking && (
+        <ConfirmModal
+          title="Read failed files again"
+          confirm="Read again"
+          danger={false}
+          onConfirm={async () => {
+            try {
+              const r = await reindex.mutateAsync(['FAILED']);
+              flash({ type: 'success', content: `${r.queued.length} queued to be read again.` });
+            } catch (err) {
+              flash({ type: 'error', content: problem(err, 'Nothing was queued.') });
+            }
+          }}
+          onClose={() => setAsking(false)}
+        >
+          <Box variant="p">
+            Read the {failed} failed {failed === 1 ? 'file' : 'files'} again from the start? This
+            can take a while for large files.
+          </Box>
+        </ConfirmModal>
       )}
     </ExpandableSection>
   );

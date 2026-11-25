@@ -123,12 +123,15 @@ export function ConfirmModal({
   confirm,
   onConfirm,
   onClose,
+  danger = true,
 }: {
   title: string;
   children: ReactNode;
   confirm: string;
   onConfirm: () => Promise<unknown>;
   onClose: () => void;
+  // Can't be undone (said to screen readers too).
+  danger?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +157,7 @@ export function ConfirmModal({
           onConfirm={() => void run()}
           label={confirm}
           busy={busy}
-          danger
+          danger={danger}
         />
       }
     >

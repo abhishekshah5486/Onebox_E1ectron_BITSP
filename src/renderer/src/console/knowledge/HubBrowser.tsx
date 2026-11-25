@@ -23,6 +23,7 @@ import {
   useAttachments,
   useHubMutation,
   useHubNodes,
+  useUploadLimits,
   type HubNode,
   type HubQuery,
   type HubSort,
@@ -80,6 +81,9 @@ type Dialog =
   | { kind: 'rename'; node: HubNode }
   | { kind: 'delete'; node: HubNode }
   | { kind: 'move'; node: HubNode }
+  | { kind: 'purge'; nodes: HubNode[] }
+  // Asked before an action that removes things or starts heavy work.
+  | { kind: 'confirm'; title: string; label: string; body: ReactNode; run: () => Promise<unknown> }
   | { kind: 'folder' }
   | { kind: 'collection' };
 
@@ -119,6 +123,7 @@ export function HubBrowser({
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [selected, setSelected] = useState<HubNode[]>([]);
   const [expanded, setExpanded] = useState<HubNode[]>([]);
+  const retention = useUploadLimits().data?.trashRetentionDays ?? 14;
   const attachments = useAttachments(expanded.map((n) => n.id));
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const replaceInput = useRef<HTMLInputElement>(null);
@@ -156,6 +161,9 @@ export function HubBrowser({
   const trash = useHubMutation((a, ids: string[]) => hubApi.trash(a, ids));
   const restore = useHubMutation((a, ids: string[]) => hubApi.restore(a, ids));
   const reindex = useHubMutation((a, ids: string[]) => hubApi.reindex(a, ids));
+  const purge = useHubMutation(async (a, ids: string[]) => {
+    for (const id of ids) await hubApi.deleteForever(a, id);
+  });
   const rename = useHubMutation((a, input: { node: HubNode; name: string }): Promise<unknown> => {
     const { node, name } = input;
     if (node.nodeType === 'collection') return hubApi.renameCollection(a, node.id, name);
@@ -180,12 +188,14 @@ export function HubBrowser({
       await trash.mutateAsync(ids);
       if (selectedRecord && ids.includes(selectedRecord)) onSelectRecord(null);
       setSelected([]);
+      const moved =
+        nodes.length === 1
+          ? `"${nodes[0]!.name}" moved to Recently deleted.`
+          : `${nodes.length} records moved to Recently deleted.`;
+      const mail = nodes.some((n) => n.recordType === 'MAIL');
       flash({
         type: 'success',
-        content:
-          nodes.length === 1
-            ? `"${nodes[0]!.name}" moved to Recently deleted.`
-            : `${nodes.length} records moved to Recently deleted.`,
+        content: mail ? `${moved} Your mailbox isn't changed.` : moved,
         action: { label: 'Undo', onClick: () => void restore.mutateAsync(ids) },
       });
     } catch (err) {
@@ -204,6 +214,74 @@ export function HubBrowser({
       flash({ type: 'error', content: problem(err, 'Nothing was queued.') });
     }
   };
+
+  const purgeRecords = async (nodes: HubNode[]) => {
+    const ids = nodes.map((n) => n.id);
+    await purge.mutateAsync(ids);
+    if (selectedRecord && ids.includes(selectedRecord)) onSelectRecord(null);
+    setSelected([]);
+    flash({
+      type: 'success',
+      content: `${nodes.length === 1 ? `"${nodes[0]!.name}"` : `${nodes.length} records`} deleted permanently.`,
+    });
+  };
+
+  // Each file as itself, and an email as its .eml.
+  const downloadAll = async (nodes: HubNode[]) => {
+    let failed = 0;
+    for (const node of nodes) {
+      try {
+        const name = node.recordType === 'MAIL' ? `${node.name}.eml` : node.name;
+        saveBlob(await knowledgeApi.file(api, node.id), name);
+      } catch {
+        failed += 1;
+      }
+    }
+    if (failed) flash({ type: 'error', content: `${failed} couldn't be downloaded.` });
+  };
+
+  const what = (nodes: HubNode[]) =>
+    nodes.length === 1 ? <b>{nodes[0]!.name}</b> : `${nodes.length} records`;
+
+  const confirmTrash = (nodes: HubNode[]) =>
+    setDialog({
+      kind: 'confirm',
+      title: nodes.length === 1 ? 'Delete record' : `Delete ${nodes.length} records`,
+      label: 'Delete',
+      body: (
+        <>
+          Move {what(nodes)} and their attachments to Recently deleted? They leave search now and
+          are deleted for good after {retention} days unless restored.
+          {nodes.some((n) => n.recordType === 'MAIL') && ' Your mailbox is not changed.'}
+        </>
+      ),
+      run: () => trashRecords(nodes),
+    });
+
+  const confirmReindex = (nodes: HubNode[]) =>
+    setDialog({
+      kind: 'confirm',
+      title: 'Read again',
+      label: 'Read again',
+      body: (
+        <>
+          Read {what(nodes)} again from the start? Each is parsed, indexed and summarized again,
+          which takes a while for large files.
+        </>
+      ),
+      run: () => reindexRecords(nodes),
+    });
+
+  const confirmDownload = (nodes: HubNode[]) =>
+    nodes.length === 1
+      ? void downloadAll(nodes)
+      : setDialog({
+          kind: 'confirm',
+          title: `Download ${nodes.length} records`,
+          label: 'Download',
+          body: <>Save {nodes.length} files (emails as .eml) one after another?</>,
+          run: () => downloadAll(nodes),
+        });
 
   const download = async (node: HubNode) => {
     if (node.recordType === 'MAIL' && node.threadId) {
@@ -247,18 +325,19 @@ export function HubBrowser({
           ]
         : []),
       { id: 'reindex', text: 'Read again' },
-      ...(upload ? [{ id: 'delete', text: 'Delete' }] : []),
+      // An attachment goes with its email.
+      ...(isAttachment(node) ? [] : [{ id: 'delete', text: 'Delete' }]),
     ];
   };
 
   const onRowAction = (node: HubNode, id: string) => {
     if (id === 'open') open(node);
     else if (id === 'download') void download(node);
-    else if (id === 'reindex') void reindexRecords([node]);
+    else if (id === 'reindex') confirmReindex([node]);
     else if (id === 'replace') {
       replacing.current = node;
       replaceInput.current?.click();
-    } else if (id === 'delete' && node.nodeType === 'record') void trashRecords([node]);
+    } else if (id === 'delete' && node.nodeType === 'record') confirmTrash([node]);
     else if (id === 'rename' || id === 'delete' || id === 'move') setDialog({ kind: id, node });
   };
 
@@ -330,8 +409,8 @@ export function HubBrowser({
     },
   ];
 
-  const records = selected.filter((n) => n.nodeType === 'record');
-  const uploads = records.filter((n) => n.sourceType === 'upload');
+  const records = selected.filter((n) => n.nodeType === 'record' && !isAttachment(n));
+  const count = records.length ? ` (${records.length})` : '';
   const inCollection = parent?.type === 'collection' || parent?.type === 'folder';
   const headerActions = (
     <SpaceBetween direction="horizontal" size="xs">
@@ -344,15 +423,25 @@ export function HubBrowser({
       <ButtonDropdown
         disabled={records.length === 0}
         items={[
-          { id: 'reindex', text: 'Read again' },
-          { id: 'delete', text: 'Delete', disabled: uploads.length === 0 },
+          { id: 'download', text: `Download${count}`, iconName: 'download' },
+          { id: 'reindex', text: `Read again${count}`, iconName: 'refresh' },
+          { id: 'purge', text: `Delete permanently${count}`, iconName: 'remove' },
         ]}
-        onItemClick={({ detail }) =>
-          detail.id === 'reindex' ? void reindexRecords(records) : void trashRecords(uploads)
-        }
+        onItemClick={({ detail }) => {
+          if (detail.id === 'download') confirmDownload(records);
+          else if (detail.id === 'reindex') confirmReindex(records);
+          else setDialog({ kind: 'purge', nodes: records });
+        }}
       >
         Actions
       </ButtonDropdown>
+      <Button
+        disabled={records.length === 0}
+        loading={trash.isPending}
+        onClick={() => confirmTrash(records)}
+      >
+        {`Delete${count}`}
+      </Button>
       {inCollection && <Button onClick={() => setDialog({ kind: 'folder' })}>Create folder</Button>}
       {parent === null && !flattened && (
         <Button onClick={() => setDialog({ kind: 'collection' })}>Create collection</Button>
@@ -636,6 +725,36 @@ export function HubBrowser({
           onSubmit={(folder) => move.mutateAsync({ node: dialog.node, folderId: folder })}
           onClose={() => setDialog(null)}
         />
+      )}
+      {dialog?.kind === 'confirm' && (
+        <ConfirmModal
+          title={dialog.title}
+          confirm={dialog.label}
+          danger={false}
+          onConfirm={dialog.run}
+          onClose={() => setDialog(null)}
+        >
+          <Box variant="p">{dialog.body}</Box>
+        </ConfirmModal>
+      )}
+      {dialog?.kind === 'purge' && (
+        <ConfirmModal
+          title="Delete permanently"
+          confirm="Delete permanently"
+          onConfirm={() => purgeRecords(dialog.nodes)}
+          onClose={() => setDialog(null)}
+        >
+          <Box variant="p">
+            Delete{' '}
+            {dialog.nodes.length === 1 ? (
+              <b>{dialog.nodes[0]!.name}</b>
+            ) : (
+              `${dialog.nodes.length} records`
+            )}{' '}
+            and their attachments for good, search entries included? This cannot be undone.
+            {dialog.nodes.some((n) => n.recordType === 'MAIL') && ' Your mailbox is not changed.'}
+          </Box>
+        </ConfirmModal>
       )}
       {dialog?.kind === 'delete' && (
         <ConfirmModal

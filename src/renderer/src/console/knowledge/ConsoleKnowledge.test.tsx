@@ -93,13 +93,20 @@ describe('ConsoleKnowledge', () => {
     expect(screen.getByText('Contracts')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Read failed files again' }));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Read again' }),
+    );
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/rag/collections/kb1/reindex', { statuses: ['FAILED'] }),
     );
 
     await userEvent.click(within(row).getByRole('button', { name: 'Actions for Refunds.pdf' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
-    expect(post).toHaveBeenCalledWith('/rag/records/trash', { ids: ['r1'] });
+    expect(post).not.toHaveBeenCalledWith('/rag/records/trash', expect.anything());
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }),
+    );
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/rag/records/trash', { ids: ['r1'] }));
     await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
     expect(post).toHaveBeenCalledWith('/rag/records/restore', { ids: ['r1'] });
   });
@@ -310,5 +317,57 @@ describe('ConsoleKnowledge', () => {
     const failed = (await screen.findByRole('link', { name: 'video.mov' })).closest('tr')!;
     expect(within(failed).getByText('Failed')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'rates.csv' })).toBeInTheDocument();
+    // An attachment goes with its email, so it can't be picked on its own.
+    expect(within(failed).getByRole('checkbox')).toBeDisabled();
+  });
+
+  it('deletes selected emails, to Recently deleted or permanently', async () => {
+    const email = (id: string, name: string) =>
+      node({
+        id,
+        name,
+        nodeType: 'record',
+        recordType: 'MAIL',
+        sourceType: 'mail',
+        parentId: 'acct-1',
+        collectionId: null,
+        origin: 'CONNECTOR',
+        indexingStatus: 'COMPLETED',
+      });
+    const get = routedGet({
+      '/rag/hub/nodes/mailbox/acct-1': () =>
+        listing([email('e1', 'Quarter pack'), email('e2', 'Rates')]),
+      '/rag/collections': () => ({ collections: [] }),
+    });
+    const post = vi.fn(async () => ({ trashed: ['e1', 'e2'] }));
+    const del = vi.fn(async () => undefined);
+    renderPage(<WhenSignedIn />, {
+      path: '/knowledge/mail/acct-1',
+      route: '/knowledge/*',
+      api: signedIn({ get, post: post as ApiClient['post'], delete: del as ApiClient['delete'] }),
+    });
+
+    const pick = async (name: string) =>
+      userEvent.click(
+        within((await screen.findByRole('link', { name })).closest('tr')!).getByRole('checkbox'),
+      );
+    await pick('Quarter pack');
+    await pick('Rates');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete (2)' }));
+    const asked = await screen.findByRole('dialog');
+    expect(within(asked).getByText(/Your mailbox is not changed/)).toBeInTheDocument();
+    await userEvent.click(within(asked).getByRole('button', { name: 'Delete' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/rag/records/trash', { ids: ['e1', 'e2'] }),
+    );
+    expect(await screen.findByText(/Your mailbox isn't changed/)).toBeInTheDocument();
+
+    await pick('Rates');
+    await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete permanently (1)' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete permanently (cannot be undone)' }),
+    );
+    await waitFor(() => expect(del).toHaveBeenCalledWith('/rag/records/e2?permanent=true'));
   });
 });
