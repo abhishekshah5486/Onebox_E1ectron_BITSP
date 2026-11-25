@@ -49,9 +49,10 @@ export function KnowledgeLogo({ size = 24 }: { size?: number }) {
       <path
         fill="none"
         stroke="#fff"
-        strokeWidth="2"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
+        transform="translate(24 24) scale(1.2) translate(-24 -24)"
         d="M24 10l12 7v14l-12 7-12-7V17ZM24 17.5c.6 4 2.5 5.9 6.5 6.5-4 .6-5.9 2.5-6.5 6.5-.6-4-2.5-5.9-6.5-6.5 4-.6 5.9-2.5 6.5-6.5Z"
       />
     </svg>
