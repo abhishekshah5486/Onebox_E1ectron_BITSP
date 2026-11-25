@@ -39,10 +39,10 @@ type Layout = { id: Widget; rowSpan: number; columnSpan: number }[];
 
 // The layout a page starts with, and returns to on reset (the board has four columns).
 const DEFAULT: Layout = [
-  { id: 'details', columnSpan: 2, rowSpan: 5 },
-  { id: 'indexing', columnSpan: 1, rowSpan: 5 },
-  { id: 'content', columnSpan: 1, rowSpan: 5 },
+  { id: 'details', columnSpan: 2, rowSpan: 4 },
+  { id: 'content', columnSpan: 2, rowSpan: 4 },
   { id: 'attachments', columnSpan: 4, rowSpan: 4 },
+  { id: 'indexing', columnSpan: 1, rowSpan: 4 },
 ];
 
 const TITLES: Record<Widget, string> = {
@@ -53,7 +53,7 @@ const TITLES: Record<Widget, string> = {
 };
 
 // Kept per viewer in this browser: emails and files each have their own.
-const layoutKey = (mail: boolean) => `onebox.knowledge.record-layout.v4.${mail ? 'mail' : 'file'}`;
+const layoutKey = (mail: boolean) => `onebox.knowledge.record-layout.v5.${mail ? 'mail' : 'file'}`;
 
 function loadLayout(mail: boolean): Layout | null {
   try {
@@ -73,7 +73,13 @@ function saveLayout(mail: boolean, layout: Layout | null) {
   }
 }
 
-const defaultFor = (mail: boolean) => DEFAULT.filter((w) => mail || w.id !== 'attachments');
+// A file has no attachments card, and its details and content are a row taller.
+const defaultFor = (mail: boolean): Layout =>
+  mail
+    ? DEFAULT
+    : DEFAULT.filter((w) => w.id !== 'attachments').map((w) =>
+        w.id === 'indexing' ? w : { ...w, rowSpan: w.rowSpan + 1 },
+      );
 
 const BOARD_STRINGS: BoardProps.I18nStrings<Widget> = {
   liveAnnouncementDndStarted: (op) => (op === 'resize' ? 'Resizing' : 'Dragging'),
@@ -489,21 +495,12 @@ export function RecordPage({
       ? sampleBanners(bannerActions)
       : recordBanners(record, files, retention, bannerActions);
 
-  // The default layout makes room for a card's banner (a narrow card wraps it more), and the
-  // cards sharing the top row grow together so it stays even.
-  const grow = (w: Layout[number]) => (banners[w.id].length ? (w.columnSpan === 1 ? 2 : 1) : 0);
-  const topGrow = Math.max(
-    0,
-    ...defaultFor(mail)
-      .filter((w) => w.columnSpan < 4)
-      .map(grow),
-  );
   const items: BoardProps.Item<Widget>[] = (layout ?? defaultFor(mail))
     .filter((w) => mail || w.id !== 'attachments')
     .map((w) => ({
       id: w.id,
       data: w.id,
-      rowSpan: w.rowSpan + (layout === null ? (w.columnSpan === 4 ? grow(w) : topGrow) : 0),
+      rowSpan: w.rowSpan,
       columnSpan: w.columnSpan,
       definition: { minRowSpan: 3, minColumnSpan: 1 },
     }));
