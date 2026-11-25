@@ -41,21 +41,19 @@ export function FlowLoader({ label }: { label: string }) {
   );
 }
 
-// The Knowledge service icon, in the console's flat style: a hexagon of linked ideas.
+// The Knowledge service icon, flat like the console's: a hexagon around a spark.
 export function KnowledgeLogo({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className={styles.logo}>
-      <rect width="48" height="48" rx="4" fill="#01a88d" />
-      <g fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M24 9l13 7.5v15L24 39l-13-7.5v-15Z" />
-        <path d="M24 24l-6-4M24 24l6-4M24 24v7" />
-      </g>
-      <g fill="#fff">
-        <circle cx="24" cy="24" r="2.6" />
-        <circle cx="18" cy="20" r="1.8" />
-        <circle cx="30" cy="20" r="1.8" />
-        <circle cx="24" cy="31" r="1.8" />
-      </g>
+      <rect width="48" height="48" fill="#7638fa" />
+      <path
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M24 10l12 7v14l-12 7-12-7V17ZM24 17.5c.6 4 2.5 5.9 6.5 6.5-4 .6-5.9 2.5-6.5 6.5-.6-4-2.5-5.9-6.5-6.5 4-.6 5.9-2.5 6.5-6.5Z"
+      />
     </svg>
   );
 }
