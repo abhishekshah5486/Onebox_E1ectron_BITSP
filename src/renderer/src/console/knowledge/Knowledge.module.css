@@ -160,6 +160,10 @@
   text-decoration: underline;
 }
 
+.newSearch {
+  padding: 12px 16px 0;
+}
+
 .nameIcon {
   margin-inline-end: 6px;
 }

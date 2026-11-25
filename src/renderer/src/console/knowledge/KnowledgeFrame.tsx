@@ -89,7 +89,6 @@ export function KnowledgeFrame({
   const email = new Map((accounts.data ?? []).map((a) => [a.id, a.emailAddress]));
 
   const items: SideNavigationProps.Item[] = [
-    { type: 'link', text: 'New search', href: '/knowledge/search', icon: <Icon name="gen-ai" /> },
     {
       type: 'link',
       text: 'All records',
@@ -101,6 +100,7 @@ export function KnowledgeFrame({
       type: 'expandable-link-group',
       text: 'Collections',
       href: '/knowledge/collections',
+      icon: <Icon name="folder-open" />,
       defaultExpanded: true,
       items: (collections.data ?? []).map((c) => ({
         type: 'link' as const,
@@ -193,6 +193,16 @@ export function KnowledgeFrame({
           </div>
           <div className={`${styles.flowLine} ${busy ? styles.busy : ''}`} />
           <div className={styles.railBody}>
+            <div className={styles.newSearch}>
+              <Button
+                variant="primary"
+                fullWidth
+                iconName="gen-ai"
+                onClick={() => void navigate('/knowledge/search')}
+              >
+                New search
+              </Button>
+            </div>
             <SideNavigation
               activeHref={active}
               items={items}
