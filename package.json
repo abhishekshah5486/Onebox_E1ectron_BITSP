@@ -67,6 +67,7 @@
     ]
   },
   "dependencies": {
+    "@cloudscape-design/board-components": "3.0.246",
     "@cloudscape-design/collection-hooks": "1.0.111",
     "@cloudscape-design/components": "^3.0.1392",
     "@cloudscape-design/design-tokens": "^3.0.114",

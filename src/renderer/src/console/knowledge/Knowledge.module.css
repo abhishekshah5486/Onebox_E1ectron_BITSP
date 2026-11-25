@@ -6,8 +6,8 @@
   min-block-size: calc(100vh - var(--kb-top));
 }
 
-/* Search sits on a page darker than its containers, as the console home does; tables keep
-   the console's own background, as mail's do. */
+/* Search and a record's page sit on a page darker than their widgets, as the console home
+   does; tables keep the console's own background, as mail's do. */
 .deep {
   --kb-page: #eef0f3;
   background: var(--kb-page);
@@ -427,4 +427,25 @@
   .main {
     padding-inline: 16px;
   }
+}
+
+/* Entries in a widget, divided as in a list. */
+.entries {
+  display: flex;
+  flex-direction: column;
+}
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-block: 12px;
+}
+
+.entry + .entry {
+  border-top: 1px solid var(--kb-border);
+}
+
+.entry:first-child {
+  padding-top: 0;
 }

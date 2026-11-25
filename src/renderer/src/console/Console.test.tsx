@@ -535,6 +535,15 @@ describe('v2 console', () => {
     await userEvent.click(screen.getAllByRole('link', { name: 'Quarter pack' })[0]!);
     expect(await screen.findByRole('heading', { name: 'Details' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'File details' })).not.toBeInTheDocument();
+
+    // A widget can be removed, and the default layout brought back.
+    await userEvent.click(screen.getByRole('button', { name: 'Indexing settings' }));
+    await userEvent.click(await screen.findByText('Remove'));
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'Indexing' })).not.toBeInTheDocument(),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Reset to default layout' }));
+    expect(await screen.findByRole('heading', { name: 'Indexing' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /^Back to/ }));
     expect(await screen.findByRole('link', { name: 'Quarter pack' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Details' })).not.toBeInTheDocument();
