@@ -345,6 +345,86 @@
   }
 }
 
+/* The prism: glass and beam drawn dark on light pages and bright on dark ones; the spectrum
+   multiplies on light and adds as light on dark. */
+.prism {
+  flex: none;
+  overflow: visible;
+}
+
+.glassFront {
+  stroke: rgb(80 90 120 / 55%);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+}
+
+.glassBack {
+  fill: rgb(120 140 190 / 4%);
+  stroke: rgb(80 90 120 / 18%);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+
+path.glassBack {
+  fill: none;
+}
+
+.beamFrom {
+  stop-color: #8a94a8;
+  stop-opacity: 0;
+}
+
+.beamTo {
+  stop-color: #8a94a8;
+}
+
+.beamGlow {
+  stroke: #a5b4fc;
+  opacity: 0.4;
+}
+
+.spectrum {
+  mix-blend-mode: multiply;
+  animation: breathe 5s ease-in-out infinite;
+}
+
+.glint {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+:global(.awsui-dark-mode) .glassFront {
+  stroke: rgb(255 255 255 / 75%);
+}
+
+:global(.awsui-dark-mode) .glassBack {
+  fill: rgb(255 255 255 / 3%);
+  stroke: rgb(255 255 255 / 20%);
+}
+
+:global(.awsui-dark-mode) path.glassBack {
+  fill: none;
+}
+
+:global(.awsui-dark-mode) .beamFrom,
+:global(.awsui-dark-mode) .beamTo {
+  stop-color: #fff;
+}
+
+:global(.awsui-dark-mode) .beamGlow {
+  stroke: #fff;
+  opacity: 0.35;
+}
+
+:global(.awsui-dark-mode) .spectrum {
+  mix-blend-mode: screen;
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.72;
+  }
+}
+
 @keyframes flow {
   from {
     background-position: 0% 0;
@@ -357,6 +437,8 @@
 @media (prefers-reduced-motion: reduce) {
   .flowLine,
   .orb,
+  .spectrum,
+  .glint,
   .glow,
   .loaderLine {
     animation: none;
