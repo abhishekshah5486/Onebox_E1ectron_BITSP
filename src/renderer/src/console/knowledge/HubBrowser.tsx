@@ -5,18 +5,22 @@ import ButtonDropdown, {
 } from '@cloudscape-design/components/button-dropdown';
 import Cards from '@cloudscape-design/components/cards';
 import Header from '@cloudscape-design/components/header';
+import Icon from '@cloudscape-design/components/icon';
 import Link from '@cloudscape-design/components/link';
 import Multiselect, { type MultiselectProps } from '@cloudscape-design/components/multiselect';
 import Pagination from '@cloudscape-design/components/pagination';
 import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import Select, { type SelectProps } from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
+import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Table, { type TableProps } from '@cloudscape-design/components/table';
 import TextFilter from '@cloudscape-design/components/text-filter';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
   hubApi,
+  isAttachment,
+  useAttachments,
   useHubMutation,
   useHubNodes,
   type HubNode,
@@ -34,6 +38,7 @@ import styles from './Knowledge.module.css';
 import {
   NodeIcon,
   NodeStatus,
+  Paperclip,
   SIZE_RANGES,
   STATUS,
   STATUS_ORDER,
@@ -113,6 +118,8 @@ export function HubBrowser({
   const [page, setPage] = useState(1);
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [selected, setSelected] = useState<HubNode[]>([]);
+  const [expanded, setExpanded] = useState<HubNode[]>([]);
+  const attachments = useAttachments(expanded.map((n) => n.id));
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const replaceInput = useRef<HTMLInputElement>(null);
   const replacing = useRef<HubNode | null>(null);
@@ -270,6 +277,15 @@ export function HubBrowser({
       >
         {node.name}
       </Link>
+      {!!node.attachmentCount && (
+        <span
+          className={styles.clip}
+          title={`${node.attachmentCount} ${node.attachmentCount === 1 ? 'attachment' : 'attachments'}`}
+        >
+          <Icon svg={<Paperclip />} size="small" variant="subtle" />
+          {node.attachmentCount}
+        </span>
+      )}
     </span>
   );
 
@@ -451,7 +467,8 @@ export function HubBrowser({
       {header}
     </Header>
   );
-  const isItemDisabled = (n: HubNode) => n.nodeType !== 'record';
+  // Attachments go with their email, so only it can be picked.
+  const isItemDisabled = (n: HubNode) => n.nodeType !== 'record' || isAttachment(n);
   const collectionId =
     listing.data?.currentNode?.nodeType === 'collection'
       ? listing.data.currentNode.id
@@ -470,6 +487,22 @@ export function HubBrowser({
             pagination={pagination}
             items={items}
             columnDefinitions={columns}
+            expandableRows={{
+              isItemExpandable: (n) => n.nodeType === 'record' && n.hasChildren,
+              getItemChildren: (n) => attachments.get(n.id)?.items ?? [],
+              expandedItems: expanded,
+              onExpandableItemToggle: ({ detail }) =>
+                setExpanded((now) =>
+                  detail.expanded
+                    ? [...now, detail.item]
+                    : now.filter((n) => n.id !== detail.item.id),
+                ),
+            }}
+            getLoadingStatus={(n) => (n && attachments.get(n.id)?.loading ? 'loading' : 'finished')}
+            renderLoaderLoading={() => (
+              <StatusIndicator type="loading">Loading attachments</StatusIndicator>
+            )}
+            renderLoaderEmpty={() => <Box color="text-status-inactive">No attachments</Box>}
             trackBy="id"
             loading={listing.isPending}
             loadingText="Loading"
@@ -493,6 +526,8 @@ export function HubBrowser({
               selectionGroupLabel: 'Records',
               itemSelectionLabel: (_, n) => n.name,
               allItemsSelectionLabel: () => 'All records on this page',
+              expandButtonLabel: (n) => `Show the attachments of ${n.name}`,
+              collapseButtonLabel: (n) => `Hide the attachments of ${n.name}`,
             }}
           />
         </div>

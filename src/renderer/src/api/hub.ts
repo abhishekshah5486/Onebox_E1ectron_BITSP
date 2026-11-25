@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useQueries,
+} from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import type { ApiClient } from './client';
 import type { Classification, ClassifyStatus, KnowledgeRecord } from './knowledge';
@@ -24,6 +30,8 @@ export interface HubNode {
   origin: 'COLLECTION' | 'UPLOAD' | 'CONNECTOR';
   connector?: string | null;
   hasChildren: boolean;
+  // An email's attachments (each is a record under it).
+  attachmentCount?: number;
   createdAt: number | null;
   updatedAt: number | null;
   sourceCreatedAt?: number | null;
@@ -159,6 +167,17 @@ export interface RecordDetails extends KnowledgeRecord {
   pointCount?: number | null;
   classifyStatus?: ClassifyStatus | null;
   classification?: Classification | null;
+  // An email's attachments, failed ones with why; or the email an attachment is in.
+  attachments?: AttachmentSummary[];
+  attachedTo?: { id: string; name: string } | null;
+}
+
+export interface AttachmentSummary {
+  id: string;
+  name: string;
+  status: string;
+  reason: string | null;
+  sizeBytes: number;
 }
 
 export interface CollectionStats {
@@ -268,6 +287,28 @@ export function useHubNodes(query: HubQuery) {
         : false,
   });
 }
+
+// The attachments of each expanded email, loaded when it opens.
+export function useAttachments(emailIds: string[]) {
+  const { api } = useAuth();
+  return useQueries({
+    queries: emailIds.map((id) => ({
+      queryKey: [...KEY, 'hub', { parent: { type: 'record', id } }],
+      queryFn: () => hubApi.nodes(api, { parent: { type: 'record', id } }),
+    })),
+    combine: (results) =>
+      new Map(
+        emailIds.map((id, i) => [
+          id,
+          { items: results[i]?.data?.items ?? [], loading: results[i]?.isPending ?? true },
+        ]),
+      ),
+  });
+}
+
+// A file that came attached to an email (listed under it, removed with it).
+export const isAttachment = (node: HubNode) =>
+  node.nodeType === 'record' && node.sourceType === 'mail' && node.recordType === 'FILE';
 
 export function useCollections() {
   const { api } = useAuth();

@@ -107,7 +107,12 @@ export default function ConsoleKnowledge() {
     {
       disableContentPaddings: true,
       splitPanel: record ? (
-        <RecordPanel key={record} id={record} onDownload={(r: RecordDetails) => void download(r)} />
+        <RecordPanel
+          key={record}
+          id={record}
+          onDownload={(r: RecordDetails) => void download(r)}
+          onOpen={selectRecord}
+        />
       ) : undefined,
       splitPanelOpen: record !== null,
       onSplitPanelToggle: (open) => {

@@ -179,6 +179,16 @@
   animation: none;
 }
 
+.clip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: 8px;
+  font-size: 12px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
 .nameIcon {
   margin-inline-end: 6px;
 }

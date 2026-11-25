@@ -73,3 +73,19 @@ export const SIZE_RANGES = [
 export function problem(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
 }
+
+// Cloudscape has no paperclip; this one is drawn in its icons' line style.
+export function Paperclip() {
+  return (
+    <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
+      <path
+        d="M13 7.5 8 12.5a3.2 3.2 0 0 1-4.5-4.5l5.3-5.3a2.1 2.1 0 0 1 3 3L6.5 11a1 1 0 0 1-1.5-1.5L10 4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

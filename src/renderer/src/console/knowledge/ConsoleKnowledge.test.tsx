@@ -236,4 +236,56 @@ describe('ConsoleKnowledge', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Citations (3)' }));
     expect(await screen.findAllByRole('button', { name: 'Preview' })).toHaveLength(3);
   });
+
+  it("lists an email's attachments under it, a failed one with its status", async () => {
+    const mailNode = (over: Partial<HubNode> & Pick<HubNode, 'id' | 'name'>) =>
+      node({
+        nodeType: 'record',
+        sourceType: 'mail',
+        collectionId: null,
+        origin: 'CONNECTOR',
+        ...over,
+      });
+    const get = routedGet({
+      '/rag/hub/nodes/mailbox/acct-1': () =>
+        listing([
+          mailNode({
+            id: 'e1',
+            name: 'Quarter pack',
+            recordType: 'MAIL',
+            parentId: 'acct-1',
+            indexingStatus: 'COMPLETED',
+            hasChildren: true,
+            attachmentCount: 2,
+          }),
+        ]),
+      '/rag/hub/nodes/record/e1': () =>
+        listing([
+          mailNode({ id: 'a1', name: 'rates.csv', recordType: 'FILE', parentId: 'e1' }),
+          mailNode({
+            id: 'a2',
+            name: 'video.mov',
+            recordType: 'FILE',
+            parentId: 'e1',
+            indexingStatus: 'FAILED',
+            reason: 'larger than 100 MB, so not read',
+          }),
+        ]),
+      '/rag/collections': () => ({ collections: [] }),
+    });
+    renderPage(<WhenSignedIn />, {
+      path: '/knowledge/mail/acct-1',
+      route: '/knowledge/*',
+      api: signedIn({ get }),
+    });
+
+    const row = (await screen.findByRole('link', { name: 'Quarter pack' })).closest('tr')!;
+    expect(within(row).getByTitle('2 attachments')).toBeInTheDocument();
+    await userEvent.click(
+      within(row).getByRole('button', { name: 'Show the attachments of Quarter pack' }),
+    );
+    const failed = (await screen.findByRole('link', { name: 'video.mov' })).closest('tr')!;
+    expect(within(failed).getByText('Failed')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'rates.csv' })).toBeInTheDocument();
+  });
 });

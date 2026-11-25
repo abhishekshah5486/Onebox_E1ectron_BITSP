@@ -1,6 +1,7 @@
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import KeyValuePairs from '@cloudscape-design/components/key-value-pairs';
+import Link from '@cloudscape-design/components/link';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import SplitPanel from '@cloudscape-design/components/split-panel';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
@@ -22,7 +23,44 @@ function stageIndicator(status: string) {
   return <StatusIndicator type={type}>{label[0]!.toUpperCase() + label.slice(1)}</StatusIndicator>;
 }
 
-function Details({ record }: { record: RecordDetails }) {
+// An email's attachments, each with its state (and why one wasn't read), opening in this panel.
+function Attachments({ record, onOpen }: { record: RecordDetails; onOpen: (id: string) => void }) {
+  const items = record.attachments ?? [];
+  if (items.length === 0) return null;
+  return (
+    <KeyValuePairs
+      columns={1}
+      items={[
+        {
+          label: `Attachments (${items.length})`,
+          value: (
+            <SpaceBetween size="xs">
+              {items.map((a) => (
+                <SpaceBetween key={a.id} direction="horizontal" size="xs" alignItems="center">
+                  <Link
+                    href={`#${a.id}`}
+                    onFollow={(e) => {
+                      e.preventDefault();
+                      onOpen(a.id);
+                    }}
+                  >
+                    {a.name}
+                  </Link>
+                  {stageIndicator(upper(a.status))}
+                  <Box color="text-body-secondary" fontSize="body-s">
+                    {[formatSize(a.sizeBytes), a.reason].filter(Boolean).join(' · ')}
+                  </Box>
+                </SpaceBetween>
+              ))}
+            </SpaceBetween>
+          ),
+        },
+      ]}
+    />
+  );
+}
+
+function Details({ record, onOpen }: { record: RecordDetails; onOpen: (id: string) => void }) {
   const place = [record.collection?.name, ...(record.folderPath ?? []).map((f) => f.name)]
     .filter(Boolean)
     .join(' / ');
@@ -47,9 +85,28 @@ function Details({ record }: { record: RecordDetails }) {
           { label: 'Created at (UTC)', value: formatWhen(record.createdAt) },
           { label: 'Updated at (UTC)', value: formatWhen(record.updatedAt) },
           ...(place ? [{ label: 'Collection', value: place }] : []),
+          ...(record.attachedTo
+            ? [
+                {
+                  label: 'Attached to',
+                  value: (
+                    <Link
+                      href={`#${record.attachedTo.id}`}
+                      onFollow={(e) => {
+                        e.preventDefault();
+                        onOpen(record.attachedTo!.id);
+                      }}
+                    >
+                      {record.attachedTo.name}
+                    </Link>
+                  ),
+                },
+              ]
+            : []),
           { label: 'Permissions', value: record.permissions[0]?.relationship ?? 'OWNER' },
         ]}
       />
+      <Attachments record={record} onOpen={onOpen} />
       {record.reason && (
         <Box color="text-status-error" variant="p">
           {record.reason}
@@ -113,9 +170,11 @@ function Preview({ id }: { id: string }) {
 export function RecordPanel({
   id,
   onDownload,
+  onOpen,
 }: {
   id: string;
   onDownload: (record: RecordDetails) => void;
+  onOpen: (id: string) => void;
 }) {
   const details = useRecordDetails(id);
   const [tab, setTab] = useState('details');
@@ -142,7 +201,11 @@ export function RecordPanel({
           onChange={({ detail }) => setTab(detail.activeTabId)}
           tabs={[
             { id: 'preview', label: 'Preview', content: <Preview id={record.id} /> },
-            { id: 'details', label: 'File details', content: <Details record={record} /> },
+            {
+              id: 'details',
+              label: 'File details',
+              content: <Details record={record} onOpen={onOpen} />,
+            },
           ]}
         />
       )}
