@@ -40,8 +40,27 @@ export function FlowLoader({ label }: { label: string }) {
   );
 }
 
-// The Knowledge mark: a soft orb of light whose colour bands turn against each other.
+// The Knowledge service icon, in the console's flat style: a hexagon of linked ideas.
 export function KnowledgeLogo({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className={styles.logo}>
+      <rect width="48" height="48" rx="4" fill="#7b3fe4" />
+      <g fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M24 9l13 7.5v15L24 39l-13-7.5v-15Z" />
+        <path d="M24 24l-6-4M24 24l6-4M24 24v7" />
+      </g>
+      <g fill="#fff">
+        <circle cx="24" cy="24" r="2.6" />
+        <circle cx="18" cy="20" r="1.8" />
+        <circle cx="30" cy="20" r="1.8" />
+        <circle cx="24" cy="31" r="1.8" />
+      </g>
+    </svg>
+  );
+}
+
+// A soft orb of light whose colour bands turn against each other.
+export function KnowledgeOrb({ size = 24 }: { size?: number }) {
   return (
     <span className={styles.orbHalo} style={{ fontSize: size }} aria-hidden="true">
       <span className={styles.orb}>
