@@ -226,8 +226,7 @@
   background: var(--kb-page);
 }
 
-.sparkle,
-.logo {
+.sparkle {
   flex: none;
 }
 
@@ -253,6 +252,98 @@
   animation: flow 1.4s linear infinite;
 }
 
+/* The orb: conic colour bands, blurred and screened together, with a feathered edge and a
+   halo, so it reads as light rather than a ball with a rim. Sized by font-size (1em). */
+@property --orb-turn {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.orbHalo {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  inline-size: 1em;
+  block-size: 1em;
+}
+
+.orbHalo::before {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(139 92 246 / 45%), transparent 65%);
+  filter: blur(0.06em);
+}
+
+.orb {
+  position: absolute;
+  inset: 0;
+  filter: saturate(1.3);
+  mask: radial-gradient(circle, #000 52%, transparent 71%);
+  animation: orb-turn 10s linear infinite;
+}
+
+.orb::before,
+.orb::after,
+.orb > i {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.orb::before {
+  background: conic-gradient(
+    from var(--orb-turn),
+    #6d28d9,
+    #3b82f6,
+    #22d3ee,
+    #a855f7,
+    #ec4899,
+    #6d28d9
+  );
+  filter: blur(0.09em);
+}
+
+.orb::after {
+  background: conic-gradient(
+    from calc(var(--orb-turn) * -1.6 + 120deg),
+    transparent 0 20%,
+    #60a5fa 35%,
+    transparent 50% 70%,
+    #c084fc 85%,
+    transparent
+  );
+  filter: blur(0.12em);
+  mix-blend-mode: screen;
+}
+
+.orb > i {
+  background:
+    radial-gradient(
+      circle at 46% 44%,
+      rgb(255 255 255 / 85%) 0,
+      rgb(224 231 255 / 30%) 14%,
+      transparent 34%
+    ),
+    conic-gradient(
+      from calc(var(--orb-turn) * 0.7 + 200deg),
+      rgb(46 16 101 / 85%) 0 12%,
+      transparent 30% 62%,
+      rgb(30 27 75 / 70%) 80%,
+      rgb(46 16 101 / 85%)
+    );
+  filter: blur(0.07em);
+}
+
+@keyframes orb-turn {
+  to {
+    --orb-turn: 360deg;
+  }
+}
+
 @keyframes flow {
   from {
     background-position: 0% 0;
@@ -264,6 +355,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .flowLine,
+  .orb,
   .glow,
   .loaderLine {
     animation: none;
