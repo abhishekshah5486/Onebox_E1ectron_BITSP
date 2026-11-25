@@ -534,6 +534,7 @@ describe('v2 console', () => {
     // Its name opens it on a page of its own, with a way back to the table.
     await userEvent.click(screen.getAllByRole('link', { name: 'Quarter pack' })[0]!);
     expect(await screen.findByRole('heading', { name: 'Details' })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Find attachments by name' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'File details' })).not.toBeInTheDocument();
 
     // A widget can be removed, and the default layout brought back.

@@ -8,6 +8,8 @@ import Link from '@cloudscape-design/components/link';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table from '@cloudscape-design/components/table';
 import Tabs from '@cloudscape-design/components/tabs';
+import TextFilter from '@cloudscape-design/components/text-filter';
+import Pagination from '@cloudscape-design/components/pagination';
 import { useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import {
@@ -122,6 +124,9 @@ function ContentTabs({ record }: { record: RecordDetails }) {
   );
 }
 
+// As the records tables page.
+const PAGE = 20;
+
 const SHORT = new Set(['EMPTY', 'FILE_TYPE_NOT_SUPPORTED', 'PASSWORD_PROTECTED', 'FAILED']);
 
 // A card's banners, above what it shows.
@@ -169,7 +174,15 @@ function AttachmentsTable({
   const flash = useFlash();
   const files = useAttachments([id]).get(id);
   const all = files?.items ?? [];
-  const items = problemsOnly ? all.filter((n) => SHORT.has(n.indexingStatus ?? '')) : all;
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const shown = problemsOnly ? all.filter((n) => SHORT.has(n.indexingStatus ?? '')) : all;
+  // An email's files all come at once, so they are found and paged here.
+  const found = q.trim()
+    ? shown.filter((n) => n.name.toLowerCase().includes(q.trim().toLowerCase()))
+    : shown;
+  const pages = Math.max(1, Math.ceil(found.length / PAGE));
+  const items = found.slice((Math.min(page, pages) - 1) * PAGE, Math.min(page, pages) * PAGE);
   const [selected, setSelected] = useState<HubNode[]>([]);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const reindex = useHubMutation((a, ids: string[]) => hubApi.reindex(a, ids));
@@ -222,7 +235,7 @@ function AttachmentsTable({
       counter={
         files?.loading
           ? undefined
-          : `(${selected.length ? `${selected.length}/` : ''}${items.length})`
+          : `(${selected.length ? `${selected.length}/` : ''}${found.length})`
       }
       actions={
         <SpaceBetween direction="horizontal" size="xs">
@@ -263,7 +276,32 @@ function AttachmentsTable({
         }}
         items={items}
         trackBy="id"
-        empty={<Box color="text-body-secondary">This email has no attachments.</Box>}
+        filter={
+          <TextFilter
+            filteringText={q}
+            filteringPlaceholder="Find attachments"
+            filteringAriaLabel="Find attachments by name"
+            countText={
+              q ? `${found.length} ${found.length === 1 ? 'match' : 'matches'}` : undefined
+            }
+            onChange={({ detail }) => {
+              setQ(detail.filteringText);
+              setPage(1);
+            }}
+          />
+        }
+        pagination={
+          <Pagination
+            currentPageIndex={Math.min(page, pages)}
+            pagesCount={pages}
+            onChange={({ detail }) => setPage(detail.currentPageIndex)}
+          />
+        }
+        empty={
+          <Box color="text-body-secondary">
+            {q ? 'No attachments match.' : 'This email has no attachments.'}
+          </Box>
+        }
         columnDefinitions={[
           {
             id: 'name',
