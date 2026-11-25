@@ -10,7 +10,7 @@ import Table from '@cloudscape-design/components/table';
 import Tabs from '@cloudscape-design/components/tabs';
 import TextFilter from '@cloudscape-design/components/text-filter';
 import Pagination from '@cloudscape-design/components/pagination';
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import {
   hubApi,
@@ -27,7 +27,6 @@ import { saveBlob } from '../../mail/attachments/useAttachment';
 import { useFlash } from '../../settings/flash';
 import tableStyles from '../../ui/DataTable.module.css';
 import { Banner } from './Banner';
-import { guardBoardPointer } from './boardPointer';
 import { ConfirmModal } from './dialogs';
 import styles from './Knowledge.module.css';
 import { NodeIcon, NodeStatus, formatMs, nodeSize, problem } from './parts';
@@ -400,12 +399,6 @@ export function RecordPage({
   const files = useAttachments([id]).get(id)?.items ?? [];
   const retention = useUploadLimits().data?.trashRetentionDays ?? 14;
   const [problemsOnly, setProblemsOnly] = useState(false);
-  // Ends drags and resizes the board would otherwise wait on forever.
-  const unguard = useRef<(() => void) | null>(null);
-  const guarded = useCallback((el: HTMLDivElement | null) => {
-    unguard.current?.();
-    unguard.current = el ? guardBoardPointer(el) : null;
-  }, []);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const reindex = useHubMutation((a, ids: string[]) => hubApi.reindex(a, ids));
   const restore = useHubMutation((a, ids: string[]) => hubApi.restore(a, ids));
@@ -564,72 +557,70 @@ export function RecordPage({
         </span>
       </Header>
       {stack(banners.page, true)}
-      <div ref={guarded}>
-        <Board<Widget>
-          items={items}
-          i18nStrings={BOARD_STRINGS}
-          onItemsChange={({ detail }) =>
-            setLayout(
-              detail.items.map((i) => ({
-                id: i.data,
-                rowSpan: i.rowSpan ?? 5,
-                columnSpan: i.columnSpan ?? 1,
-              })),
-            )
-          }
-          empty={
-            <Box textAlign="center" color="text-body-secondary" padding="xxl">
-              Every widget is removed. Reset to default layout to bring them back.
-            </Box>
-          }
-          renderItem={(item, actions) =>
-            item.data === 'attachments' ? (
-              <AttachmentsTable
-                id={record.id}
-                onOpen={onOpen}
-                banners={stack(banners.attachments, true)}
-                problemsOnly={problemsOnly}
-                frame={(header, table) => (
-                  <BoardItem
-                    header={header}
-                    settings={settings(() => actions.removeItem(), 'Attachments')}
-                    i18nStrings={itemStrings('Attachments')}
-                    disableContentPaddings
-                  >
-                    {table}
-                  </BoardItem>
-                )}
-              />
-            ) : (
-              <BoardItem
-                header={
-                  // A narrow card's banner buttons sit in its header, so the banner stays short.
-                  <Header
-                    variant="h2"
-                    actions={
-                      banners[item.data].some((b) => Boolean(b.action)) && (
-                        <SpaceBetween direction="horizontal" size="xs">
-                          {banners[item.data]
-                            .filter((b) => Boolean(b.action))
-                            .map((b) => (
-                              <span key={b.key}>{b.action}</span>
-                            ))}
-                        </SpaceBetween>
-                      )
-                    }
-                  >
-                    {TITLES[item.data]}
-                  </Header>
-                }
-                settings={settings(() => actions.removeItem(), TITLES[item.data])}
-                i18nStrings={itemStrings(TITLES[item.data])}
-              >
-                {body(item.data)}
-              </BoardItem>
-            )
-          }
-        />
-      </div>
+      <Board<Widget>
+        items={items}
+        i18nStrings={BOARD_STRINGS}
+        onItemsChange={({ detail }) =>
+          setLayout(
+            detail.items.map((i) => ({
+              id: i.data,
+              rowSpan: i.rowSpan ?? 5,
+              columnSpan: i.columnSpan ?? 1,
+            })),
+          )
+        }
+        empty={
+          <Box textAlign="center" color="text-body-secondary" padding="xxl">
+            Every widget is removed. Reset to default layout to bring them back.
+          </Box>
+        }
+        renderItem={(item, actions) =>
+          item.data === 'attachments' ? (
+            <AttachmentsTable
+              id={record.id}
+              onOpen={onOpen}
+              banners={stack(banners.attachments, true)}
+              problemsOnly={problemsOnly}
+              frame={(header, table) => (
+                <BoardItem
+                  header={header}
+                  settings={settings(() => actions.removeItem(), 'Attachments')}
+                  i18nStrings={itemStrings('Attachments')}
+                  disableContentPaddings
+                >
+                  {table}
+                </BoardItem>
+              )}
+            />
+          ) : (
+            <BoardItem
+              header={
+                // A narrow card's banner buttons sit in its header, so the banner stays short.
+                <Header
+                  variant="h2"
+                  actions={
+                    banners[item.data].some((b) => Boolean(b.action)) && (
+                      <SpaceBetween direction="horizontal" size="xs">
+                        {banners[item.data]
+                          .filter((b) => Boolean(b.action))
+                          .map((b) => (
+                            <span key={b.key}>{b.action}</span>
+                          ))}
+                      </SpaceBetween>
+                    )
+                  }
+                >
+                  {TITLES[item.data]}
+                </Header>
+              }
+              settings={settings(() => actions.removeItem(), TITLES[item.data])}
+              i18nStrings={itemStrings(TITLES[item.data])}
+            >
+              {body(item.data)}
+            </BoardItem>
+          )
+        }
+      />
       {confirm && (
         <ConfirmModal
           title={confirm.title}
