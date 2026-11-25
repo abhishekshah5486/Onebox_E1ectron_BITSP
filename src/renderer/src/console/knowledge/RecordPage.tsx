@@ -481,7 +481,7 @@ export function RecordPage({
 
   const body = (widget: Widget) => (
     <SpaceBetween size="l">
-      {stack(banners[widget])}
+      {stack(banners[widget].map(({ action: _, ...b }) => b))}
       {widget === 'details' ? (
         <RecordFacts record={record} onOpen={onOpen} columns={2} withStatus={false} />
       ) : widget === 'indexing' ? (
@@ -556,7 +556,25 @@ export function RecordPage({
             />
           ) : (
             <BoardItem
-              header={<Header variant="h2">{TITLES[item.data]}</Header>}
+              header={
+                // A narrow card's banner buttons sit in its header, so the banner stays short.
+                <Header
+                  variant="h2"
+                  actions={
+                    banners[item.data].some((b) => Boolean(b.action)) && (
+                      <SpaceBetween direction="horizontal" size="xs">
+                        {banners[item.data]
+                          .filter((b) => Boolean(b.action))
+                          .map((b) => (
+                            <span key={b.key}>{b.action}</span>
+                          ))}
+                      </SpaceBetween>
+                    )
+                  }
+                >
+                  {TITLES[item.data]}
+                </Header>
+              }
               settings={settings(() => actions.removeItem(), TITLES[item.data])}
               i18nStrings={itemStrings(TITLES[item.data])}
             >
