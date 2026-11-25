@@ -102,21 +102,24 @@ export function KnowledgeFrame({
       href: '/knowledge/collections',
       icon: <Icon name="folder-open" />,
       defaultExpanded: true,
-      items: (collections.data ?? []).map((c) => ({
-        type: 'link' as const,
-        text: c.name,
-        href: `/knowledge/collections/${c.id}`,
-        icon: <Icon name="folder" />,
-        info: count(records.get(c.id)),
-      })),
+      // Uploaded collections, then each synced mailbox (read-only, kept in sync with mail).
+      items: [
+        ...(collections.data ?? []).map((c) => ({
+          type: 'link' as const,
+          text: c.name,
+          href: `/knowledge/collections/${c.id}`,
+          icon: <Icon name="folder" />,
+          info: count(records.get(c.id)),
+        })),
+        ...mailboxes.map((m) => ({
+          type: 'link' as const,
+          text: mailboxes.length === 1 ? 'Mail' : (email.get(m.sourceId) ?? 'Mail'),
+          href: `/knowledge/mail/${m.sourceId}`,
+          icon: <Icon name="envelope" />,
+          info: count(m.records),
+        })),
+      ],
     },
-    ...mailboxes.map((m) => ({
-      type: 'link' as const,
-      text: mailboxes.length === 1 ? 'Mail' : (email.get(m.sourceId) ?? 'Mail'),
-      href: `/knowledge/mail/${m.sourceId}`,
-      icon: <Icon name="envelope" />,
-      info: count(m.records),
-    })),
     {
       type: 'link',
       text: 'Recently deleted',
