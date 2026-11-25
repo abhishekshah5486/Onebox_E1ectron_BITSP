@@ -159,9 +159,28 @@ describe('ConsoleKnowledge', () => {
             dateOrigin: 'upload',
             parentId: null,
             deletedAt: '2026-03-02T00:00:00Z',
+            deleteSource: 'user',
+          },
+          {
+            id: 'e9',
+            sourceType: 'mail',
+            sourceId: 'acct-1',
+            name: 'Quarter pack',
+            mimeType: 'text/html',
+            sizeBytes: 10,
+            status: 'completed',
+            stage: null,
+            reason: null,
+            createdAt: '2026-03-01T00:00:00Z',
+            sourceCreatedAt: null,
+            sourceModifiedAt: null,
+            dateOrigin: 'source',
+            parentId: null,
+            deletedAt: '2026-03-02T00:00:00Z',
+            deleteSource: 'source',
           },
         ],
-        total: 1,
+        total: 2,
         available: { statuses: {}, mimeTypes: {} },
       }),
       '/rag/collections': () => ({ collections: [{ id: 'kb1', name: 'Policies' }] }),
@@ -173,8 +192,12 @@ describe('ConsoleKnowledge', () => {
     });
 
     const row = (await screen.findByText('Old.pdf')).closest('tr')!;
-    expect(get).toHaveBeenCalledWith(expect.stringContaining('trashed=true'));
+    expect(get).toHaveBeenCalledWith(expect.stringContaining('trashed=true&topLevel=true'));
     expect(within(row).getByText('Policies')).toBeInTheDocument();
+    expect(within(row).getByText('You')).toBeInTheDocument();
+    const email = (await screen.findByText('Quarter pack')).closest('tr')!;
+    expect(within(email).getByText('Mail')).toBeInTheDocument();
+    expect(within(email).getByText('Mailbox')).toBeInTheDocument();
     await userEvent.click(within(row).getByRole('checkbox'));
     await userEvent.click(screen.getByRole('button', { name: 'Restore' }));
     expect(post).toHaveBeenCalledWith('/rag/records/restore', { ids: ['r9'] });

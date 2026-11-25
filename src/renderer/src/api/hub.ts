@@ -237,7 +237,9 @@ export const hubApi = {
   stats: (api: ApiClient, collectionId: string) =>
     api.get<CollectionStats>(`/rag/collections/${collectionId}/stats`),
   limits: (api: ApiClient) =>
-    api.get<{ maxFileSizeBytes: number; maxFilesPerUpload: number }>('/rag/limits'),
+    api.get<{ maxFileSizeBytes: number; maxFilesPerUpload: number; trashRetentionDays: number }>(
+      '/rag/limits',
+    ),
   replace: (api: ApiClient, id: string, file: File, onProgress?: (fraction: number) => void) => {
     const form = new FormData();
     form.append('file', file, file.name);

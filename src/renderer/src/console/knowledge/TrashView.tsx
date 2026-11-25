@@ -6,7 +6,7 @@ import SpaceBetween from '@cloudscape-design/components/space-between';
 import Table from '@cloudscape-design/components/table';
 import TextFilter from '@cloudscape-design/components/text-filter';
 import { useState } from 'react';
-import { hubApi, useCollections, useHubMutation } from '../../api/hub';
+import { hubApi, useCollections, useHubMutation, useUploadLimits } from '../../api/hub';
 import { useRecordsPage, type KnowledgeRecord } from '../../api/knowledge';
 import { formatSize } from '../../knowledge/format';
 import { useFlash } from '../../settings/flash';
@@ -16,19 +16,30 @@ import styles from './Knowledge.module.css';
 import { formatWhen, problem } from './parts';
 
 const PAGE = 50;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Deleted uploads, until they are restored or deleted for good.
+// Whole days left before an item deleted at `deletedAt` is deleted for good.
+export function daysLeft(deletedAt: string | null | undefined, retentionDays: number, now: number) {
+  if (!deletedAt) return retentionDays;
+  const due = Date.parse(deletedAt) + retentionDays * DAY_MS;
+  return Math.max(0, Math.ceil((due - now) / DAY_MS));
+}
+
+// Deleted files and emails, until they are restored or deleted for good (by hand, or after
+// the retention period).
 export function TrashView() {
   const flash = useFlash();
   const collections = useCollections();
+  const retention = useUploadLimits().data?.trashRetentionDays ?? 14;
+  const [now] = useState(() => Date.now());
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<KnowledgeRecord[]>([]);
   const [purging, setPurging] = useState<KnowledgeRecord[] | null>(null);
   const records = useRecordsPage({
     trashed: true,
+    topLevel: true,
     q: q || undefined,
-    sourceType: ['upload'],
     sort: 'updatedAt',
     order: 'desc',
     offset: (page - 1) * PAGE,
@@ -45,7 +56,10 @@ export function TrashView() {
     try {
       const { restored } = await restore.mutateAsync(selected.map((r) => r.id));
       setSelected([]);
-      flash({ type: 'success', content: `${restored.length} restored to where they were.` });
+      flash({
+        type: 'success',
+        content: `${restored.length} restored to where they were. They are searchable again once re-indexed.`,
+      });
     } catch (err) {
       flash({ type: 'error', content: problem(err, 'Nothing was restored.') });
     }
@@ -61,7 +75,7 @@ export function TrashView() {
             <Header
               variant="h2"
               counter={records.data ? `(${total})` : undefined}
-              description="Deleted files stay here until you delete them for good. They are not searched."
+              description={`Deleted files and emails are not searched, and are deleted for good after ${retention} days.`}
               actions={
                 <SpaceBetween direction="horizontal" size="xs">
                   <Button
@@ -105,9 +119,9 @@ export function TrashView() {
           selectedItems={selected}
           onSelectionChange={({ detail }) => setSelected(detail.selectedItems)}
           ariaLabels={{
-            selectionGroupLabel: 'Deleted files',
+            selectionGroupLabel: 'Deleted items',
             itemSelectionLabel: (_, r) => r.name,
-            allItemsSelectionLabel: () => 'All deleted files on this page',
+            allItemsSelectionLabel: () => 'All deleted items on this page',
           }}
           empty={
             <Box textAlign="center" color="inherit" padding="l">
@@ -123,10 +137,24 @@ export function TrashView() {
             {
               id: 'collection',
               header: 'Collection',
-              cell: (r) => names.get(r.sourceId) ?? r.sourceId,
+              cell: (r) =>
+                r.sourceType === 'mail' ? 'Mail' : (names.get(r.sourceId) ?? r.sourceId),
             },
             { id: 'size', header: 'Size', cell: (r) => formatSize(r.sizeBytes) },
+            {
+              id: 'deletedBy',
+              header: 'Deleted by',
+              cell: (r) => (r.deleteSource === 'source' ? 'Mailbox' : 'You'),
+            },
             { id: 'deleted', header: 'Deleted (UTC)', cell: (r) => formatWhen(r.deletedAt) },
+            {
+              id: 'left',
+              header: 'Deleted for good in',
+              cell: (r) => {
+                const days = daysLeft(r.deletedAt, retention, now);
+                return days === 0 ? 'Today' : `${days} ${days === 1 ? 'day' : 'days'}`;
+              },
+            },
           ]}
         />
       </div>
@@ -141,7 +169,7 @@ export function TrashView() {
           onClose={() => setPurging(null)}
         >
           <Box variant="p">
-            Delete {purging.length === 1 ? <b>{purging[0]!.name}</b> : `${purging.length} files`}{' '}
+            Delete {purging.length === 1 ? <b>{purging[0]!.name}</b> : `${purging.length} items`}{' '}
             for good? This cannot be undone.
           </Box>
         </ConfirmModal>

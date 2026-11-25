@@ -30,6 +30,8 @@ export interface KnowledgeRecord {
   dateOrigin: DateOrigin;
   parentId: string | null;
   deletedAt?: string | null;
+  // Who sent it to the trash: the user, or its source (the mailbox let it go).
+  deleteSource?: 'user' | 'source' | null;
   duplicate?: boolean;
   mail?: MailInfo | null;
   classifyStatus?: ClassifyStatus | null;
@@ -137,6 +139,8 @@ export interface RecordQuery {
   offset?: number;
   limit?: number;
   trashed?: boolean;
+  // Without attachments (they go and come back with their email).
+  topLevel?: boolean;
 }
 
 export interface RecordsPage {
