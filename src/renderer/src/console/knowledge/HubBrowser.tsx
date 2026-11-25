@@ -93,6 +93,7 @@ export function HubBrowser({
   actions,
   selectedRecord,
   onSelectRecord,
+  onOpenRecord,
   onCurrent,
 }: {
   parent: { type: NodeType; id: string } | null;
@@ -103,6 +104,8 @@ export function HubBrowser({
   actions?: ReactNode;
   selectedRecord: string | null;
   onSelectRecord: (id: string | null) => void;
+  // Opens a record on a page of its own (its name and its attachments' View link do this).
+  onOpenRecord: (id: string) => void;
   onCurrent?: (listing: ReturnType<typeof useHubNodes>['data']) => void;
 }) {
   const navigate = useNavigate();
@@ -344,7 +347,8 @@ export function HubBrowser({
 
   const nameCell = (node: HubNode) => (
     // Only the name wraps (the table doesn't), onto lines that start under its icon.
-    <span className={styles.twoLines} title={node.name}>
+    // Its own click, not the row's (which opens the side panel).
+    <span className={styles.twoLines} title={node.name} onClick={(e) => e.stopPropagation()}>
       <span className={styles.nameIcon}>
         <NodeIcon node={node} />
       </span>
@@ -352,7 +356,8 @@ export function HubBrowser({
         href={nodeHref(node) ?? `#${node.id}`}
         onFollow={(e) => {
           e.preventDefault();
-          open(node);
+          if (node.nodeType === 'record') onOpenRecord(node.id);
+          else open(node);
         }}
       >
         {node.name}
@@ -371,7 +376,7 @@ export function HubBrowser({
           aria-label={`View the attachments of ${node.name}`}
           onClick={(e) => {
             e.stopPropagation();
-            onSelectRecord(node.id);
+            onOpenRecord(node.id);
           }}
         >
           View

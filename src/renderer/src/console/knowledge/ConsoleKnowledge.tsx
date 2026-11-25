@@ -6,7 +6,7 @@ import Header from '@cloudscape-design/components/header';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import { useCallback, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
-import { type HubListing, type RecordDetails } from '../../api/hub';
+import { useRecordDetails, type HubListing, type RecordDetails } from '../../api/hub';
 import { knowledgeApi } from '../../api/knowledge';
 import { useAuth } from '../../auth/AuthProvider';
 import { SettingsView } from '../../knowledge/SettingsView';
@@ -16,6 +16,7 @@ import { useFlash } from '../../settings/flash';
 import { usePageLayout } from '../pageLayout';
 import { CollectionOverview } from './CollectionOverview';
 import { HubBrowser } from './HubBrowser';
+import { RecordPage } from './RecordPage';
 import { RecordPanel } from './RecordPanel';
 import { SearchPage } from './SearchPage';
 import { KnowledgeFrame } from './KnowledgeFrame';
@@ -41,6 +42,9 @@ export default function ConsoleKnowledge() {
   const { api } = useAuth();
   const flash = useFlash();
   const record = params.get('record');
+  // A record opened on a page of its own, over the table it was opened from.
+  const item = params.get('item');
+  const opened = useRecordDetails(item).data;
   const folder = params.get('folder');
   const [listing, setListing] = useState<HubListing | undefined>();
   const { recent, remember } = useRecentSearches();
@@ -56,6 +60,18 @@ export default function ConsoleKnowledge() {
         },
         { replace: true },
       ),
+    [setParams],
+  );
+
+  const openRecord = useCallback(
+    (next: string | null) =>
+      setParams((current) => {
+        const copy = new URLSearchParams(current);
+        copy.delete('record');
+        if (next) copy.set('item', next);
+        else copy.delete('item');
+        return copy;
+      }),
     [setParams],
   );
 
@@ -90,6 +106,7 @@ export default function ConsoleKnowledge() {
               : `/knowledge/${view}/${c.id}`,
         }))
       : []),
+    ...(item ? [{ text: opened?.name ?? 'Record', href: `?${params.toString()}` }] : []),
   ];
 
   const breadcrumbs = (
@@ -106,21 +123,22 @@ export default function ConsoleKnowledge() {
   usePageLayout(
     {
       disableContentPaddings: true,
-      splitPanel: record ? (
-        <RecordPanel
-          key={record}
-          id={record}
-          onDownload={(r: RecordDetails) => void download(r)}
-          onOpen={selectRecord}
-        />
-      ) : undefined,
-      splitPanelOpen: record !== null,
+      splitPanel:
+        record && !item ? (
+          <RecordPanel
+            key={record}
+            id={record}
+            onDownload={(r: RecordDetails) => void download(r)}
+            onOpen={selectRecord}
+          />
+        ) : undefined,
+      splitPanelOpen: record !== null && !item,
       onSplitPanelToggle: (open) => {
         if (!open) selectRecord(null);
       },
       contentType: view === 'settings' || view === 'search' ? 'default' : 'table',
     },
-    [record, view],
+    [record, view, item],
   );
 
   if (!VIEWS.has(view)) return <Navigate to="/knowledge/collections" replace />;
@@ -132,6 +150,17 @@ export default function ConsoleKnowledge() {
   );
 
   function page() {
+    if (item && view !== 'trash' && view !== 'search' && view !== 'settings')
+      return (
+        <RecordPage
+          key={item}
+          id={item}
+          backLabel={`Back to ${listing?.currentNode?.name ?? TITLES[view] ?? 'records'}`}
+          onBack={() => openRecord(null)}
+          onOpen={openRecord}
+          onDownload={(r) => void download(r)}
+        />
+      );
     if (view === 'trash') return <TrashView />;
     if (view === 'settings')
       return (
@@ -198,6 +227,7 @@ export default function ConsoleKnowledge() {
             }
             selectedRecord={record}
             onSelectRecord={selectRecord}
+            onOpenRecord={openRecord}
             onCurrent={setListing}
           />
         </SpaceBetween>

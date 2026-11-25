@@ -15,7 +15,7 @@ import { FlowLoader } from './Sparkle';
 
 const STAGE_LABEL = { parse: 'Reading', index: 'Indexing', classify: 'Summary' } as const;
 
-function stageIndicator(status: string) {
+export function stageIndicator(status: string) {
   const known = STATUS[status as keyof typeof STATUS];
   if (known) return <StatusIndicator type={known.type}>{known.label}</StatusIndicator>;
   const label = status.replace(/_/g, ' ').toLowerCase();
@@ -82,14 +82,83 @@ const SETTLED = new Set([
   'FAILED',
 ]);
 
-function Details({ record, onOpen }: { record: RecordDetails; onOpen: (id: string) => void }) {
+// What a record is: its name, id, type, size, times and where it lives.
+export function RecordFacts({
+  record,
+  onOpen,
+  columns = 2,
+  withStatus = true,
+}: {
+  record: RecordDetails;
+  onOpen: (id: string) => void;
+  columns?: 1 | 2 | 3 | 4;
+  withStatus?: boolean;
+}) {
   const place = [record.collection?.name, ...(record.folderPath ?? []).map((f) => f.name)]
     .filter(Boolean)
     .join(' / ');
-  const c = record.classification;
+  return (
+    <KeyValuePairs
+      columns={columns}
+      items={[
+        { label: 'Name', value: record.name },
+        { label: 'Record ID', value: record.id },
+        { label: 'Record type', value: record.recordType === 'MAIL' ? 'Mail' : 'File' },
+        // An email's origin is mail, as its type says.
+        ...(record.recordType === 'MAIL'
+          ? []
+          : [{ label: 'Origin', value: record.origin === 'UPLOAD' ? 'Upload' : 'Mail' }]),
+        ...(withStatus
+          ? [
+              {
+                label: 'Indexing status',
+                value: withReason(stageIndicator(upper(record.status)), record.reason),
+              },
+            ]
+          : []),
+        { label: 'Version', value: record.version },
+        { label: 'Size', value: formatSize(record.sizeBytes) },
+        { label: 'Type', value: record.mimeType },
+        { label: 'Created at (UTC)', value: formatWhen(record.createdAt) },
+        { label: 'Updated at (UTC)', value: formatWhen(record.updatedAt) },
+        ...(place ? [{ label: 'Collection', value: place }] : []),
+        ...(record.attachedTo
+          ? [
+              {
+                label: 'Attached to',
+                value: (
+                  <Link
+                    href={`#${record.attachedTo.id}`}
+                    onFollow={(e) => {
+                      e.preventDefault();
+                      onOpen(record.attachedTo!.id);
+                    }}
+                  >
+                    {record.attachedTo.name}
+                  </Link>
+                ),
+              },
+            ]
+          : []),
+        { label: 'Permissions', value: record.permissions[0]?.relationship ?? 'OWNER' },
+      ]}
+    />
+  );
+}
+
+// How indexing went: each step that says more than the status, and what it produced.
+export function RecordIndexing({
+  record,
+  withStatus = false,
+  columns = 3,
+}: {
+  record: RecordDetails;
+  withStatus?: boolean;
+  columns?: 1 | 2 | 3 | 4;
+}) {
   const status = upper(record.status);
-  // Steps that say more than the status above: not one that repeats it, nor one that will
-  // never start now that the record has settled short of being indexed.
+  // Not a step that repeats the status, nor one that will never start now that the record
+  // has settled short of being indexed.
   const stages = (record.stageStates ?? []).filter(
     (s) =>
       !(s.status === status && (s.reason ?? null) === (record.reason ?? null)) &&
@@ -100,79 +169,47 @@ function Details({ record, onOpen }: { record: RecordDetails; onOpen: (id: strin
     { label: 'Read with', value: record.engine },
     { label: 'Search points', value: record.pointCount },
   ].filter((f) => f.value !== undefined && f.value !== null);
+  const items = [
+    ...(withStatus
+      ? [{ label: 'Status', value: withReason(stageIndicator(status), record.reason) }]
+      : []),
+    ...stages.map((s) => ({
+      label: STAGE_LABEL[s.stage],
+      value: withReason(stageIndicator(s.status), s.reason === record.reason ? null : s.reason),
+    })),
+    ...facts,
+  ];
+  return items.length > 0 ? <KeyValuePairs columns={columns} items={items} /> : null;
+}
+
+export function RecordSummary({ record }: { record: RecordDetails }) {
+  const c = record.classification;
+  if (!c) return null;
+  return (
+    <KeyValuePairs
+      columns={1}
+      items={[
+        { label: 'Summary', value: c.summary },
+        ...(c.category ? [{ label: 'Category', value: c.category }] : []),
+        ...(c.topics?.length ? [{ label: 'Topics', value: c.topics.join(', ') }] : []),
+        ...(c.languages?.length ? [{ label: 'Languages', value: c.languages.join(', ') }] : []),
+      ]}
+    />
+  );
+}
+
+function Details({ record, onOpen }: { record: RecordDetails; onOpen: (id: string) => void }) {
   return (
     <SpaceBetween size="l">
-      <KeyValuePairs
-        columns={2}
-        items={[
-          { label: 'Name', value: record.name },
-          { label: 'Record ID', value: record.id },
-          { label: 'Record type', value: record.recordType === 'MAIL' ? 'Mail' : 'File' },
-          // An email's origin is mail, as its type says.
-          ...(record.recordType === 'MAIL'
-            ? []
-            : [{ label: 'Origin', value: record.origin === 'UPLOAD' ? 'Upload' : 'Mail' }]),
-          {
-            label: 'Indexing status',
-            value: withReason(stageIndicator(status), record.reason),
-          },
-          { label: 'Version', value: record.version },
-          { label: 'Size', value: formatSize(record.sizeBytes) },
-          { label: 'Type', value: record.mimeType },
-          { label: 'Created at (UTC)', value: formatWhen(record.createdAt) },
-          { label: 'Updated at (UTC)', value: formatWhen(record.updatedAt) },
-          ...(place ? [{ label: 'Collection', value: place }] : []),
-          ...(record.attachedTo
-            ? [
-                {
-                  label: 'Attached to',
-                  value: (
-                    <Link
-                      href={`#${record.attachedTo.id}`}
-                      onFollow={(e) => {
-                        e.preventDefault();
-                        onOpen(record.attachedTo!.id);
-                      }}
-                    >
-                      {record.attachedTo.name}
-                    </Link>
-                  ),
-                },
-              ]
-            : []),
-          { label: 'Permissions', value: record.permissions[0]?.relationship ?? 'OWNER' },
-        ]}
-      />
+      <RecordFacts record={record} onOpen={onOpen} />
       <Attachments record={record} onOpen={onOpen} />
-      {stages.length > 0 && (
-        <KeyValuePairs
-          columns={3}
-          items={stages.map((s) => ({
-            label: STAGE_LABEL[s.stage],
-            value: withReason(
-              stageIndicator(s.status),
-              s.reason === record.reason ? null : s.reason,
-            ),
-          }))}
-        />
-      )}
-      {facts.length > 0 && <KeyValuePairs columns={3} items={facts} />}
-      {c && (
-        <KeyValuePairs
-          columns={1}
-          items={[
-            { label: 'Summary', value: c.summary },
-            ...(c.category ? [{ label: 'Category', value: c.category }] : []),
-            ...(c.topics?.length ? [{ label: 'Topics', value: c.topics.join(', ') }] : []),
-            ...(c.languages?.length ? [{ label: 'Languages', value: c.languages.join(', ') }] : []),
-          ]}
-        />
-      )}
+      <RecordIndexing record={record} />
+      <RecordSummary record={record} />
     </SpaceBetween>
   );
 }
 
-function Preview({ id }: { id: string }) {
+export function Preview({ id }: { id: string }) {
   const read = useRecordRead(id, '');
   if (read.isPending) return <FlowLoader label="Loading preview" />;
   if (read.isError || !read.data) return <Box color="text-status-inactive">No preview yet.</Box>;

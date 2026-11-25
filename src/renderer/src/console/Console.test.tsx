@@ -483,7 +483,7 @@ describe('v2 console', () => {
     expect(screen.getByRole('navigation', { name: 'Knowledge' })).toBeInTheDocument();
   });
 
-  it("opens a record's details beside the table when its name is clicked", async () => {
+  it("opens a record's details beside the table, and on a page of its own from its name", async () => {
     const email = {
       id: 'e1',
       name: 'Quarter pack',
@@ -528,7 +528,15 @@ describe('v2 console', () => {
       }),
     );
 
-    await userEvent.click(await screen.findByRole('link', { name: 'Quarter pack' }));
+    await userEvent.click(await screen.findByText('Completed'));
     expect(await screen.findByRole('tab', { name: 'File details' })).toBeInTheDocument();
+
+    // Its name opens it on a page of its own, with a way back to the table.
+    await userEvent.click(screen.getAllByRole('link', { name: 'Quarter pack' })[0]!);
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'File details' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Back to/ }));
+    expect(await screen.findByRole('link', { name: 'Quarter pack' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Details' })).not.toBeInTheDocument();
   });
 });
