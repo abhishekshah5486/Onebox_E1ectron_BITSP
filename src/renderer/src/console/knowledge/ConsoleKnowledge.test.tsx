@@ -353,7 +353,7 @@ describe('ConsoleKnowledge', () => {
       );
     await pick('Quarter pack');
     await pick('Rates');
-    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByText('(2/2)')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
     const asked = await screen.findByRole('dialog');
     expect(within(asked).getByText(/Your mailbox is not changed/)).toBeInTheDocument();

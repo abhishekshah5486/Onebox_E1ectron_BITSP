@@ -4,7 +4,6 @@ import ButtonDropdown, {
   type ButtonDropdownProps,
 } from '@cloudscape-design/components/button-dropdown';
 import Cards from '@cloudscape-design/components/cards';
-import * as tokens from '@cloudscape-design/design-tokens';
 import Header from '@cloudscape-design/components/header';
 import Icon from '@cloudscape-design/components/icon';
 import Link from '@cloudscape-design/components/link';
@@ -418,33 +417,22 @@ export function HubBrowser({
   const inCollection = parent?.type === 'collection' || parent?.type === 'folder';
   const headerActions = (
     <SpaceBetween direction="horizontal" size="xs" alignItems="center">
-      {!none && (
-        // How many are picked, and a way to let go of them all.
-        <span
-          className={styles.picked}
-          style={{
-            background: tokens.colorBackgroundItemSelected,
-            borderColor: tokens.colorBorderItemSelected,
-            color: tokens.colorTextAccent,
-          }}
-        >
-          {records.length} selected
-          <Button
-            variant="inline-icon"
-            iconName="close"
-            ariaLabel="Clear selection"
-            onClick={() => setSelected([])}
-          />
-        </span>
-      )}
       <Button
         iconName="refresh"
         ariaLabel="Refresh"
         loading={listing.isFetching && !listing.isPending}
         onClick={() => void listing.refetch()}
       />
+      {inCollection && <Button onClick={() => setDialog({ kind: 'folder' })}>Create folder</Button>}
+      {parent === null && !flattened && (
+        <Button onClick={() => setDialog({ kind: 'collection' })}>Create collection</Button>
+      )}
+      {actions}
       <Button iconName="download" disabled={none} onClick={() => confirmDownload(records)}>
         Download
+      </Button>
+      <Button disabled={none} loading={trash.isPending} onClick={() => confirmTrash(records)}>
+        Delete
       </Button>
       <ButtonDropdown
         disabled={none}
@@ -460,14 +448,6 @@ export function HubBrowser({
       >
         Actions
       </ButtonDropdown>
-      <Button disabled={none} loading={trash.isPending} onClick={() => confirmTrash(records)}>
-        Delete
-      </Button>
-      {inCollection && <Button onClick={() => setDialog({ kind: 'folder' })}>Create folder</Button>}
-      {parent === null && !flattened && (
-        <Button onClick={() => setDialog({ kind: 'collection' })}>Create collection</Button>
-      )}
-      {actions}
     </SpaceBetween>
   );
 
@@ -570,7 +550,8 @@ export function HubBrowser({
   const tableHeader = (
     <Header
       variant="h2"
-      counter={listing.data ? `(${total})` : undefined}
+      // As AWS consoles count a selection: picked/total.
+      counter={listing.data ? `(${records.length ? `${records.length}/` : ''}${total})` : undefined}
       description={description}
       actions={headerActions}
     >
