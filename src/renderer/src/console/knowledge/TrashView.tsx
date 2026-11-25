@@ -132,7 +132,13 @@ export function TrashView() {
             {
               id: 'name',
               header: 'Name',
-              cell: (r) => <span className={styles.wrap}>{r.name}</span>,
+              cell: (r) => (
+                <span className={styles.clamp} title={r.name}>
+                  {r.name}
+                </span>
+              ),
+              width: 420,
+              minWidth: 280,
             },
             {
               id: 'collection',

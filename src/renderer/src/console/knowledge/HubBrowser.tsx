@@ -344,7 +344,7 @@ export function HubBrowser({
 
   const nameCell = (node: HubNode) => (
     // Only the name wraps (the table doesn't), onto lines that start under its icon.
-    <span className={styles.wrap}>
+    <span className={styles.clamp} title={node.name}>
       <span className={styles.nameIcon}>
         <NodeIcon node={node} />
       </span>
@@ -384,7 +384,14 @@ export function HubBrowser({
   const mailRows = parent?.type === 'mailbox' || Boolean(flattened);
 
   const columns: TableProps.ColumnDefinition<HubNode>[] = [
-    { id: 'name', header: 'Name', cell: nameCell, sortingField: 'name' },
+    {
+      id: 'name',
+      header: 'Name',
+      cell: nameCell,
+      sortingField: 'name',
+      width: 420,
+      minWidth: 280,
+    },
     { id: 'status', header: 'Status', cell: (n) => <NodeStatus node={n} /> },
     {
       id: 'type',
