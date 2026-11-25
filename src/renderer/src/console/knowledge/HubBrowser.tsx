@@ -5,7 +5,6 @@ import ButtonDropdown, {
 } from '@cloudscape-design/components/button-dropdown';
 import Cards from '@cloudscape-design/components/cards';
 import Header from '@cloudscape-design/components/header';
-import Icon from '@cloudscape-design/components/icon';
 import Link from '@cloudscape-design/components/link';
 import Multiselect, { type MultiselectProps } from '@cloudscape-design/components/multiselect';
 import Pagination from '@cloudscape-design/components/pagination';
@@ -39,7 +38,6 @@ import styles from './Knowledge.module.css';
 import {
   NodeIcon,
   NodeStatus,
-  Paperclip,
   SIZE_RANGES,
   STATUS,
   STATUS_ORDER,
@@ -359,17 +357,31 @@ export function HubBrowser({
       >
         {node.name}
       </Link>
-      {!!node.attachmentCount && (
-        <span
-          className={styles.clip}
-          title={`${node.attachmentCount} ${node.attachmentCount === 1 ? 'attachment' : 'attachments'}`}
-        >
-          <Icon svg={<Paperclip />} size="small" variant="subtle" />
-          {node.attachmentCount}
-        </span>
-      )}
     </span>
   );
+
+  // Its count, and a way to its list (the email's details, where each says how it went).
+  const attachmentsCell = (node: HubNode) =>
+    node.attachmentCount ? (
+      <span className={styles.attachments}>
+        {node.attachmentCount}
+        <button
+          type="button"
+          className={styles.view}
+          aria-label={`View the attachments of ${node.name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectRecord(node.id);
+          }}
+        >
+          View
+        </button>
+      </span>
+    ) : (
+      '-'
+    );
+  // Only where emails are listed: a mailbox, or everything.
+  const mailRows = parent?.type === 'mailbox' || Boolean(flattened);
 
   const columns: TableProps.ColumnDefinition<HubNode>[] = [
     { id: 'name', header: 'Name', cell: nameCell, sortingField: 'name' },
@@ -384,6 +396,7 @@ export function HubBrowser({
             : (n.extension?.toUpperCase() ?? 'File')
           : n.nodeType[0]!.toUpperCase() + n.nodeType.slice(1),
     },
+    ...(mailRows ? [{ id: 'attachments', header: 'Attachments', cell: attachmentsCell }] : []),
     { id: 'size', header: 'Size', cell: nodeSize, sortingField: 'size' },
     {
       id: 'createdAt',

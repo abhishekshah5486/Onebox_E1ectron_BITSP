@@ -179,14 +179,33 @@
   animation: none;
 }
 
-.clip {
+.attachments {
   display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-inline-start: 8px;
-  font-size: 12px;
-  opacity: 0.8;
+  align-items: baseline;
+  gap: 8px;
   white-space: nowrap;
+}
+
+/* A text link with a dotted underline, as the AWS consoles mark one that opens more detail. */
+.view {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--kb-link);
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.view:hover {
+  text-decoration-style: solid;
+}
+
+.view:focus-visible {
+  outline: 2px solid var(--kb-link);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .nameIcon {

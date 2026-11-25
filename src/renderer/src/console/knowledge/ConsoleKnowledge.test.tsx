@@ -310,7 +310,9 @@ describe('ConsoleKnowledge', () => {
     });
 
     const row = (await screen.findByRole('link', { name: 'Quarter pack' })).closest('tr')!;
-    expect(within(row).getByTitle('2 attachments')).toBeInTheDocument();
+    // Its count, and a link to them (opening its details).
+    const view = within(row).getByRole('button', { name: 'View the attachments of Quarter pack' });
+    expect(view.closest('td')).toHaveTextContent('2View');
     await userEvent.click(
       within(row).getByRole('button', { name: 'Show the attachments of Quarter pack' }),
     );
