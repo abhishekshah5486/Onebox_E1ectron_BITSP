@@ -1,18 +1,25 @@
-import Icon from '@cloudscape-design/components/icon';
+import Icon, { type IconProps } from '@cloudscape-design/components/icon';
 import StatusIndicator, {
   type StatusIndicatorProps,
 } from '@cloudscape-design/components/status-indicator';
 import type { HubNode, IndexingStatus } from '../../api/hub';
 import { formatSize } from '../../knowledge/format';
 
-export const STATUS: Record<IndexingStatus, { label: string; type: StatusIndicatorProps.Type }> = {
-  QUEUED: { label: 'Queued', type: 'pending' },
-  IN_PROGRESS: { label: 'In progress', type: 'in-progress' },
-  COMPLETED: { label: 'Completed', type: 'success' },
-  EMPTY: { label: 'Empty', type: 'stopped' },
-  FILE_TYPE_NOT_SUPPORTED: { label: 'File type not supported', type: 'warning' },
-  PASSWORD_PROTECTED: { label: 'Password protected', type: 'warning' },
-  FAILED: { label: 'Failed', type: 'error' },
+export const STATUS: Record<
+  IndexingStatus,
+  { label: string; type: StatusIndicatorProps.Type; icon: IconProps.Name }
+> = {
+  QUEUED: { label: 'Queued', type: 'pending', icon: 'status-pending' },
+  IN_PROGRESS: { label: 'In progress', type: 'in-progress', icon: 'status-in-progress' },
+  COMPLETED: { label: 'Completed', type: 'success', icon: 'status-positive' },
+  EMPTY: { label: 'Empty', type: 'stopped', icon: 'file' },
+  FILE_TYPE_NOT_SUPPORTED: {
+    label: 'File type not supported',
+    type: 'warning',
+    icon: 'status-warning',
+  },
+  PASSWORD_PROTECTED: { label: 'Password protected', type: 'warning', icon: 'lock-private' },
+  FAILED: { label: 'Failed', type: 'error', icon: 'status-negative' },
 };
 
 export const STATUS_ORDER = Object.keys(STATUS) as IndexingStatus[];

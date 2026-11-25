@@ -6,7 +6,7 @@ import ButtonDropdown, {
 import Cards from '@cloudscape-design/components/cards';
 import Header from '@cloudscape-design/components/header';
 import Link from '@cloudscape-design/components/link';
-import Multiselect from '@cloudscape-design/components/multiselect';
+import Multiselect, { type MultiselectProps } from '@cloudscape-design/components/multiselect';
 import Pagination from '@cloudscape-design/components/pagination';
 import SegmentedControl from '@cloudscape-design/components/segmented-control';
 import Select, { type SelectProps } from '@cloudscape-design/components/select';
@@ -53,9 +53,9 @@ const WHEN: SelectProps.Option[] = [
 ];
 const ANY_SIZE: SelectProps.Option = { value: '', label: 'Any size' };
 const TYPES = [
-  { value: 'FILE', label: 'File' },
-  { value: 'MAIL', label: 'Mail' },
-];
+  { value: 'FILE', label: 'File', iconName: 'file' },
+  { value: 'MAIL', label: 'Mail', iconName: 'envelope' },
+] as const satisfies MultiselectProps.Option[];
 
 const cursorAt = (offset: number) =>
   offset === 0
@@ -365,7 +365,11 @@ export function HubBrowser({
       />
       <Multiselect
         selectedOptions={statuses}
-        options={STATUS_ORDER.map((s) => ({ value: s, label: STATUS[s].label }))}
+        options={STATUS_ORDER.map((s) => ({
+          value: s,
+          label: STATUS[s].label,
+          iconName: STATUS[s].icon,
+        }))}
         placeholder="Any status"
         hideTokens
         onChange={({ detail }) => refilter(setStatuses)(detail.selectedOptions)}
