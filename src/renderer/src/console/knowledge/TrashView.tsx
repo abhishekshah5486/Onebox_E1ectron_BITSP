@@ -15,7 +15,7 @@ import { ConfirmModal } from './dialogs';
 import styles from './Knowledge.module.css';
 import { formatWhen, problem } from './parts';
 
-const PAGE = 50;
+const PAGE = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Whole days left before an item deleted at `deletedAt` is deleted for good.

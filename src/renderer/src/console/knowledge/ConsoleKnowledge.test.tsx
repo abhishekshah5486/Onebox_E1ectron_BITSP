@@ -200,6 +200,7 @@ describe('ConsoleKnowledge', () => {
 
     const row = (await screen.findByText('Old.pdf')).closest('tr')!;
     expect(get).toHaveBeenCalledWith(expect.stringContaining('trashed=true&topLevel=true'));
+    expect(get).toHaveBeenCalledWith(expect.stringContaining('limit=20'));
     expect(within(row).getByText('Policies')).toBeInTheDocument();
     expect(within(row).getByText('You')).toBeInTheDocument();
     const email = (await screen.findByText('Quarter pack')).closest('tr')!;

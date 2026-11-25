@@ -46,7 +46,7 @@ import {
   problem,
 } from './parts';
 
-const PAGE = 50;
+const PAGE = 20;
 const DAY = 86_400_000;
 const WHEN: SelectProps.Option[] = [
   { value: '', label: 'Updated any time' },
