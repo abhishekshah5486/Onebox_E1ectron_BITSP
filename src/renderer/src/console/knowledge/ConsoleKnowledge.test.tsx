@@ -92,9 +92,9 @@ describe('ConsoleKnowledge', () => {
     expect(within(row).getByText('Failed')).toBeInTheDocument();
     expect(screen.getByText('Contracts')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Read failed files again' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Index failed files again' }));
     await userEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Read again' }),
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Index again' }),
     );
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/rag/collections/kb1/reindex', { statuses: ['FAILED'] }),
@@ -353,7 +353,8 @@ describe('ConsoleKnowledge', () => {
       );
     await pick('Quarter pack');
     await pick('Rates');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete (2)' }));
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
     const asked = await screen.findByRole('dialog');
     expect(within(asked).getByText(/Your mailbox is not changed/)).toBeInTheDocument();
     await userEvent.click(within(asked).getByRole('button', { name: 'Delete' }));
@@ -364,7 +365,7 @@ describe('ConsoleKnowledge', () => {
 
     await pick('Rates');
     await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete permanently (1)' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete permanently' }));
     await userEvent.click(
       await screen.findByRole('button', { name: 'Delete permanently (cannot be undone)' }),
     );

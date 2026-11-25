@@ -59,19 +59,19 @@ export function CollectionOverview({ id }: { id: string }) {
       {failed > 0 && (
         <Box margin={{ top: 'm' }}>
           <Button loading={reindex.isPending} onClick={() => setAsking(true)}>
-            Read failed files again
+            Index failed files again
           </Button>
         </Box>
       )}
       {asking && (
         <ConfirmModal
-          title="Read failed files again"
-          confirm="Read again"
+          title="Index failed files again"
+          confirm="Index again"
           danger={false}
           onConfirm={async () => {
             try {
               const r = await reindex.mutateAsync(['FAILED']);
-              flash({ type: 'success', content: `${r.queued.length} queued to be read again.` });
+              flash({ type: 'success', content: `${r.queued.length} queued to be indexed again.` });
             } catch (err) {
               flash({ type: 'error', content: problem(err, 'Nothing was queued.') });
             }
@@ -79,7 +79,7 @@ export function CollectionOverview({ id }: { id: string }) {
           onClose={() => setAsking(false)}
         >
           <Box variant="p">
-            Read the {failed} failed {failed === 1 ? 'file' : 'files'} again from the start? This
+            Index the {failed} failed {failed === 1 ? 'file' : 'files'} again from the start? This
             can take a while for large files.
           </Box>
         </ConfirmModal>

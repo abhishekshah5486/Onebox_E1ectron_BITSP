@@ -179,6 +179,18 @@
   animation: none;
 }
 
+.picked {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px 1px 12px;
+  border: 1px solid;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .clip {
   display: inline-flex;
   align-items: center;

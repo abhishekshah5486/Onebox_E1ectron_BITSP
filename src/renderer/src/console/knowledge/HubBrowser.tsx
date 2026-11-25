@@ -4,6 +4,7 @@ import ButtonDropdown, {
   type ButtonDropdownProps,
 } from '@cloudscape-design/components/button-dropdown';
 import Cards from '@cloudscape-design/components/cards';
+import * as tokens from '@cloudscape-design/design-tokens';
 import Header from '@cloudscape-design/components/header';
 import Icon from '@cloudscape-design/components/icon';
 import Link from '@cloudscape-design/components/link';
@@ -208,7 +209,7 @@ export function HubBrowser({
       const { queued, skipped } = await reindex.mutateAsync(nodes.map((n) => n.id));
       flash({
         type: queued.length ? 'success' : 'warning',
-        content: `${queued.length} queued to be read again${skipped.length ? `, ${skipped.length} skipped (${skipped[0]!.reason})` : ''}.`,
+        content: `${queued.length} queued to be indexed again${skipped.length ? `, ${skipped.length} skipped (${skipped[0]!.reason})` : ''}.`,
       });
     } catch (err) {
       flash({ type: 'error', content: problem(err, 'Nothing was queued.') });
@@ -261,11 +262,11 @@ export function HubBrowser({
   const confirmReindex = (nodes: HubNode[]) =>
     setDialog({
       kind: 'confirm',
-      title: 'Read again',
-      label: 'Read again',
+      title: 'Index again',
+      label: 'Index again',
       body: (
         <>
-          Read {what(nodes)} again from the start? Each is parsed, indexed and summarized again,
+          Index {what(nodes)} again from the start? Each is read, indexed and summarized again,
           which takes a while for large files.
         </>
       ),
@@ -303,15 +304,16 @@ export function HubBrowser({
 
   const rowActions = (node: HubNode): ButtonDropdownProps.ItemOrGroup[] => {
     const upload = node.nodeType === 'record' && node.sourceType === 'upload';
-    if (node.nodeType === 'mailbox') return [{ id: 'open', text: 'Open' }];
+    if (node.nodeType === 'mailbox')
+      return [{ id: 'open', text: 'Open', iconName: 'folder-open' as const }];
     if (node.nodeType !== 'record')
       return [
-        { id: 'open', text: 'Open' },
-        { id: 'rename', text: 'Rename' },
-        { id: 'delete', text: 'Delete' },
+        { id: 'open', text: 'Open', iconName: 'folder-open' as const },
+        { id: 'rename', text: 'Rename', iconName: 'edit' as const },
+        { id: 'delete', text: 'Delete', iconName: 'remove' as const },
       ];
     return [
-      { id: 'open', text: 'Details' },
+      { id: 'open', text: 'Details', iconName: 'status-info' as const },
       {
         id: 'download',
         text: node.recordType === 'MAIL' ? 'Open email' : 'Download',
@@ -319,14 +321,16 @@ export function HubBrowser({
       },
       ...(upload
         ? [
-            { id: 'rename', text: 'Rename' },
-            { id: 'replace', text: 'Replace file' },
-            { id: 'move', text: 'Move' },
+            { id: 'rename', text: 'Rename', iconName: 'edit' as const },
+            { id: 'replace', text: 'Replace file', iconName: 'upload' as const },
+            { id: 'move', text: 'Move', iconName: 'arrow-right' as const },
           ]
         : []),
-      { id: 'reindex', text: 'Read again' },
+      { id: 'reindex', text: 'Index again', iconName: 'refresh' as const },
       // An attachment goes with its email.
-      ...(isAttachment(node) ? [] : [{ id: 'delete', text: 'Delete' }]),
+      ...(isAttachment(node)
+        ? []
+        : [{ id: 'delete', text: 'Delete', iconName: 'remove' as const }]),
     ];
   };
 
@@ -410,37 +414,54 @@ export function HubBrowser({
   ];
 
   const records = selected.filter((n) => n.nodeType === 'record' && !isAttachment(n));
-  const count = records.length ? ` (${records.length})` : '';
+  const none = records.length === 0;
   const inCollection = parent?.type === 'collection' || parent?.type === 'folder';
   const headerActions = (
-    <SpaceBetween direction="horizontal" size="xs">
+    <SpaceBetween direction="horizontal" size="xs" alignItems="center">
+      {!none && (
+        // How many are picked, and a way to let go of them all.
+        <span
+          className={styles.picked}
+          style={{
+            background: tokens.colorBackgroundItemSelected,
+            borderColor: tokens.colorBorderItemSelected,
+            color: tokens.colorTextAccent,
+          }}
+        >
+          {records.length} selected
+          <Button
+            variant="inline-icon"
+            iconName="close"
+            ariaLabel="Clear selection"
+            onClick={() => setSelected([])}
+          />
+        </span>
+      )}
       <Button
         iconName="refresh"
         ariaLabel="Refresh"
         loading={listing.isFetching && !listing.isPending}
         onClick={() => void listing.refetch()}
       />
+      <Button iconName="download" disabled={none} onClick={() => confirmDownload(records)}>
+        Download
+      </Button>
       <ButtonDropdown
-        disabled={records.length === 0}
+        disabled={none}
         items={[
-          { id: 'download', text: `Download${count}`, iconName: 'download' },
-          { id: 'reindex', text: `Read again${count}`, iconName: 'refresh' },
-          { id: 'purge', text: `Delete permanently${count}`, iconName: 'remove' },
+          { id: 'reindex', text: 'Index again', iconName: 'refresh' },
+          { id: 'purge', text: 'Delete permanently', iconName: 'remove' },
         ]}
-        onItemClick={({ detail }) => {
-          if (detail.id === 'download') confirmDownload(records);
-          else if (detail.id === 'reindex') confirmReindex(records);
-          else setDialog({ kind: 'purge', nodes: records });
-        }}
+        onItemClick={({ detail }) =>
+          detail.id === 'reindex'
+            ? confirmReindex(records)
+            : setDialog({ kind: 'purge', nodes: records })
+        }
       >
         Actions
       </ButtonDropdown>
-      <Button
-        disabled={records.length === 0}
-        loading={trash.isPending}
-        onClick={() => confirmTrash(records)}
-      >
-        {`Delete${count}`}
+      <Button disabled={none} loading={trash.isPending} onClick={() => confirmTrash(records)}>
+        Delete
       </Button>
       {inCollection && <Button onClick={() => setDialog({ kind: 'folder' })}>Create folder</Button>}
       {parent === null && !flattened && (
