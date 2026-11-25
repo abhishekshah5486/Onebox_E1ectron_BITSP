@@ -576,17 +576,22 @@ export function HubBrowser({
             pagination={pagination}
             items={items}
             columnDefinitions={columns}
-            expandableRows={{
-              isItemExpandable: (n) => n.nodeType === 'record' && n.hasChildren,
-              getItemChildren: (n) => attachments.get(n.id)?.items ?? [],
-              expandedItems: expanded,
-              onExpandableItemToggle: ({ detail }) =>
-                setExpanded((now) =>
-                  detail.expanded
-                    ? [...now, detail.item]
-                    : now.filter((n) => n.id !== detail.item.id),
-                ),
-            }}
+            // All records lists every record on its own; elsewhere an email opens to its files.
+            expandableRows={
+              flattened
+                ? undefined
+                : {
+                    isItemExpandable: (n) => n.nodeType === 'record' && n.hasChildren,
+                    getItemChildren: (n) => attachments.get(n.id)?.items ?? [],
+                    expandedItems: expanded,
+                    onExpandableItemToggle: ({ detail }) =>
+                      setExpanded((now) =>
+                        detail.expanded
+                          ? [...now, detail.item]
+                          : now.filter((n) => n.id !== detail.item.id),
+                      ),
+                  }
+            }
             getLoadingStatus={(n) => (n && attachments.get(n.id)?.loading ? 'loading' : 'finished')}
             renderLoaderLoading={() => (
               <StatusIndicator type="loading">Loading attachments</StatusIndicator>
