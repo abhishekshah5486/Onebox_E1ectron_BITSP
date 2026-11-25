@@ -482,4 +482,53 @@ describe('v2 console', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open knowledge navigation' }));
     expect(screen.getByRole('navigation', { name: 'Knowledge' })).toBeInTheDocument();
   });
+
+  it("opens a record's details beside the table when its name is clicked", async () => {
+    const email = {
+      id: 'e1',
+      name: 'Quarter pack',
+      nodeType: 'record',
+      recordType: 'MAIL',
+      sourceType: 'mail',
+      parentId: 'acct-1',
+      collectionId: null,
+      origin: 'CONNECTOR',
+      hasChildren: false,
+      createdAt: 1,
+      updatedAt: 1,
+      indexingStatus: 'COMPLETED',
+    };
+    renderConsole(
+      '/knowledge/mail/acct-1',
+      fakeApi({
+        ...restore,
+        get: routedGet({
+          '/accounts': () => ({ items: [] }),
+          '/rag/collections': () => ({ collections: [] }),
+          '/rag/hub/nodes': () => ({
+            currentNode: null,
+            items: [email],
+            pagination: { limit: 50, totalItems: 1, hasNext: false, hasPrev: false },
+          }),
+          '/rag/records/e1': () => ({
+            ...email,
+            sourceId: 'acct-1',
+            status: 'completed',
+            stage: null,
+            reason: null,
+            mimeType: 'text/html',
+            sizeBytes: 1,
+            version: 1,
+            createdAt: '2026-11-20T00:00:00Z',
+            updatedAt: '2026-11-20T00:00:00Z',
+            folderId: null,
+            permissions: [],
+          }),
+        }),
+      }),
+    );
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Quarter pack' }));
+    expect(await screen.findByRole('tab', { name: 'File details' })).toBeInTheDocument();
+  });
 });

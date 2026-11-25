@@ -134,7 +134,8 @@ export function ConsoleShell() {
                 breadcrumbs={page.breadcrumbs}
                 disableContentPaddings={page.disableContentPaddings}
                 splitPanel={page.splitPanel}
-                splitPanelOpen={page.splitPanelOpen}
+                // Always controlled: a page that sets it later would otherwise be ignored.
+                splitPanelOpen={page.splitPanelOpen ?? false}
                 onSplitPanelToggle={({ detail }) => page.onSplitPanelToggle?.(detail.open)}
                 splitPanelPreferences={{ position: 'side' }}
                 contentType={page.contentType ?? 'table'}
