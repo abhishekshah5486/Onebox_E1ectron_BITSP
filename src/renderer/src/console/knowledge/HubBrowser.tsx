@@ -389,8 +389,8 @@ export function HubBrowser({
       header: 'Name',
       cell: nameCell,
       sortingField: 'name',
-      width: 420,
-      minWidth: 280,
+      width: 560,
+      minWidth: 420,
     },
     { id: 'status', header: 'Status', cell: (n) => <NodeStatus node={n} /> },
     {

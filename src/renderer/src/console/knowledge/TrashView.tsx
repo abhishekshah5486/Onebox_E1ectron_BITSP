@@ -137,8 +137,8 @@ export function TrashView() {
                   {r.name}
                 </span>
               ),
-              width: 420,
-              minWidth: 280,
+              width: 560,
+              minWidth: 420,
             },
             {
               id: 'collection',
