@@ -164,6 +164,21 @@
   padding: 12px 16px 0;
 }
 
+/* The question box: a slowly flowing gradient ring while idle, the console's own focus
+   border once clicked. */
+.glow {
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--kb-flow);
+  background-size: 200% 100%;
+  animation: flow 8s linear infinite;
+}
+
+.glow:focus-within {
+  background: transparent;
+  animation: none;
+}
+
 .nameIcon {
   margin-inline-end: 6px;
 }
@@ -248,6 +263,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .flowLine,
+  .glow,
   .loaderLine {
     animation: none;
   }

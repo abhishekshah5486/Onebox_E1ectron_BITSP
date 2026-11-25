@@ -13,7 +13,7 @@ import Icon from '@cloudscape-design/components/icon';
 import Input from '@cloudscape-design/components/input';
 import Link from '@cloudscape-design/components/link';
 import Multiselect from '@cloudscape-design/components/multiselect';
-import PromptInput from '@cloudscape-design/components/prompt-input';
+import PromptInput, { type PromptInputProps } from '@cloudscape-design/components/prompt-input';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Steps, { type StepsProps } from '@cloudscape-design/components/steps';
@@ -130,6 +130,15 @@ function Highlight({ text, words }: { text: string; words: string[] }) {
     </>
   );
 }
+
+// Roomier than a form field; its own border gives way to the flowing ring until focused.
+const COMPOSER: PromptInputProps.Style = {
+  root: {
+    borderColor: { default: 'transparent', hover: 'transparent' },
+    paddingBlock: '10px',
+    paddingInline: '14px',
+  },
+};
 
 // A small link that opens or folds something, at the size of the text around it.
 function Toggle({
@@ -366,40 +375,43 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
           {recordIds.length === 1 ? 'record' : 'records'}.
         </Alert>
       )}
-      <PromptInput
-        value={draft}
-        onChange={({ detail }) => setDraft(detail.value.slice(0, MAX_CHARS))}
-        onAction={() => submit()}
-        placeholder="Ask about your files and mail, e.g. 'What did the supplier send last month?'"
-        ariaLabel="Question"
-        actionButtonIconName="send"
-        actionButtonAriaLabel="Search"
-        disableActionButton={!draft.trim()}
-        minRows={2}
-        maxRows={8}
-        secondaryActions={
-          <Box padding={{ left: 'xxs', top: 'xxs' }}>
-            <Multiselect
-              selectedOptions={chosen}
-              options={sourceOptions}
-              placeholder="All sources"
-              hideTokens
-              expandToViewport
-              ariaLabel="Sources"
-              onChange={({ detail }) => {
-                const ids = detail.selectedOptions.map((o) => o.value!);
-                const picked = ids.filter((id) => id !== MAIL);
-                // Mail alone searches only mail; nothing picked searches everything.
-                setScope({
-                  ...scope,
-                  sourceIds: picked.length > 0 ? picked : ids.includes(MAIL) ? mailIds : [],
-                  mail: picked.length === 0 || ids.includes(MAIL),
-                });
-              }}
-            />
-          </Box>
-        }
-      />
+      <div className={styles.glow}>
+        <PromptInput
+          style={COMPOSER}
+          value={draft}
+          onChange={({ detail }) => setDraft(detail.value.slice(0, MAX_CHARS))}
+          onAction={() => submit()}
+          placeholder="Ask about your files and mail, e.g. 'What did the supplier send last month?'"
+          ariaLabel="Question"
+          actionButtonIconName="send"
+          actionButtonAriaLabel="Search"
+          disableActionButton={!draft.trim()}
+          minRows={2}
+          maxRows={8}
+          secondaryActions={
+            <Box padding={{ left: 'xxs', top: 'xxs' }}>
+              <Multiselect
+                selectedOptions={chosen}
+                options={sourceOptions}
+                placeholder="All sources"
+                hideTokens
+                expandToViewport
+                ariaLabel="Sources"
+                onChange={({ detail }) => {
+                  const ids = detail.selectedOptions.map((o) => o.value!);
+                  const picked = ids.filter((id) => id !== MAIL);
+                  // Mail alone searches only mail; nothing picked searches everything.
+                  setScope({
+                    ...scope,
+                    sourceIds: picked.length > 0 ? picked : ids.includes(MAIL) ? mailIds : [],
+                    mail: picked.length === 0 || ids.includes(MAIL),
+                  });
+                }}
+              />
+            </Box>
+          }
+        />
+      </div>
       <SpaceBetween direction="horizontal" size="s" alignItems="center">
         <Box fontSize="body-s" color="text-body-secondary">
           Max {MAX_CHARS.toLocaleString()} characters
