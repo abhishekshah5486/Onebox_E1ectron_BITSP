@@ -1,6 +1,6 @@
 /* The mailbox's notifications: Cloudscape's info notification in a burgundy fill. */
 .burgundy {
-  --color-background-flashbar-info-i0nahj: #881337;
+  --color-background-notification-blue-4hgetl: #881337;
 }
 
 /* An alert in progress: its info icon turns into a spinner (the alert's icon slot is the
