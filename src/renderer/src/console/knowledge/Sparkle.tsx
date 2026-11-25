@@ -40,29 +40,30 @@ export function FlowLoader({ label }: { label: string }) {
   );
 }
 
-// The Knowledge service icon: a page of connected ideas on the assistant gradient.
+// The Knowledge service icon: a page under a lens with a spark, on the assistant gradient.
 export function KnowledgeLogo({ size = 24 }: { size?: number }) {
   const id = useId();
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className={styles.logo}>
       <defs>
         <linearGradient id={id} x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#4c1d95" />
-          <stop offset="0.5" stopColor="#6d28d9" />
-          <stop offset="1" stopColor="#3b82f6" />
+          <stop offset="0" stopColor="#3b1a8f" />
+          <stop offset="0.55" stopColor="#7c3aed" />
+          <stop offset="1" stopColor="#4f8bf9" />
         </linearGradient>
       </defs>
-      <rect width="48" height="48" rx="7" fill={`url(#${id})`} />
-      <g fill="none" stroke="#fff" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round">
-        <path d="M15 10h13l7 7v20a2 2 0 0 1-2 2H15a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2Z" />
-        <path d="M28 10v7h7" />
-        <path d="M18.5 22.5L29.5 26.5L21.5 33Z" />
+      <rect width="48" height="48" rx="6" fill={`url(#${id})`} />
+      <g fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M23 36H13V9h14l6 6v9.5" />
+        <path d="M27 9v6h6" />
+        <path d="M17 17h7M17 21h11M17 25h6" />
+        <circle cx="31" cy="32" r="5.5" />
+        <path d="M35 36l4.5 4.5" />
       </g>
-      <g fill="#fff">
-        <circle cx="18.5" cy="22.5" r="2.7" />
-        <circle cx="29.5" cy="26.5" r="2.7" />
-        <circle cx="21.5" cy="33" r="2.7" />
-      </g>
+      <path
+        fill="#fff"
+        d="M31 29.6c.4 1.6.8 2 2.4 2.4-1.6.4-2 .8-2.4 2.4-.4-1.6-.8-2-2.4-2.4 1.6-.4 2-.8 2.4-2.4Z"
+      />
     </svg>
   );
 }
