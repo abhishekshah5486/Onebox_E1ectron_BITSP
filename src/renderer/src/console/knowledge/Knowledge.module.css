@@ -226,7 +226,8 @@
   background: var(--kb-page);
 }
 
-.sparkle {
+.sparkle,
+.logo {
   flex: none;
 }
 

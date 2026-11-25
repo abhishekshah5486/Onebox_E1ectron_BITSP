@@ -39,3 +39,30 @@ export function FlowLoader({ label }: { label: string }) {
     </div>
   );
 }
+
+// The Knowledge service icon: a page of connected ideas on the assistant gradient.
+export function KnowledgeLogo({ size = 24 }: { size?: number }) {
+  const id = useId();
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className={styles.logo}>
+      <defs>
+        <linearGradient id={id} x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stopColor="#4c1d95" />
+          <stop offset="0.5" stopColor="#6d28d9" />
+          <stop offset="1" stopColor="#3b82f6" />
+        </linearGradient>
+      </defs>
+      <rect width="48" height="48" rx="7" fill={`url(#${id})`} />
+      <g fill="none" stroke="#fff" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round">
+        <path d="M15 10h13l7 7v20a2 2 0 0 1-2 2H15a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2Z" />
+        <path d="M28 10v7h7" />
+        <path d="M18.5 22.5L29.5 26.5L21.5 33Z" />
+      </g>
+      <g fill="#fff">
+        <circle cx="18.5" cy="22.5" r="2.7" />
+        <circle cx="29.5" cy="26.5" r="2.7" />
+        <circle cx="21.5" cy="33" r="2.7" />
+      </g>
+    </svg>
+  );
+}

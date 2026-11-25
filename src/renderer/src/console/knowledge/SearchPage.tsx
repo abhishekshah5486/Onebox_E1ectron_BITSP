@@ -42,7 +42,7 @@ import {
   type Scope,
 } from '../../knowledge/SearchView';
 import styles from './Knowledge.module.css';
-import { Sparkle } from './Sparkle';
+import { KnowledgeLogo } from './Sparkle';
 
 const MAIL = '__mail__';
 const CLAMP_CHARS = 360;
@@ -466,7 +466,7 @@ export function SearchPage({ onSearched, selected, onPreview, onOpen }: Props) {
       <div className={styles.searchColumn}>
         <SpaceBetween size="l">
           <Box textAlign="center" padding={{ top: 'xxxl' }}>
-            <Sparkle size={48} />
+            <KnowledgeLogo size={48} />
             <Box variant="h1" padding={{ top: 's' }}>
               How can I help you today?
             </Box>

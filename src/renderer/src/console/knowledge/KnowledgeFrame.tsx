@@ -11,7 +11,7 @@ import { useCollections } from '../../api/hub';
 import { useKnowledgeSources } from '../../api/knowledge';
 import { useAccounts } from '../../api/queries';
 import styles from './Knowledge.module.css';
-import { Sparkle } from './Sparkle';
+import { KnowledgeLogo } from './Sparkle';
 
 const FOLDED = 'onebox.knowledge-rail-folded';
 
@@ -185,7 +185,7 @@ export function KnowledgeFrame({
       ) : (
         <nav className={styles.rail} aria-label="Knowledge">
           <div className={styles.railHeader}>
-            <Sparkle />
+            <KnowledgeLogo size={24} />
             <span className={styles.railTitle}>Knowledge</span>
             <Button
               variant="icon"
