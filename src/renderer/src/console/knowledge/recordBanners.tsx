@@ -67,7 +67,7 @@ export function recordBanners(
       tone: 'progress',
       solid: true,
       header: 'Indexing in progress',
-      children: `This ${noun} is being read and indexed. It appears in search results once indexing completes.`,
+      children: 'It appears in search results once indexing completes.',
     });
   }
 
@@ -87,7 +87,7 @@ export function recordBanners(
           >
             {record.attachedTo.name}
           </Link>
-          . It is deleted and restored together with its email.
+          . It’s deleted and restored with it.
         </>
       ),
     });
@@ -95,7 +95,7 @@ export function recordBanners(
     banners.details.push({
       key: 'version',
       tone: 'info',
-      children: `This file was replaced ${plural(record.version - 1, 'time')}. Only the latest version is searched.`,
+      children: `Replaced ${plural(record.version - 1, 'time')}. Only the latest version is searched.`,
     });
 
   if (status === 'FAILED')
@@ -103,7 +103,7 @@ export function recordBanners(
       key: 'failed',
       tone: 'error',
       header: 'Indexing failed',
-      children: `${record.reason ?? `This ${noun} couldn't be indexed.`} It isn't included in search results.`,
+      children: record.reason ?? `This ${noun} couldn't be read, so it isn't searchable.`,
       action: indexAgain,
     });
   else if (status === 'PASSWORD_PROTECTED')
@@ -111,30 +111,28 @@ export function recordBanners(
       key: 'locked',
       tone: 'warning',
       header: 'Password protected',
-      children:
-        'This file is encrypted, so its text can’t be read. Remove the password and upload it again to make it searchable.',
+      children: 'Remove the password and upload it again to make it searchable.',
     });
   else if (status === 'FILE_TYPE_NOT_SUPPORTED')
     banners.indexing.push({
       key: 'type',
       tone: 'warning',
       header: 'File type not supported',
-      children:
-        'Text can’t be read from this kind of file, so it isn’t searchable. It stays listed with its details.',
+      children: 'Its text can’t be read, so it isn’t searchable.',
     });
   else if (status === 'EMPTY')
     banners.indexing.push({
       key: 'empty',
       tone: 'info',
       header: 'No text found',
-      children: `This ${noun} has no readable text, so it doesn't appear in search results.`,
+      children: `It has no readable text, so it isn't searchable.`,
     });
   else if (status === 'COMPLETED' && record.pointCount === 0)
     banners.indexing.push({
       key: 'nothing',
       tone: 'warning',
       header: 'Nothing was indexed',
-      children: `The ${noun} was read, but no searchable text came out of it. Index it again to retry.`,
+      children: 'No searchable text came out of it. Index it again to retry.',
       action: indexAgain,
     });
 
@@ -167,25 +165,43 @@ export function recordBanners(
       key: 'pending',
       tone: 'info',
       header: 'Summary pending',
-      children: `A summary, category and topics appear here once the ${noun} has been analyzed.`,
+      children: `Appears once the ${noun} is analyzed.`,
     });
   else if (record.classifyStatus === 'skipped' || record.classifyStatus === 'failed')
     banners.content.push({
       key: 'none',
       tone: record.classifyStatus === 'failed' ? 'error' : 'info',
       header: record.classifyStatus === 'failed' ? 'Summary failed' : 'Not summarized',
-      children: `${classify?.reason ?? `No summary was made for this ${noun}.`} Search still covers its full text.`,
+      children: `${classify?.reason ?? 'No summary was made.'} Search isn't affected.`,
       // Only the summary is made again, from the text already indexed.
       ...(record.classifyStatus === 'failed' && status === 'COMPLETED'
         ? { action: <Button onClick={actions.summarizeAgain}>Summarize again</Button> }
         : {}),
     });
 
+  for (const slot of Object.keys(banners) as BannerSlot[]) banners[slot].sort(bySeverity);
   return banners;
 }
 
+const SEVERITY: Record<string, number> = {
+  error: 0,
+  burgundy: 1,
+  warning: 2,
+  progress: 3,
+  info: 4,
+  success: 5,
+};
+// The most pressing first, as a card shows only the first until asked for the rest.
+const bySeverity = (a: BannerProps, b: BannerProps) => SEVERITY[a.tone]! - SEVERITY[b.tone]!;
+
 // Every banner the page can show, in the cards it shows them in (for a look at them all).
 export function sampleBanners(actions: BannerActions): Banners {
+  const banners = sampleList(actions);
+  for (const slot of Object.keys(banners) as BannerSlot[]) banners[slot].sort(bySeverity);
+  return banners;
+}
+
+function sampleList(actions: BannerActions): Banners {
   const button = (text: string) => <Button onClick={() => undefined}>{text}</Button>;
   return {
     page: [
@@ -194,8 +210,7 @@ export function sampleBanners(actions: BannerActions): Banners {
         tone: 'progress',
         solid: true,
         header: 'Indexing in progress',
-        children:
-          'This email is being read and indexed. It appears in search results once indexing completes.',
+        children: 'It appears in search results once indexing completes.',
       },
       {
         key: 'user',
@@ -230,7 +245,7 @@ export function sampleBanners(actions: BannerActions): Banners {
       {
         key: 'version',
         tone: 'info',
-        children: 'This file was replaced 2 times. Only the latest version is searched.',
+        children: 'Replaced 2 times. Only the latest version is searched.',
       },
     ],
     indexing: [
@@ -238,21 +253,20 @@ export function sampleBanners(actions: BannerActions): Banners {
         key: 'failed',
         tone: 'error',
         header: 'Indexing failed',
-        children: 'Larger than 100 MB, so it wasn’t read. It isn’t included in search results.',
+        children: 'Larger than 100 MB, so it wasn’t read.',
         action: button('Index again'),
       },
       {
         key: 'locked',
         tone: 'warning',
         header: 'Password protected',
-        children:
-          'This file is encrypted, so its text can’t be read. Remove the password and upload it again to make it searchable.',
+        children: 'Remove the password and upload it again to make it searchable.',
       },
       {
         key: 'empty',
         tone: 'info',
         header: 'No text found',
-        children: 'This email has no readable text, so it doesn’t appear in search results.',
+        children: 'It has no readable text, so it isn’t searchable.',
       },
     ],
     attachments: [
@@ -276,20 +290,20 @@ export function sampleBanners(actions: BannerActions): Banners {
         key: 'pending',
         tone: 'info',
         header: 'Summary pending',
-        children: 'A summary, category and topics appear here once the email has been analyzed.',
+        children: 'Appears once the email is analyzed.',
       },
       {
         key: 'none',
         tone: 'error',
         header: 'Summary failed',
-        children: 'The model didn’t respond in time. Search still covers its full text.',
+        children: 'The model didn’t respond in time. Search isn’t affected.',
         action: button('Summarize again'),
       },
       {
         key: 'success',
         tone: 'success',
         header: 'Summary ready',
-        children: 'Summarized, categorized and tagged with topics.',
+        children: 'Summarized, categorized and tagged.',
       },
     ],
   };

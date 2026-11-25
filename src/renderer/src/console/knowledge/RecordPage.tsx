@@ -38,9 +38,9 @@ type Layout = { id: Widget; rowSpan: number; columnSpan: number }[];
 // The layout a page starts with, and returns to on reset (the board has four columns).
 const DEFAULT: Layout = [
   { id: 'details', columnSpan: 2, rowSpan: 5 },
-  { id: 'indexing', columnSpan: 2, rowSpan: 5 },
+  { id: 'indexing', columnSpan: 1, rowSpan: 5 },
+  { id: 'content', columnSpan: 1, rowSpan: 5 },
   { id: 'attachments', columnSpan: 4, rowSpan: 4 },
-  { id: 'content', columnSpan: 4, rowSpan: 5 },
 ];
 
 const TITLES: Record<Widget, string> = {
@@ -51,7 +51,7 @@ const TITLES: Record<Widget, string> = {
 };
 
 // Kept per viewer in this browser: emails and files each have their own.
-const layoutKey = (mail: boolean) => `onebox.knowledge.record-layout.v3.${mail ? 'mail' : 'file'}`;
+const layoutKey = (mail: boolean) => `onebox.knowledge.record-layout.v4.${mail ? 'mail' : 'file'}`;
 
 function loadLayout(mail: boolean): Layout | null {
   try {
@@ -125,15 +125,27 @@ function ContentTabs({ record }: { record: RecordDetails }) {
 const SHORT = new Set(['EMPTY', 'FILE_TYPE_NOT_SUPPORTED', 'PASSWORD_PROTECTED', 'FAILED']);
 
 // A card's banners, above what it shows.
-function stack(list: Banners[BannerSlot]) {
-  return list.length ? (
-    <SpaceBetween size="s">
-      {list.map(({ key, ...b }) => (
+function BannerStack({ list, open = false }: { list: Banners[BannerSlot]; open?: boolean }) {
+  const [all, setAll] = useState(open);
+  if (list.length === 0) return null;
+  // The most pressing one; the rest on request, so a narrow card stays short.
+  const shown = all ? list : list.slice(0, 1);
+  return (
+    <SpaceBetween size="xs">
+      {shown.map(({ key, ...b }) => (
         <Banner key={key} {...b} />
       ))}
+      {list.length > 1 && !open && (
+        <Button variant="inline-link" onClick={() => setAll((on) => !on)}>
+          {all ? 'Show less' : `+${list.length - 1} more`}
+        </Button>
+      )}
     </SpaceBetween>
-  ) : null;
+  );
 }
+
+// Narrow cards show one at a time; the page and wide cards show all.
+const stack = (list: Banners[BannerSlot], open = false) => <BannerStack list={list} open={open} />;
 
 type Confirm = { title: string; label: string; body: ReactNode; run: () => Promise<unknown> };
 
@@ -439,12 +451,21 @@ export function RecordPage({
       ? sampleBanners(bannerActions)
       : recordBanners(record, files, retention, bannerActions);
 
+  // The default layout makes room for a card's banner (a narrow card wraps it more), and the
+  // cards sharing the top row grow together so it stays even.
+  const grow = (w: Layout[number]) => (banners[w.id].length ? (w.columnSpan === 1 ? 2 : 1) : 0);
+  const topGrow = Math.max(
+    0,
+    ...defaultFor(mail)
+      .filter((w) => w.columnSpan < 4)
+      .map(grow),
+  );
   const items: BoardProps.Item<Widget>[] = (layout ?? defaultFor(mail))
     .filter((w) => mail || w.id !== 'attachments')
     .map((w) => ({
       id: w.id,
       data: w.id,
-      rowSpan: w.rowSpan,
+      rowSpan: w.rowSpan + (layout === null ? (w.columnSpan === 4 ? grow(w) : topGrow) : 0),
       columnSpan: w.columnSpan,
       definition: { minRowSpan: 3, minColumnSpan: 1 },
     }));
@@ -497,7 +518,7 @@ export function RecordPage({
           {record.name}
         </span>
       </Header>
-      {stack(banners.page)}
+      {stack(banners.page, true)}
       <Board<Widget>
         items={items}
         i18nStrings={BOARD_STRINGS}
@@ -520,7 +541,7 @@ export function RecordPage({
             <AttachmentsTable
               id={record.id}
               onOpen={onOpen}
-              banners={stack(banners.attachments)}
+              banners={stack(banners.attachments, true)}
               problemsOnly={problemsOnly}
               frame={(header, table) => (
                 <BoardItem
