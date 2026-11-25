@@ -63,7 +63,8 @@ export function KnowledgeFrame({
   recent: string[];
   breadcrumbs: ReactNode;
   // A page darker than its containers (search), rather than the console's own.
-  deep?: boolean;
+  // A darker page behind containers; 'neutral' in the console home's greys.
+  deep?: boolean | 'neutral';
   children: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -218,7 +219,9 @@ export function KnowledgeFrame({
           </div>
         </nav>
       )}
-      <div className={`${styles.main} ${deep ? styles.deep : ''}`}>
+      <div
+        className={`${styles.main} ${deep ? styles.deep : ''} ${deep === 'neutral' ? styles.neutral : ''}`}
+      >
         <div className={styles.crumbs}>{breadcrumbs}</div>
         {children}
       </div>

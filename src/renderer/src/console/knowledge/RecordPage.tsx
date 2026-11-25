@@ -3,7 +3,6 @@ import BoardItem from '@cloudscape-design/board-components/board-item';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
-import ContentLayout from '@cloudscape-design/components/content-layout';
 import Header from '@cloudscape-design/components/header';
 import Link from '@cloudscape-design/components/link';
 import SpaceBetween from '@cloudscape-design/components/space-between';
@@ -25,8 +24,8 @@ import { useFlash } from '../../settings/flash';
 import tableStyles from '../../ui/DataTable.module.css';
 import { ConfirmModal } from './dialogs';
 import styles from './Knowledge.module.css';
-import { NodeIcon, NodeStatus, formatMs, nodeSize, problem, upper } from './parts';
-import { Preview, RecordFacts, stageIndicator } from './RecordPanel';
+import { NodeIcon, NodeStatus, formatMs, nodeSize, problem } from './parts';
+import { Preview, RecordFacts, RecordIndexing, RecordSummary } from './RecordPanel';
 import { FlowLoader } from './Sparkle';
 
 type Widget = 'details' | 'indexing' | 'content' | 'attachments';
@@ -35,9 +34,9 @@ type Layout = { id: Widget; rowSpan: number; columnSpan: number }[];
 // The layout a page starts with, and returns to on reset (the board has four columns).
 const DEFAULT: Layout = [
   { id: 'details', columnSpan: 2, rowSpan: 5 },
-  { id: 'indexing', columnSpan: 1, rowSpan: 5 },
-  { id: 'content', columnSpan: 1, rowSpan: 5 },
-  { id: 'attachments', columnSpan: 4, rowSpan: 5 },
+  { id: 'indexing', columnSpan: 2, rowSpan: 5 },
+  { id: 'attachments', columnSpan: 4, rowSpan: 4 },
+  { id: 'content', columnSpan: 4, rowSpan: 5 },
 ];
 
 const TITLES: Record<Widget, string> = {
@@ -48,7 +47,7 @@ const TITLES: Record<Widget, string> = {
 };
 
 // Kept per viewer in this browser: emails and files each have their own.
-const layoutKey = (mail: boolean) => `onebox.knowledge.record-layout.${mail ? 'mail' : 'file'}`;
+const layoutKey = (mail: boolean) => `onebox.knowledge.record-layout.v3.${mail ? 'mail' : 'file'}`;
 
 function loadLayout(mail: boolean): Layout | null {
   try {
@@ -91,45 +90,8 @@ const itemStrings = (title: string) => ({
   resizeHandleTooltipText: 'Drag to resize',
 });
 
-const STAGE_LABEL = { parse: 'Reading', index: 'Indexing', classify: 'Summary' } as const;
-
-// Each step of indexing as an entry: its state, why, and what it produced.
-function IndexingList({ record }: { record: RecordDetails }) {
-  const facts: Record<string, string | undefined> = {
-    parse: record.engine ? `Read with ${record.engine}` : undefined,
-    index:
-      record.pointCount !== undefined && record.pointCount !== null
-        ? `${record.blockCount ?? 0} blocks, ${record.pointCount} search points`
-        : undefined,
-  };
-  return (
-    <div className={styles.entries}>
-      <div className={styles.entry}>
-        <Box variant="h4">Status</Box>
-        {stageIndicator(upper(record.status))}
-        {record.reason && <Box color="text-body-secondary">{record.reason}</Box>}
-      </div>
-      {(record.stageStates ?? []).map((s) => (
-        <div key={s.stage} className={styles.entry}>
-          <Box variant="h4">{STAGE_LABEL[s.stage]}</Box>
-          {stageIndicator(s.status)}
-          {[s.reason !== record.reason ? s.reason : null, facts[s.stage]]
-            .filter(Boolean)
-            .map((line) => (
-              <Box key={line} color="text-body-secondary" fontSize="body-s">
-                {line}
-              </Box>
-            ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// What was read: its summary, its topics and its text, a tab each.
+// What was read: its summary (as in the side panel) and its text, a tab each.
 function ContentTabs({ record }: { record: RecordDetails }) {
-  const c = record.classification;
-  const topics = [...(c?.topics ?? []), ...(c?.organizations ?? [])];
   const [tab, setTab] = useState('summary');
   return (
     <Tabs
@@ -139,39 +101,10 @@ function ContentTabs({ record }: { record: RecordDetails }) {
         {
           id: 'summary',
           label: 'Summary',
-          content: c ? (
-            <div className={styles.entries}>
-              <div className={styles.entry}>{c.summary}</div>
-              {c.category && (
-                <div className={styles.entry}>
-                  <Box variant="h4">Category</Box>
-                  {c.category}
-                </div>
-              )}
-              {c.languages?.length ? (
-                <div className={styles.entry}>
-                  <Box variant="h4">Languages</Box>
-                  {c.languages.join(', ')}
-                </div>
-              ) : null}
-            </div>
+          content: record.classification ? (
+            <RecordSummary record={record} />
           ) : (
             <Box color="text-body-secondary">Not summarized yet.</Box>
-          ),
-        },
-        {
-          id: 'topics',
-          label: `Topics (${topics.length})`,
-          content: topics.length ? (
-            <div className={styles.entries}>
-              {topics.map((t) => (
-                <div key={t} className={styles.entry}>
-                  {t}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Box color="text-body-secondary">No topics found.</Box>
           ),
         },
         // Its text is read only once this tab is opened.
@@ -431,39 +364,36 @@ export function RecordPage({
   const body = (widget: Widget) => {
     if (widget === 'details')
       return <RecordFacts record={record} onOpen={onOpen} columns={2} withStatus={false} />;
-    if (widget === 'indexing') return <IndexingList record={record} />;
+    if (widget === 'indexing') return <RecordIndexing record={record} withStatus columns={2} />;
     return <ContentTabs record={record} />;
   };
 
   return (
-    <ContentLayout
-      header={
-        <Header
-          variant="h1"
-          actions={
-            <SpaceBetween direction="horizontal" size="xs">
-              <Button iconName="arrow-left" onClick={onBack}>
-                {backLabel}
-              </Button>
-              <Button disabled={layout === null} onClick={() => setLayout(null)}>
-                Reset to default layout
-              </Button>
-              <Button
-                variant="primary"
-                iconName={mail ? 'envelope' : 'download'}
-                onClick={() => onDownload(record)}
-              >
-                {mail ? 'Open email' : 'Download'}
-              </Button>
-            </SpaceBetween>
-          }
-        >
-          <span className={styles.twoLines} title={record.name}>
-            {record.name}
-          </span>
-        </Header>
-      }
-    >
+    <SpaceBetween size="l">
+      <Header
+        variant="h1"
+        actions={
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button iconName="arrow-left" onClick={onBack}>
+              {backLabel}
+            </Button>
+            <Button disabled={layout === null} onClick={() => setLayout(null)}>
+              Reset to default layout
+            </Button>
+            <Button
+              variant="primary"
+              iconName={mail ? 'envelope' : 'download'}
+              onClick={() => onDownload(record)}
+            >
+              {mail ? 'Open email' : 'Download'}
+            </Button>
+          </SpaceBetween>
+        }
+      >
+        <span className={styles.twoLines} title={record.name}>
+          {record.name}
+        </span>
+      </Header>
       <Board<Widget>
         items={items}
         i18nStrings={BOARD_STRINGS}
@@ -508,6 +438,6 @@ export function RecordPage({
           )
         }
       />
-    </ContentLayout>
+    </SpaceBetween>
   );
 }

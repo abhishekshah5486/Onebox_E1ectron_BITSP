@@ -147,7 +147,7 @@ export default function ConsoleKnowledge() {
     <KnowledgeFrame
       recent={recent}
       breadcrumbs={breadcrumbs}
-      deep={view === 'search' || Boolean(item)}
+      deep={item ? 'neutral' : view === 'search'}
     >
       {page()}
     </KnowledgeFrame>

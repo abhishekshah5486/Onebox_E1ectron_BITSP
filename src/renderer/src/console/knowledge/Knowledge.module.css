@@ -21,6 +21,25 @@
   --shadow-container-quglkl: 0 0 0 1px #424650;
 }
 
+/* A record's page in dark mode takes the console home's neutral greys: a near-black page,
+   raised grey widgets with a light edge, and grey (not blue) normal buttons. */
+:global(.awsui-dark-mode) .neutral {
+  --kb-page: #0f0f0f;
+  --kb-border: #414141;
+  --shadow-container-quglkl: 0 0 0 1px #414141;
+  --color-background-container-content-mjfil9: #161616;
+  --color-background-container-header-irktp5: #161616;
+  --color-border-divider-default-diwd4w: #414141;
+  --color-border-button-normal-default-5u0s6m: #8c8c94;
+  --color-text-button-normal-default-0rhdlx: #e9ebed;
+  --color-border-button-normal-hover-0pwlzm: #dedee3;
+  --color-text-button-normal-hover-a8yjvb: #ffffff;
+  --color-background-button-normal-hover-1ajrtx: #232323;
+  --color-border-button-normal-active-intpfi: #dedee3;
+  --color-text-button-normal-active-n48ns6: #ffffff;
+  --color-background-button-normal-active-yolxhj: #2b2b2b;
+}
+
 .rail,
 .folded {
   position: sticky;
@@ -427,25 +446,4 @@
   .main {
     padding-inline: 16px;
   }
-}
-
-/* Entries in a widget, divided as in a list. */
-.entries {
-  display: flex;
-  flex-direction: column;
-}
-
-.entry {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-block: 12px;
-}
-
-.entry + .entry {
-  border-top: 1px solid var(--kb-border);
-}
-
-.entry:first-child {
-  padding-top: 0;
 }
